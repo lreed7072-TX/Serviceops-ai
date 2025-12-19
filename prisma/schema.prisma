@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DISPATCHER
+  TECH
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum WorkOrderStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum VisitStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+model Org {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  invites    Invite[]
+  customers  Customer[]
+  sites      Site[]
+  assets     Asset[]
+  workOrders WorkOrder[]
+  visits     Visit[]
+  findings   Finding[]
+  measures   Measurement[]
+  files      File[]
+  reports    Report[]
+  kbFiles    KbFile[]
+  kbChunks   KbChunk[]
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  email     String
+  name      String?
+  role      Role     @default(TECH)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org            Org      @relation(fields: [orgId], references: [id])
+  invitesSent    Invite[] @relation("InviteSentBy")
+  assignedVisits Visit[]  @relation("VisitAssignedTech")
+
+  @@unique([orgId, email])
+  @@index([orgId])
+}
+
+model Invite {
+  id          String       @id @default(uuid()) @db.Uuid
+  orgId       String       @db.Uuid
+  email       String
+  role        Role
+  token       String       @unique
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime
+  invitedById String?      @db.Uuid
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  org       Org   @relation(fields: [orgId], references: [id])
+  invitedBy User? @relation("InviteSentBy", fields: [invitedById], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, email])
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  name      String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org       Org        @relation(fields: [orgId], references: [id])
+  sites     Site[]
+  assets    Asset[]
+  workOrders WorkOrder[]
+
+  @@index([orgId])
+}
+
+model Site {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @db.Uuid
+  customerId String   @db.Uuid
+  name       String
+  address    String?
+  city       String?
+  state      String?
+  postalCode String?
+  country    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org      Org      @relation(fields: [orgId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  assets   Asset[]
+  workOrders WorkOrder[]
+
+  @@index([orgId])
+  @@index([orgId, customerId])
+}
+
+model Asset {
+  id          String   @id @default(uuid()) @db.Uuid
+  orgId       String   @db.Uuid
+  customerId  String   @db.Uuid
+  siteId      String   @db.Uuid
+  name        String
+  serial      String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org      Org      @relation(fields: [orgId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  site     Site     @relation(fields: [siteId], references: [id])
+  workOrders WorkOrder[]
+
+  @@index([orgId])
+  @@index([orgId, siteId])
+  @@index([orgId, customerId])
+}
+
+model WorkOrder {
+  id          String          @id @default(uuid()) @db.Uuid
+  orgId       String          @db.Uuid
+  customerId  String          @db.Uuid
+  siteId      String          @db.Uuid
+  assetId     String?         @db.Uuid
+  title       String
+  description String?
+  status      WorkOrderStatus @default(OPEN)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  org      Org      @relation(fields: [orgId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  site     Site     @relation(fields: [siteId], references: [id])
+  asset    Asset?   @relation(fields: [assetId], references: [id])
+  visits   Visit[]
+
+  @@index([orgId])
+  @@index([orgId, customerId])
+}
+
+model Visit {
+  id             String     @id @default(uuid()) @db.Uuid
+  orgId          String     @db.Uuid
+  workOrderId    String     @db.Uuid
+  assignedTechId String?    @db.Uuid
+  status         VisitStatus @default(PLANNED)
+  scheduledFor   DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  summary        String?
+  outcome        String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  org        Org      @relation(fields: [orgId], references: [id])
+  workOrder  WorkOrder @relation(fields: [workOrderId], references: [id])
+  assignedTech User?   @relation("VisitAssignedTech", fields: [assignedTechId], references: [id])
+  findings   Finding[]
+  measures   Measurement[]
+  files      File[]
+  reports    Report[]
+
+  @@index([orgId])
+  @@index([orgId, workOrderId])
+}
+
+model Finding {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  visitId   String   @db.Uuid
+  category  String
+  details   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org   Org   @relation(fields: [orgId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, visitId])
+}
+
+model Measurement {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  visitId   String   @db.Uuid
+  name      String
+  value     String
+  unit      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org   Org   @relation(fields: [orgId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, visitId])
+}
+
+model File {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @db.Uuid
+  visitId    String?  @db.Uuid
+  reportId   String?  @db.Uuid
+  kbFileId   String?  @db.Uuid
+  filename   String
+  mimeType   String
+  storageKey String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org    Org     @relation(fields: [orgId], references: [id])
+  visit  Visit?  @relation(fields: [visitId], references: [id])
+  report Report? @relation(fields: [reportId], references: [id])
+  kbFile KbFile? @relation(fields: [kbFileId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, visitId])
+}
+
+model Report {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  visitId   String   @db.Uuid
+  title     String
+  status    String   @default("DRAFT")
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org    Org   @relation(fields: [orgId], references: [id])
+  visit  Visit @relation(fields: [visitId], references: [id])
+  files  File[]
+
+  @@index([orgId])
+  @@index([orgId, visitId])
+}
+
+model KbFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @db.Uuid
+  title        String
+  sourceUrl    String?
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org     Org      @relation(fields: [orgId], references: [id])
+  files   File[]
+  chunks  KbChunk[]
+
+  @@index([orgId])
+}
+
+model KbChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @db.Uuid
+  kbFileId   String   @db.Uuid
+  content    String
+  tokenCount Int?
+  embedding  Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org    Org    @relation(fields: [orgId], references: [id])
+  kbFile KbFile @relation(fields: [kbFileId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, kbFileId])
+}

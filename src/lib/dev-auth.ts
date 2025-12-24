@@ -1,9 +1,3 @@
-const nodeEnv = process.env.NODE_ENV;
-const vercelEnv = process.env.VERCEL_ENV; // "production" | "preview" | "development" | undefined
-const isNodeProduction = nodeEnv === "production";
-const isVercelDeployment = typeof vercelEnv === "string";
-const isVercelProduction = vercelEnv === "production";
-
 export type DevAuthSession = {
   orgId: string;
   userId: string;
@@ -22,9 +16,7 @@ const rawBypassFlag =
   process.env.DEV_AUTH_BYPASS ??
   "";
 
-const devBypassEnabled =
-  truthy(rawBypassFlag) &&
-  (!isNodeProduction || (isVercelDeployment && !isVercelProduction));
+const devBypassEnabled = truthy(rawBypassFlag);
 
 const envSession: DevAuthSession | null = (() => {
   if (!devBypassEnabled) return null;

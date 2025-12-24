@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson } from "@/lib/api";
+import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth, requireRole } from "@/lib/auth";
-import { Role, WorkOrderStatus } from "@prisma/client";
+import {
+  ExecutionMode,
+  Role,
+  WorkOrderStatus,
+  WorkPackageType,
+} from "@prisma/client";
 
 type WorkOrderPayload = {
   customerId?: string;
@@ -11,6 +16,7 @@ type WorkOrderPayload = {
   title?: string;
   description?: string | null;
   status?: WorkOrderStatus;
+  executionMode?: ExecutionMode;
 };
 
 export async function GET(request: Request) {
@@ -68,7 +74,27 @@ export async function POST(request: Request) {
       title: body.title,
       description: body.description ?? null,
       status: body.status ?? WorkOrderStatus.OPEN,
+      executionMode: body.executionMode ?? ExecutionMode.UNIFIED,
     },
+  });
+
+  const packageTemplates =
+    workOrder.executionMode === ExecutionMode.MULTI_LANE
+      ? [
+          { type: WorkPackageType.MECHANICAL, name: "Mechanical" },
+          { type: WorkPackageType.ELECTRICAL, name: "Electrical" },
+          { type: WorkPackageType.CONTROLS, name: "Controls" },
+          { type: WorkPackageType.INSTRUMENTATION, name: "Instrumentation" },
+        ]
+      : [{ type: WorkPackageType.MECH_ELEC_UNIFIED, name: "Mech/Electrical Unified" }];
+
+  await prisma.workPackage.createMany({
+    data: packageTemplates.map((pkg) => ({
+      orgId: authResult.auth.orgId,
+      workOrderId: workOrder.id,
+      packageType: pkg.type,
+      name: pkg.name,
+    })),
   });
 
   return NextResponse.json({ data: workOrder }, { status: 201 });

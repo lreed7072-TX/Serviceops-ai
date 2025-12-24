@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson } from "@/lib/api";
+import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth, requireRole } from "@/lib/auth";
-import { Role, WorkOrderStatus } from "@prisma/client";
+import { ExecutionMode, Role, WorkOrderStatus } from "@prisma/client";
 
 type WorkOrderUpdatePayload = {
   title?: string;
   description?: string | null;
   status?: WorkOrderStatus;
+  executionMode?: ExecutionMode;
 };
 
 type RouteParams = {
@@ -57,6 +58,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       title: body.title ?? existing.title,
       description: body.description ?? existing.description,
       status: body.status ?? existing.status,
+      executionMode: body.executionMode ?? existing.executionMode,
     },
   });
 

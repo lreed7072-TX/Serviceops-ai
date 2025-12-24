@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -27,11 +28,63 @@ enum WorkOrderStatus {
   CANCELED
 }
 
+enum ExecutionMode {
+  UNIFIED
+  MULTI_LANE
+}
+
+enum WorkPackageType {
+  MECH_ELEC_UNIFIED
+  MECHANICAL
+  ELECTRICAL
+  CONTROLS
+  INSTRUMENTATION
+}
+
+enum AssetStatus {
+  ACTIVE
+  INACTIVE
+  RETIRED
+}
+
+enum AssetCriticality {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+  SKIPPED
+}
+
+enum TaskEvidenceType {
+  NOTE
+  PHOTO
+  FILE
+}
+
 enum VisitStatus {
   PLANNED
   IN_PROGRESS
   COMPLETED
   BLOCKED
+}
+
+enum ReportTemplateStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ReportBlockType {
+  HEADING
+  RICH_TEXT
+  TABLE
+  IMAGE
 }
 
 model Org {
@@ -40,19 +93,24 @@ model Org {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users      User[]
-  invites    Invite[]
-  customers  Customer[]
-  sites      Site[]
-  assets     Asset[]
-  workOrders WorkOrder[]
-  visits     Visit[]
-  findings   Finding[]
-  measures   Measurement[]
-  files      File[]
-  reports    Report[]
-  kbFiles    KbFile[]
-  kbChunks   KbChunk[]
+  users        User[]
+  invites      Invite[]
+  customers    Customer[]
+  sites        Site[]
+  assets       Asset[]
+  workOrders   WorkOrder[]
+  visits       Visit[]
+  findings     Finding[]
+  measures     Measurement[]
+  files        File[]
+  reports      Report[]
+  kbFiles      KbFile[]
+  kbChunks     KbChunk[]
+  workPackages WorkPackage[]
+  tasks        TaskInstance[]
+  taskEvidence TaskEvidence[]
+  reportTemplates ReportTemplate[]
+  reportBlocks ReportBlock[]
 }
 
 model User {
@@ -64,9 +122,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  org            Org      @relation(fields: [orgId], references: [id])
-  invitesSent    Invite[] @relation("InviteSentBy")
-  assignedVisits Visit[]  @relation("VisitAssignedTech")
+  org            Org           @relation(fields: [orgId], references: [id])
+  invitesSent    Invite[]      @relation("InviteSentBy")
+  assignedVisits Visit[]       @relation("VisitAssignedTech")
+  leadPackages   WorkPackage[]   @relation("WorkPackageLead")
+  assignedTasks  TaskInstance[]  @relation("TaskAssignedTo")
+  createdTaskEvidence TaskEvidence[] @relation("TaskEvidenceCreatedBy")
+  createdReportTemplates ReportTemplate[] @relation("ReportTemplateCreatedBy")
+  updatedReportTemplates ReportTemplate[] @relation("ReportTemplateUpdatedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -130,19 +193,27 @@ model Site {
 }
 
 model Asset {
-  id          String   @id @default(uuid()) @db.Uuid
-  orgId       String   @db.Uuid
-  customerId  String   @db.Uuid
-  siteId      String   @db.Uuid
-  name        String
-  serial      String?
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String            @id @default(uuid()) @db.Uuid
+  orgId                  String            @db.Uuid
+  customerId             String            @db.Uuid
+  siteId                 String            @db.Uuid
+  name                   String
+  manufacturer           String?
+  model                  String?
+  serialNumber           String?
+  assetTag               String?
+  location               String?
+  notes                  String?
+  status                 AssetStatus       @default(ACTIVE)
+  criticality            AssetCriticality?
+  nameplateSchemaVersion Int               @default(1)
+  nameplate              Json?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
-  org      Org      @relation(fields: [orgId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
-  site     Site     @relation(fields: [siteId], references: [id])
+  org        Org        @relation(fields: [orgId], references: [id])
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  site       Site       @relation(fields: [siteId], references: [id])
   workOrders WorkOrder[]
 
   @@index([orgId])
@@ -159,6 +230,7 @@ model WorkOrder {
   title       String
   description String?
   status      WorkOrderStatus @default(OPEN)
+  executionMode ExecutionMode @default(UNIFIED)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -167,9 +239,76 @@ model WorkOrder {
   site     Site     @relation(fields: [siteId], references: [id])
   asset    Asset?   @relation(fields: [assetId], references: [id])
   visits   Visit[]
+  packages WorkPackage[]
+  tasks    TaskInstance[]
 
   @@index([orgId])
   @@index([orgId, customerId])
+}
+
+model WorkPackage {
+  id          String          @id @default(uuid()) @db.Uuid
+  orgId       String          @db.Uuid
+  workOrderId String          @db.Uuid
+  packageType WorkPackageType
+  name        String
+  status      String          @default("PLANNED")
+  leadTechId  String?         @db.Uuid
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  org       Org       @relation(fields: [orgId], references: [id])
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
+  leadTech  User?     @relation("WorkPackageLead", fields: [leadTechId], references: [id])
+  tasks     TaskInstance[]
+
+  @@index([orgId])
+  @@index([orgId, workOrderId])
+}
+
+model TaskInstance {
+  id            String      @id @default(uuid()) @db.Uuid
+  orgId         String      @db.Uuid
+  workOrderId   String      @db.Uuid
+  workPackageId String      @db.Uuid
+  title         String
+  description   String?
+  status        TaskStatus  @default(TODO)
+  sequenceNumber Int?
+  assignedToId  String?     @db.Uuid
+  isCritical    Boolean     @default(false)
+  requiresEvidence Boolean  @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  org        Org         @relation(fields: [orgId], references: [id])
+  workOrder  WorkOrder   @relation(fields: [workOrderId], references: [id])
+  workPackage WorkPackage @relation(fields: [workPackageId], references: [id])
+  assignedTo User?       @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  evidence   TaskEvidence[]
+
+  @@index([orgId])
+  @@index([orgId, workOrderId])
+  @@index([orgId, workPackageId])
+}
+
+model TaskEvidence {
+  id              String           @id @default(uuid()) @db.Uuid
+  orgId           String           @db.Uuid
+  taskInstanceId  String           @db.Uuid
+  type            TaskEvidenceType
+  noteText        String?
+  url             String?
+  createdByUserId String           @db.Uuid
+  createdAt       DateTime         @default(now())
+
+  org           Org         @relation(fields: [orgId], references: [id])
+  taskInstance  TaskInstance @relation(fields: [taskInstanceId], references: [id])
+  createdByUser User        @relation("TaskEvidenceCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, taskInstanceId])
+  @@index([orgId, createdByUserId])
 }
 
 model Visit {
@@ -269,6 +408,47 @@ model Report {
 
   @@index([orgId])
   @@index([orgId, visitId])
+}
+
+model ReportTemplate {
+  id              String               @id @default(uuid()) @db.Uuid
+  orgId           String               @db.Uuid
+  name            String
+  description     String?
+  status          ReportTemplateStatus @default(DRAFT)
+  schemaVersion   Int                  @default(1)
+  definition      Json
+  createdByUserId String               @db.Uuid
+  updatedByUserId String?              @db.Uuid
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  org           Org  @relation(fields: [orgId], references: [id])
+  createdByUser User @relation("ReportTemplateCreatedBy", fields: [createdByUserId], references: [id])
+  updatedByUser User? @relation("ReportTemplateUpdatedBy", fields: [updatedByUserId], references: [id])
+  blocks        ReportBlock[] @relation("ReportTemplateBlocks")
+
+  @@index([orgId])
+  @@index([orgId, status])
+}
+
+model ReportBlock {
+  id               String          @id @default(uuid()) @db.Uuid
+  orgId            String          @db.Uuid
+  reportTemplateId String          @db.Uuid
+  type             ReportBlockType
+  title            String?
+  props            Json
+  sortOrder        Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  org            Org            @relation(fields: [orgId], references: [id])
+  reportTemplate ReportTemplate @relation("ReportTemplateBlocks", fields: [reportTemplateId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, reportTemplateId])
+  @@index([orgId, reportTemplateId, sortOrder])
 }
 
 model KbFile {

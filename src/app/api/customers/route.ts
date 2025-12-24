@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson } from "@/lib/api";
+import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
 
 type CustomerPayload = {

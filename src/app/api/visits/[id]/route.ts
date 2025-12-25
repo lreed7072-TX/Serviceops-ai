@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
 import { VisitStatus } from "@prisma/client";
+export const runtime = "nodejs";
+
 
 type VisitUpdatePayload = {
   assignedTechId?: string | null;

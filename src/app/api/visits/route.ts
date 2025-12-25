@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { Role, VisitStatus } from "@prisma/client";
+export const runtime = "nodejs";
+
 
 type VisitPayload = {
   workOrderId?: string;

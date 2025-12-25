@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
+export const runtime = "nodejs";
+
 
 type RouteParams = {
   params: Promise<{ id: string }>;

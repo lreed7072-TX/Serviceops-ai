@@ -4,6 +4,8 @@ import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { randomUUID } from "crypto";
+export const runtime = "nodejs";
+
 
 type InvitePayload = {
   email?: string;

@@ -4,6 +4,8 @@ import { AssetCriticality, AssetStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
+export const runtime = "nodejs";
+
 
 const optionalTrimmedString = (max: number) =>
   z.preprocess(

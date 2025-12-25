@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { InviteStatus } from "@prisma/client";
+export const runtime = "nodejs";
+
 
 type AcceptInvitePayload = {
   token?: string;

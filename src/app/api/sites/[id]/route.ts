@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
+export const runtime = "nodejs";
+
 
 type SiteUpdatePayload = {
   name?: string;

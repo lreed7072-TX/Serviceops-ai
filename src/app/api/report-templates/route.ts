@@ -6,7 +6,6 @@ import { requireAuth, requireRole } from "@/lib/auth";
 import { Prisma, ReportTemplateStatus, Role } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 const definitionSchema = z.object({}).passthrough();
 
 const templateCreateSchema = z

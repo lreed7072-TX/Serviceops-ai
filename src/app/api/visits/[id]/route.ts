@@ -5,7 +5,6 @@ import { requireAuth } from "@/lib/auth";
 import { VisitStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 type VisitUpdatePayload = {
   assignedTechId?: string | null;
   status?: VisitStatus;

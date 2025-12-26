@@ -4,7 +4,6 @@ import { jsonError, parseJson } from "@/lib/api-server";
 import { InviteStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 type AcceptInvitePayload = {
   token?: string;
   name?: string | null;

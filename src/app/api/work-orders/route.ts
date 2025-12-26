@@ -3,13 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth, requireRole } from "@/lib/auth";
 import {
-export const runtime = "nodejs";
-
   ExecutionMode,
   Role,
   WorkOrderStatus,
   WorkPackageType,
 } from "@prisma/client";
+
+export const runtime = "nodejs";
 
 type WorkOrderPayload = {
   customerId?: string;

@@ -5,7 +5,6 @@ import { requireAuth, requireRole } from "@/lib/auth";
 import { Role, WorkPackageType } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 type RouteParams = {
   params: Promise<{ id: string }>;
 };

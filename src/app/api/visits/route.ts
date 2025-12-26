@@ -5,7 +5,6 @@ import { requireAuth, requireRole } from "@/lib/auth";
 import { Role, VisitStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 type VisitPayload = {
   workOrderId?: string;
   assignedTechId?: string | null;

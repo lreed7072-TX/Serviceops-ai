@@ -5,7 +5,6 @@ import { requireAuth, requireRole } from "@/lib/auth";
 import { ExecutionMode, Role, WorkOrderStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 type WorkOrderUpdatePayload = {
   title?: string;
   description?: string | null;

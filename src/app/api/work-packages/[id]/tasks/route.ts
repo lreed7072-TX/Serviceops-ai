@@ -5,7 +5,6 @@ import { requireAuth } from "@/lib/auth";
 import { TaskStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
-
 type RouteParams = {
   params: Promise<{ id: string }>;
 };

@@ -6,7 +6,6 @@ import { Role } from "@prisma/client";
 import { randomUUID } from "crypto";
 export const runtime = "nodejs";
 
-
 type InvitePayload = {
   email?: string;
   role?: Role;

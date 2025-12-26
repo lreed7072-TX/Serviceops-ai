@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
 import {
-export const runtime = "nodejs";
-
   assetUpdateSchema,
   buildAssetUpdateData,
 } from "../route";
+
+export const runtime = "nodejs";
 
 type RouteParams = {
   params: Promise<{ id: string }>;

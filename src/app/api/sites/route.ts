@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
+
 export const runtime = "nodejs";
 
 type SitePayload = {
@@ -14,47 +15,60 @@ type SitePayload = {
   country?: string | null;
 };
 
+const errorMessage = (err: unknown) =>
+  err instanceof Error ? err.message : String(err);
+
 export async function GET(request: Request) {
   const authResult = requireAuth(request);
   if ("error" in authResult) return authResult.error;
 
-  const sites = await prisma.site.findMany({
-    where: { orgId: authResult.auth.orgId },
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const sites = await prisma.site.findMany({
+      where: { orgId: authResult.auth.orgId },
+      orderBy: { createdAt: "desc" },
+    });
 
-  return NextResponse.json({ data: sites });
+    return NextResponse.json({ data: sites });
+  } catch (err) {
+    console.error("GET /api/sites failed:", err);
+    return NextResponse.json({ error: errorMessage(err) }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   const authResult = requireAuth(request);
   if ("error" in authResult) return authResult.error;
 
-  const body = await parseJson<SitePayload>(request);
-  if (!body?.customerId || !body?.name) {
-    return jsonError("Customer ID and site name are required.");
+  try {
+    const body = await parseJson<SitePayload>(request);
+    if (!body?.customerId || !body?.name) {
+      return jsonError("Customer ID and site name are required.");
+    }
+
+    const customer = await prisma.customer.findFirst({
+      where: { id: body.customerId, orgId: authResult.auth.orgId },
+    });
+
+    if (!customer) {
+      return jsonError("Customer not found.", 404);
+    }
+
+    const site = await prisma.site.create({
+      data: {
+        orgId: authResult.auth.orgId,
+        customerId: customer.id,
+        name: body.name,
+        address: body.address ?? null,
+        city: body.city ?? null,
+        state: body.state ?? null,
+        postalCode: body.postalCode ?? null,
+        country: body.country ?? null,
+      },
+    });
+
+    return NextResponse.json({ data: site }, { status: 201 });
+  } catch (err) {
+    console.error("POST /api/sites failed:", err);
+    return NextResponse.json({ error: errorMessage(err) }, { status: 500 });
   }
-
-  const customer = await prisma.customer.findFirst({
-    where: { id: body.customerId, orgId: authResult.auth.orgId },
-  });
-
-  if (!customer) {
-    return jsonError("Customer not found.", 404);
-  }
-
-  const site = await prisma.site.create({
-    data: {
-      orgId: authResult.auth.orgId,
-      customerId: customer.id,
-      name: body.name,
-      address: body.address ?? null,
-      city: body.city ?? null,
-      state: body.state ?? null,
-      postalCode: body.postalCode ?? null,
-      country: body.country ?? null,
-    },
-  });
-
-  return NextResponse.json({ data: site }, { status: 201 });
 }

@@ -7,14 +7,6 @@ export type AuthContext = {
   role: Role;
 };
 
-const truthy = (value?: string | null): boolean =>
-  typeof value === "string" && value.toLowerCase() === "true";
-
-// Explicitly enabled + never Vercel production
-const devBypassEnabled =
-  truthy(process.env.DEV_AUTH_BYPASS ?? process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS ?? "") &&
-  process.env.VERCEL_ENV !== "production";
-
 function getDevEnvAuth() {
   const orgId = process.env.DEV_ORG_ID ?? process.env.NEXT_PUBLIC_DEV_ORG_ID ?? null;
   const userId = process.env.DEV_USER_ID ?? process.env.NEXT_PUBLIC_DEV_USER_ID ?? null;
@@ -22,17 +14,21 @@ function getDevEnvAuth() {
   return { orgId, userId, role };
 }
 
+const isVercelProduction = process.env.VERCEL_ENV === "production";
+
 export function getAuthContext(request: Request): AuthContext | null {
   let orgId = request.headers.get("x-org-id");
   let userId = request.headers.get("x-user-id");
   let role = request.headers.get("x-role");
 
-  // Preview/dev bypass fallback
-  if ((!orgId || !userId || !role) && devBypassEnabled) {
+  // Preview/dev fallback: if env IDs exist and we're NOT Vercel production, use them.
+  if ((!orgId || !userId || !role) && !isVercelProduction) {
     const envAuth = getDevEnvAuth();
-    orgId = orgId ?? envAuth.orgId;
-    userId = userId ?? envAuth.userId;
-    role = role ?? envAuth.role;
+    if (envAuth.orgId && envAuth.userId && envAuth.role) {
+      orgId = orgId ?? envAuth.orgId;
+      userId = userId ?? envAuth.userId;
+      role = role ?? envAuth.role;
+    }
   }
 
   if (!orgId || !userId || !role) return null;

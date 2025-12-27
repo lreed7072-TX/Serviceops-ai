@@ -10,9 +10,6 @@ type CustomerPayload = {
   status?: string;
 };
 
-const errorMessage = (err: unknown) =>
-  err instanceof Error ? err.message : String(err);
-
 export async function GET(request: Request) {
   const authResult = requireAuth(request);
   if ("error" in authResult) return authResult.error;
@@ -26,11 +23,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: customers });
   } catch (err) {
     console.error("GET /api/customers failed:", err);
-    // In preview/dev we return the message so you can see the real cause.
-    return NextResponse.json(
-      { error: errorMessage(err) },
-      { status: 500 }
-    );
+    return jsonError("Internal server error.", 500);
   }
 }
 
@@ -55,9 +48,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: customer }, { status: 201 });
   } catch (err) {
     console.error("POST /api/customers failed:", err);
-    return NextResponse.json(
-      { error: errorMessage(err) },
-      { status: 500 }
-    );
+    return jsonError("Internal server error.", 500);
   }
 }

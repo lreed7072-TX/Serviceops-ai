@@ -15,9 +15,6 @@ type SitePayload = {
   country?: string | null;
 };
 
-const errorMessage = (err: unknown) =>
-  err instanceof Error ? err.message : String(err);
-
 export async function GET(request: Request) {
   const authResult = requireAuth(request);
   if ("error" in authResult) return authResult.error;
@@ -31,7 +28,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: sites });
   } catch (err) {
     console.error("GET /api/sites failed:", err);
-    return NextResponse.json({ error: errorMessage(err) }, { status: 500 });
+    return jsonError("Internal server error.", 500);
   }
 }
 
@@ -69,6 +66,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: site }, { status: 201 });
   } catch (err) {
     console.error("POST /api/sites failed:", err);
-    return NextResponse.json({ error: errorMessage(err) }, { status: 500 });
+    return jsonError("Internal server error.", 500);
   }
 }

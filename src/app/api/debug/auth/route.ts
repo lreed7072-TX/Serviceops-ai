@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   const report = {
     vercelEnv: process.env.VERCEL_ENV ?? null,
     devAuthBypass: process.env.DEV_AUTH_BYPASS === "true",
+    devAuthBypassRaw: process.env.DEV_AUTH_BYPASS ?? null,
+    devAuthBypassTrim: (process.env.DEV_AUTH_BYPASS ?? "").trim() || null,
     hasDevOrgId: !!process.env.DEV_ORG_ID,
     hasDevUserId: !!process.env.DEV_USER_ID,
     hasDevRole: !!process.env.DEV_ROLE,

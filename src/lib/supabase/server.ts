@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
  * Server-side Supabase client for App Router.
  * Uses Next.js cookies store for session persistence/refresh.
  */
-export function createSupabaseServerClient() {
-  const cookieStore = cookies();
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,7 +23,7 @@ export function createSupabaseServerClient() {
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+            (cookieStore as any).set(name, value, options);
           }
         } catch {
           // In some server-component contexts, Next disallows setting cookies.

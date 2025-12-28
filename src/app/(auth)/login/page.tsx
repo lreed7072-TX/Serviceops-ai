@@ -18,9 +18,12 @@ const devSessionDefaults = {
 // Show dev session button only when explicitly enabled for Preview/dev
 const canUseDevSession = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
 
+// IMPORTANT: don't throw during prerender/build — just disable login UI if not configured
+const hasSupabaseEnv =
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,21 +31,30 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus("Signing in...");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setStatus(error.message);
+    if (!hasSupabaseEnv) {
+      setStatus("Supabase auth is not configured for this deployment.");
       return;
     }
 
-    setStatus("Signed in. Redirecting...");
-    router.push("/work-orders");
-    router.refresh();
+    setStatus("Signing in...");
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        setStatus(error.message);
+        return;
+      }
+
+      setStatus("Signed in. Redirecting...");
+      router.push("/work-orders");
+      router.refresh();
+    } catch (err) {
+      setStatus("Login failed (Supabase client init error).");
+      console.error(err);
+    }
   };
 
   const handleDevLogin = () => {
@@ -55,7 +67,7 @@ export default function LoginPage() {
     <div className="login-card">
       <span className="badge">Invite-only</span>
       <h2>Sign in</h2>
-      <p>Sign in with your Supabase account (STAGE/Preview).</p>
+      <p>Sign in with your Supabase account.</p>
 
       <form onSubmit={handleLogin}>
         <label htmlFor="email">Work email</label>
@@ -68,6 +80,7 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
           required
+          disabled={!hasSupabaseEnv}
         />
 
         <label htmlFor="password">Password</label>
@@ -80,9 +93,12 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
           required
+          disabled={!hasSupabaseEnv}
         />
 
-        <button type="submit">Sign in</button>
+        <button type="submit" disabled={!hasSupabaseEnv}>
+          Sign in
+        </button>
       </form>
 
       {status ? <p style={{ marginTop: 12, opacity: 0.9 }}>{status}</p> : null}

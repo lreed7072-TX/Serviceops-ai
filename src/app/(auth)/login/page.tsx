@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { setDevAuthSession } from "@/lib/dev-auth";
 
 const devSessionDefaults = {
@@ -13,15 +15,35 @@ const devSessionDefaults = {
   role: process.env.NEXT_PUBLIC_DEV_ROLE ?? "ADMIN",
 };
 
-const isProduction = process.env.NODE_ENV === "production";
-const canUseDevSession =
-  !isProduction &&
-  devSessionDefaults.orgId &&
-  devSessionDefaults.userId &&
-  devSessionDefaults.role;
+// Show dev session button only when explicitly enabled for Preview/dev
+const canUseDevSession = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<string>("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("Signing in...");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+
+    setStatus("Signed in. Redirecting...");
+    router.push("/work-orders");
+    router.refresh();
+  };
 
   const handleDevLogin = () => {
     if (!canUseDevSession) return;
@@ -33,16 +55,45 @@ export default function LoginPage() {
     <div className="login-card">
       <span className="badge">Invite-only</span>
       <h2>Sign in</h2>
-      <p>Use your invite-issued account and org context to access the platform.</p>
-      <form>
+      <p>Sign in with your Supabase account (STAGE/Preview).</p>
+
+      <form onSubmit={handleLogin}>
         <label htmlFor="email">Work email</label>
-        <input id="email" name="email" type="email" placeholder="you@company.com" />
-        <label htmlFor="org">Org ID</label>
-        <input id="org" name="org" placeholder="org_123" />
-        <button type="button">Request access</button>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="you@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          required
+        />
+
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
+
+        <button type="submit">Sign in</button>
       </form>
+
+      {status ? <p style={{ marginTop: 12, opacity: 0.9 }}>{status}</p> : null}
+
       {canUseDevSession && (
-        <button type="button" className="dev-session-button" onClick={handleDevLogin}>
+        <button
+          type="button"
+          className="dev-session-button"
+          onClick={handleDevLogin}
+          style={{ marginTop: 12 }}
+        >
           Use Dev Session
         </button>
       )}

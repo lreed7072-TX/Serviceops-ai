@@ -57,6 +57,35 @@ export default function LoginPage() {
     }
   };
 
+
+  const handleGoogleLogin = async () => {
+    if (!hasSupabaseEnv) {
+      setStatus("Supabase auth is not configured for this deployment.");
+      return;
+    }
+
+    setStatus("Redirecting to Google...");
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const origin = window.location.origin;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        setStatus(error.message);
+      }
+    } catch (err) {
+      setStatus("OAuth login failed (Supabase client init error).");
+      console.error(err);
+    }
+  };
+
   const handleDevLogin = () => {
     if (!canUseDevSession) return;
     setDevAuthSession(devSessionDefaults);
@@ -68,6 +97,16 @@ export default function LoginPage() {
       <span className="badge">Invite-only</span>
       <h2>Sign in</h2>
       <p>Sign in with your Supabase account.</p>
+
+
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        disabled={!hasSupabaseEnv}
+        style={{ marginBottom: 12 }}
+      >
+        Continue with Google
+      </button>
 
       <form onSubmit={handleLogin}>
         <label htmlFor="email">Work email</label>

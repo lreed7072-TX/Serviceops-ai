@@ -37,6 +37,7 @@ const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
 
 export async function POST(request: Request) {
   const authResult = requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
   if ("error" in authResult) return authResult.error;
 
   const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);

@@ -18,11 +18,13 @@ type SitePayload = {
 
 export async function GET(request: Request) {
   const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+
 if ("error" in authResult) return authResult.error;
 
   try {
     const sites = await prisma.site.findMany({
-      where: { orgId: authResult.auth.orgId },
+      where: { orgId: auth.orgId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
     }
 
     const customer = await prisma.customer.findFirst({
-      where: { id: body.customerId, orgId: authResult.auth.orgId },
+      where: { id: body.customerId, orgId: auth.orgId },
     });
 
     if (!customer) {
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
 
     const site = await prisma.site.create({
       data: {
-        orgId: authResult.auth.orgId,
+        orgId: auth.orgId,
         customerId: customer.id,
         name: body.name,
         address: body.address ?? null,

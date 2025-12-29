@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth } from "@/lib/auth";
+import { getAuthContextFromSupabase } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -11,12 +12,14 @@ type CustomerPayload = {
 };
 
 export async function GET(request: Request) {
-  const authResult = requireAuth(request);
+const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+
   if ("error" in authResult) return authResult.error;
 
   try {
     const customers = await prisma.customer.findMany({
-      where: { orgId: authResult.auth.orgId },
+      where: { orgId: auth.orgId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -29,6 +32,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const authResult = requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
   if ("error" in authResult) return authResult.error;
 
   try {
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
 
     const customer = await prisma.customer.create({
       data: {
-        orgId: authResult.auth.orgId,
+        orgId: auth.orgId,
         name: body.name,
         status: body.status ?? "ACTIVE",
       },

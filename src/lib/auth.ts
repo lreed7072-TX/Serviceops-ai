@@ -75,3 +75,36 @@ export function requireRole(auth: AuthContext, allowed: Role[]): NextResponse | 
   }
   return null;
 }
+
+// SUPABASE_SESSION_AUTH
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+
+
+
+
+/**
+ * Resolve auth context from Supabase session cookie + DB mapping (user_org_roles).
+ * Falls back to existing header/dev logic elsewhere (keep current behavior).
+ */
+export async function getAuthContextFromSupabase(): Promise<AuthContext | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return null;
+
+  const userId = data.user.id;
+
+  // NOTE: This uses raw SQL so we don't need a Prisma model immediately.
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT org_id::text as org_id, role as role
+     FROM user_org_roles
+     WHERE user_id = $1::uuid
+     LIMIT 1`,
+    userId
+  );
+
+  const row = (rows as any[])[0];
+  if (!row?.org_id || !row?.role) return null;
+
+  return { orgId: row.org_id, userId, role: row.role as Role };
+}

@@ -7,16 +7,32 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
 
-  // Always redirect back to app; session cookies should be set on this response.
-  const response = NextResponse.redirect(new URL("/work-orders", url.origin));
+  // Debug probe: lets us verify if the route sees the querystring at all.
+  if (code === "TEST") {
+    return NextResponse.json({
+      ok: true,
+      sawCode: code,
+      requestUrl: request.url,
+      cookieNames: request.cookies.getAll().map((c) => c.name),
+    });
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnon) {
-    console.error("[auth/callback] Missing Supabase env vars");
-    return response;
+    return NextResponse.json(
+      { ok: false, error: "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY" },
+      { status: 500 }
+    );
   }
+
+  // If we don't get a code, don't silently redirect—this is the exact symptom we're diagnosing.
+  if (!code) {
+    return NextResponse.json({ ok: false, error: "Missing ?code param" }, { status: 400 });
+  }
+
+  const response = NextResponse.redirect(new URL("/work-orders", url.origin));
 
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
     cookies: {
@@ -31,18 +47,11 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  if (!code) {
-    console.error("[auth/callback] Missing ?code param");
-    return response;
-  }
-
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    console.error("[auth/callback] exchangeCodeForSession error:", error.message);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  console.log("[auth/callback] Session exchange success");
   return response;
 }

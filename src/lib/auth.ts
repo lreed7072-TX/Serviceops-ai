@@ -98,7 +98,7 @@ export async function getAuthContextFromSupabase(): Promise<AuthContext | null> 
   const rows = await prisma.$queryRawUnsafe(
     `SELECT org_id::text as org_id, role as role
      FROM user_org_roles
-     WHERE user_id = $1
+     WHERE user_id = $1::uuid
      LIMIT 1`,
     userId
   );

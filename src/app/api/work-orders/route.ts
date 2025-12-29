@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, requireRole } from "@/lib/auth";
+import { requireAuth, requireRole, getAuthContextFromSupabase } from "@/lib/auth";
 import {
-import { getAuthContextFromSupabase } from "@/lib/auth";
   ExecutionMode,
   Role,
   WorkOrderStatus,

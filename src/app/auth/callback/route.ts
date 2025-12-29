@@ -6,15 +6,7 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-
-  // Debug probe: lets us verify if the route sees the querystring at all.
-  if (code === "TEST") {
-    return NextResponse.json({
-      ok: true,
-      sawCode: code,
-      requestUrl: request.url,
-      cookieNames: request.cookies.getAll().map((c) => c.name),
-    });
+);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -27,9 +19,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // If we don't get a code, don't silently redirect—this is the exact symptom we're diagnosing.
   if (!code) {
-    return NextResponse.json({ ok: false, error: "Missing ?code param" }, { status: 400 });
+    return NextResponse.redirect(new URL("/login", url.origin));
   }
 
   const response = NextResponse.redirect(new URL("/work-orders", url.origin));

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuth, requireRole } from "@/lib/auth";
 import {
+import { getAuthContextFromSupabase } from "@/lib/auth";
   ExecutionMode,
   Role,
   WorkOrderStatus,
@@ -22,11 +23,13 @@ type WorkOrderPayload = {
 };
 
 export async function GET(request: Request) {
-  const authResult = requireAuth(request);
+const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+
   if ("error" in authResult) return authResult.error;
 
   const workOrders = await prisma.workOrder.findMany({
-    where: { orgId: authResult.auth.orgId },
+    where: { orgId: auth.orgId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -47,14 +50,14 @@ export async function POST(request: Request) {
 
   const [customer, site, asset] = await Promise.all([
     prisma.customer.findFirst({
-      where: { id: body.customerId, orgId: authResult.auth.orgId },
+      where: { id: body.customerId, orgId: auth.orgId },
     }),
     prisma.site.findFirst({
-      where: { id: body.siteId, orgId: authResult.auth.orgId },
+      where: { id: body.siteId, orgId: auth.orgId },
     }),
     body.assetId
       ? prisma.asset.findFirst({
-          where: { id: body.assetId, orgId: authResult.auth.orgId },
+          where: { id: body.assetId, orgId: auth.orgId },
         })
       : Promise.resolve(null),
   ]);
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
 
   const workOrder = await prisma.workOrder.create({
     data: {
-      orgId: authResult.auth.orgId,
+      orgId: auth.orgId,
       customerId: customer.id,
       siteId: site.id,
       assetId: asset?.id ?? null,
@@ -92,7 +95,7 @@ export async function POST(request: Request) {
 
   await prisma.workPackage.createMany({
     data: packageTemplates.map((pkg) => ({
-      orgId: authResult.auth.orgId,
+      orgId: auth.orgId,
       workOrderId: workOrder.id,
       packageType: pkg.type,
       name: pkg.name,

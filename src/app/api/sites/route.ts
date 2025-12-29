@@ -37,6 +37,7 @@ if ("error" in authResult) return authResult.error;
 
 export async function POST(request: Request) {
   const authResult = requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
   if ("error" in authResult) return authResult.error;
 
   try {

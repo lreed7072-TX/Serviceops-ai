@@ -3,7 +3,7 @@ import { z, type ZodError, type ZodTypeAny } from "zod";
 import { AssetCriticality, AssetStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getAuthContextFromSupabase } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const optionalTrimmedString = (max: number) =>
@@ -160,11 +160,13 @@ const serializeNameplate = (
 };
 
 export async function GET(request: Request) {
-  const authResult = requireAuth(request);
+const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
+  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+
   if ("error" in authResult) return authResult.error;
 
   const assets = await prisma.asset.findMany({
-    where: { orgId: authResult.auth.orgId },
+    where: { orgId: auth.orgId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -184,10 +186,10 @@ export async function POST(request: Request) {
 
   const [customer, site] = await Promise.all([
     prisma.customer.findFirst({
-      where: { id: payload.customerId, orgId: authResult.auth.orgId },
+      where: { id: payload.customerId, orgId: auth.orgId },
     }),
     prisma.site.findFirst({
-      where: { id: payload.siteId, orgId: authResult.auth.orgId },
+      where: { id: payload.siteId, orgId: auth.orgId },
     }),
   ]);
 
@@ -200,7 +202,7 @@ export async function POST(request: Request) {
   }
 
   const asset = await prisma.asset.create({
-    data: buildAssetCreateData(authResult.auth.orgId, customer.id, site.id, payload),
+    data: buildAssetCreateData(auth.orgId, customer.id, site.id, payload),
   });
 
   return NextResponse.json({ data: asset }, { status: 201 });

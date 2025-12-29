@@ -80,7 +80,6 @@ export function requireRole(auth: AuthContext, allowed: Role[]): NextResponse | 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
-type Role = "ADMIN" | "DISPATCHER" | "MANAGER" | "USER";
 
 export type AuthContext = { orgId: string; userId: string; role: Role };
 

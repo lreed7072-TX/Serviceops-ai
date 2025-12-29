@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
 
   // If we have an OAuth code, we MUST set cookies on the *redirect response*
   // (previous version set cookies on a NextResponse.next(), then replaced the response).
-  if (code) {
+  if (code && request.nextUrl.pathname !== "/auth/callback") {
     url.searchParams.delete("code");
     url.searchParams.delete("state");
 

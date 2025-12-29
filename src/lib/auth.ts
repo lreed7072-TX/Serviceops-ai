@@ -81,7 +81,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 
-export type AuthContext = { orgId: string; userId: string; role: Role };
+
 
 /**
  * Resolve auth context from Supabase session cookie + DB mapping (user_org_roles).

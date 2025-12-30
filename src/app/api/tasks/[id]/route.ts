@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 import { TaskStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
@@ -34,7 +34,7 @@ const taskUpdateSchema = z
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const existing = await prisma.taskInstance.findFirst({
@@ -96,7 +96,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const existing = await prisma.taskInstance.findFirst({

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, requireRole, getAuthContextFromSupabase } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import {
   ExecutionMode,
   Role,
@@ -22,8 +22,10 @@ type WorkOrderPayload = {
 };
 
 export async function GET(request: Request) {
-const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
-  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+const authResult = await requireAuthSessionFirst(request);
+if ("error" in authResult) return authResult.error;
+const auth = authResult.auth;
+
 
   if ("error" in authResult) return authResult.error;
 
@@ -36,10 +38,9 @@ const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
 }
 
 export async function POST(request: Request) {
-  const authResult = requireAuth(request);
-  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
-
+  const auth = authResult.auth;
   const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
   if (roleError) return roleError;
 

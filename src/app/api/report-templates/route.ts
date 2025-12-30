@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Prisma, ReportTemplateStatus, Role } from "@prisma/client";
 export const runtime = "nodejs";
 
@@ -38,7 +38,7 @@ const formatValidationError = (error: z.ZodError) =>
   error.issues.map((issue) => issue.message).join(" ");
 
 export async function GET(request: Request) {
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const templates = await prisma.reportTemplate.findMany({
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);

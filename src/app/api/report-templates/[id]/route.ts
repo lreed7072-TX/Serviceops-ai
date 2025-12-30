@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 export const runtime = "nodejs";
 
@@ -46,7 +46,7 @@ const formatValidationError = (error: z.ZodError) =>
 
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const parsedId = templateIdSchema.safeParse(id);
@@ -73,7 +73,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
@@ -133,7 +133,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);

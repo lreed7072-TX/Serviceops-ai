@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { randomUUID } from "crypto";
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ type InvitePayload = {
 };
 
 export async function POST(request: Request) {
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const roleError = requireRole(authResult.auth, [Role.ADMIN]);

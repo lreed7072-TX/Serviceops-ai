@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 export const runtime = "nodejs";
 
 type RouteParams = {
@@ -10,7 +10,7 @@ type RouteParams = {
 
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const workOrder = await prisma.workOrder.findFirst({

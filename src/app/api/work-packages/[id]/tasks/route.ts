@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 import { TaskStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
@@ -20,7 +20,7 @@ type TaskPayload = {
 
 export async function POST(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const workPackage = await prisma.workPackage.findFirst({

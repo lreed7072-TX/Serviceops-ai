@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 import { TaskStatus } from "@prisma/client";
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ const visitIdSchema = z.union([z.string().uuid(), z.string().cuid()]);
 
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const parsedId = visitIdSchema.safeParse(id);

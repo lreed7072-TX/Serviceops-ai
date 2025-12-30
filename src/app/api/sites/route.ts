@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth } from "@/lib/auth";
-import { getAuthContextFromSupabase } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -17,10 +16,9 @@ type SitePayload = {
 };
 
 export async function GET(request: Request) {
-  const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
-  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
-
-if ("error" in authResult) return authResult.error;
+  const authResult = await requireAuthSessionFirst(request);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
   try {
     const sites = await prisma.site.findMany({
@@ -36,9 +34,9 @@ if ("error" in authResult) return authResult.error;
 }
 
 export async function POST(request: Request) {
-  const authResult = requireAuth(request);
-  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
   try {
     const body = await parseJson<SitePayload>(request);

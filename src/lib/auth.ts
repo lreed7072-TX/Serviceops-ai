@@ -108,3 +108,25 @@ export async function getAuthContextFromSupabase(): Promise<AuthContext | null> 
 
   return { orgId: row.org_id, userId, role: row.role as Role };
 }
+
+/**
+ * Require auth using Supabase session cookie first, then fall back to header/dev env auth.
+ * Intended for migrating endpoints one-by-one off header auth without breaking Preview/dev.
+ */
+export async function requireAuthSessionFirst(
+  request: Request
+): Promise<{ auth: AuthContext } | { error: NextResponse }> {
+  const auth = (await getAuthContextFromSupabase()) ?? getAuthContext(request);
+
+  if (!auth) {
+    return {
+      error: NextResponse.json(
+        { error: "Missing or invalid auth headers." },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return { auth };
+}
+

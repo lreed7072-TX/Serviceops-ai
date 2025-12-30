@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Role } from "@prisma/client";
 export const runtime = "nodejs";
 
@@ -17,7 +17,7 @@ type PackageUpdatePayload = {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   const { id } = await params;
-  const authResult = requireAuth(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);

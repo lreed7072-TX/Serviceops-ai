@@ -3,7 +3,7 @@ import { z, type ZodError, type ZodTypeAny } from "zod";
 import { AssetCriticality, AssetStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuth, getAuthContextFromSupabase } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const optionalTrimmedString = (max: number) =>
@@ -160,10 +160,9 @@ const serializeNameplate = (
 };
 
 export async function GET(request: Request) {
-const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
-  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
-
+const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
   const assets = await prisma.asset.findMany({
     where: { orgId: auth.orgId },
@@ -174,9 +173,9 @@ const authResult = (await getAuthContextFromSupabase()) ?? requireAuth(request);
 }
 
 export async function POST(request: Request) {
-  const authResult = requireAuth(request);
-  const auth = ("auth" in (authResult as any) ? (authResult as any).auth : authResult) as any;
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
   const body = await parseJson<unknown>(request);
   const parsed = assetCreateSchema.safeParse(body ?? {});

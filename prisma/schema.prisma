@@ -231,6 +231,7 @@ model WorkOrder {
   description String?
   status      WorkOrderStatus @default(OPEN)
   executionMode ExecutionMode @default(UNIFIED)
+  workOrderNumber String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -244,6 +245,7 @@ model WorkOrder {
 
   @@index([orgId])
   @@index([orgId, customerId])
+  @@unique([orgId, workOrderNumber])
 }
 
 model WorkPackage {
@@ -483,3 +485,13 @@ model KbChunk {
   @@index([orgId])
   @@index([orgId, kbFileId])
 }
+
+model user_org_roles {
+  user_id String @db.Uuid
+  org_id  String @db.Uuid
+  role    Role
+
+  @@id([user_id, org_id])
+  @@index([user_id])
+}
+

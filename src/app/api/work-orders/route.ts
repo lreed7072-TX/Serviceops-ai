@@ -28,8 +28,27 @@ const auth = authResult.auth;
 
 
   if ("error" in authResult) return authResult.error;
+// Generate next Work Order number like WO00109 (per-org).
+// Concurrency: @@unique([orgId, workOrderNumber]) + retry on collision.
+let workOrderNumber: string | null = null;
 
-  const workOrders = await prisma.workOrder.findMany({
+for (let attempt = 0; attempt < 5; attempt += 1) {
+  const last = await prisma.workOrder.findFirst({
+    where: { orgId: auth.orgId, workOrderNumber: { not: null } },
+    select: { workOrderNumber: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const lastStr = last?.workOrderNumber ?? null;
+  const lastNum =
+    lastStr && /^WO(\d+)$/.test(lastStr) ? Number.parseInt(lastStr.slice(2), 10) : 0;
+
+  const nextNum = lastNum + 1 + attempt;
+  workOrderNumber = `WO${String(nextNum).padStart(5, "0")}`;
+
+  // We just compute the candidate number here; create happens below.
+  break;
+}  const workOrders = await prisma.workOrder.findMany({
     where: { orgId: auth.orgId },
     orderBy: { createdAt: "desc" },
   });
@@ -71,18 +90,50 @@ export async function POST(request: Request) {
     return jsonError("Asset not found.", 404);
   }
 
-  const workOrder = await prisma.workOrder.create({
-    data: {
-      orgId: auth.orgId,
-      customerId: customer.id,
-      siteId: site.id,
-      assetId: asset?.id ?? null,
-      title: body.title,
-      description: body.description ?? null,
-      status: body.status ?? WorkOrderStatus.OPEN,
-      executionMode: body.executionMode ?? ExecutionMode.UNIFIED,
-    },
-  });
+    // Generate next Work Order number like WO00109 (per-org).
+    // Concurrency: @@unique([orgId, workOrderNumber]) + retry on collision.
+    let workOrder: any = null;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const last = await prisma.workOrder.findFirst({
+        where: { orgId: auth.orgId, workOrderNumber: { not: null } },
+        select: { workOrderNumber: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const lastStr = last?.workOrderNumber ?? null;
+      const lastNum =
+        lastStr && /^WO(\d+)$/.test(lastStr) ? Number.parseInt(lastStr.slice(2), 10) : 0;
+
+      const nextNum = lastNum + 1 + attempt;
+      const workOrderNumber = `WO${String(nextNum).padStart(5, "0")}`;
+
+      try {
+        workOrder = await prisma.workOrder.create({
+          data: {
+            orgId: auth.orgId,
+            workOrderNumber,
+            customerId: customer.id,
+            siteId: site.id,
+            assetId: asset?.id ?? null,
+            title: body.title,
+            description: body.description ?? null,
+            status: body.status ?? WorkOrderStatus.OPEN,
+            executionMode: body.executionMode ?? ExecutionMode.UNIFIED,
+          },
+        });
+        break;
+      } catch (err: any) {
+        const msg = String(err?.message ?? "").toLowerCase();
+        const isUnique = err?.code === "P2002" || msg.includes("unique");
+        if (!isUnique || attempt === 4) throw err;
+      }
+    }
+
+    if (!workOrder) {
+      return jsonError("Unable to create work order.", 500);
+    }
+
 
   const packageTemplates =
     workOrder.executionMode === ExecutionMode.MULTI_LANE

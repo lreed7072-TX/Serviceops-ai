@@ -6,24 +6,21 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-);
-  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnon) {
-    return NextResponse.json(
-      { ok: false, error: "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY" },
-      { status: 500 }
-    );
-  }
-
+  // If we don't have a code, send user back to login.
   if (!code) {
     return NextResponse.redirect(new URL("/login", url.origin));
   }
 
+  // This response is where Supabase session cookies must be written.
   const response = NextResponse.redirect(new URL("/work-orders", url.origin));
+
+  if (!supabaseUrl || !supabaseAnon) {
+    return response;
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
     cookies: {
@@ -40,8 +37,9 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
+  // If exchange fails, bounce to login (no secrets leaked).
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.redirect(new URL("/login", url.origin));
   }
 
   return response;

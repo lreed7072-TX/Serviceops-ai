@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Customer = {
@@ -148,7 +149,7 @@ export default function CustomersPage() {
               ) : (
                 customers.map((c) => (
                   <tr key={c.id}>
-                    <td>{c.name}</td>
+                    <td><Link href={`/customers/${c.id}`}>{c.name}</Link></td>
                     <td>{c.status ?? "ACTIVE"}</td>
                     <td>—</td>
                   </tr>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import type { Visit } from "@prisma/client";
+import type { Visit, WorkOrder } from "@prisma/client";
 import { VisitStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
@@ -27,11 +27,19 @@ const formatDate = (value?: string | Date | null) => {
   return date.toLocaleString();
 };
 
+const safe = (v: unknown) => {
+  if (typeof v !== "string") return "—";
+  const t = v.trim();
+  return t.length ? t : "—";
+};
+
 export default function VisitDetailPage() {
   const params = useParams();
   const visitId = params?.id as string | undefined;
 
   const [visit, setVisit] = useState<Visit | null>(null);
+  const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +58,15 @@ export default function VisitDetailPage() {
   const [editCompletedAt, setEditCompletedAt] = useState("");
   const [editSummary, setEditSummary] = useState("");
   const [editOutcome, setEditOutcome] = useState("");
+
+  const primeEdit = (v: Visit) => {
+    setEditStatus((v.status ?? VisitStatus.PLANNED) as VisitStatus);
+    setEditScheduledFor(v.scheduledFor ? new Date(v.scheduledFor as any).toISOString().slice(0, 16) : "");
+    setEditStartedAt(v.startedAt ? new Date(v.startedAt as any).toISOString().slice(0, 16) : "");
+    setEditCompletedAt(v.completedAt ? new Date(v.completedAt as any).toISOString().slice(0, 16) : "");
+    setEditSummary((v.summary ?? "") as any);
+    setEditOutcome((v.outcome ?? "") as any);
+  };
 
   const fetchCloseoutGate = useCallback(async () => {
     if (!visitId) return;
@@ -72,15 +89,6 @@ export default function VisitDetailPage() {
       setGateLoading(false);
     }
   }, [visitId]);
-
-  const primeEdit = (v: Visit) => {
-    setEditStatus((v.status ?? VisitStatus.PLANNED) as VisitStatus);
-    setEditScheduledFor(v.scheduledFor ? new Date(v.scheduledFor as any).toISOString().slice(0, 16) : "");
-    setEditStartedAt(v.startedAt ? new Date(v.startedAt as any).toISOString().slice(0, 16) : "");
-    setEditCompletedAt(v.completedAt ? new Date(v.completedAt as any).toISOString().slice(0, 16) : "");
-    setEditSummary((v.summary ?? "") as any);
-    setEditOutcome((v.outcome ?? "") as any);
-  };
 
   useEffect(() => {
     if (!visitId) return;
@@ -123,6 +131,32 @@ export default function VisitDetailPage() {
       cancelled = true;
     };
   }, [visitId]);
+
+  // Load work order details (for human-friendly display)
+  useEffect(() => {
+    const workOrderId = visit?.workOrderId;
+    if (!workOrderId) {
+      setWorkOrder(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadWO = async () => {
+      try {
+        const res = await apiFetch(`/api/work-orders/${workOrderId}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const payload = (await res.json()) as SingleResponse<WorkOrder>;
+        if (!cancelled) setWorkOrder(payload.data);
+      } catch {
+        // ignore
+      }
+    };
+
+    loadWO();
+    return () => {
+            cancelled = true;
+    };
+  }, [visit?.workOrderId]);
 
   useEffect(() => {
     if (!visitId) return;
@@ -178,6 +212,13 @@ export default function VisitDetailPage() {
     );
   }
 
+  const woLabel =
+    workOrder
+      ? `${(workOrder as any).workOrderNumber ?? "WO—"} — ${workOrder.title}`
+      : visit?.workOrderId
+        ? `Work order ${visit.workOrderId.slice(0, 8)}…`
+        : "—";
+
   return (
     <div>
       <div className="page-header">
@@ -203,18 +244,25 @@ export default function VisitDetailPage() {
         <div className="card">
           <h3>Visit details</h3>
           <dl className="detail-grid">
-            <div>
+            <div style={{ gridColumn: "1 / -1" }}>
               <dt>ID</dt>
-              <dd>{visit.id}</dd>
+              <dd style={{ wordBreak: "break-word" }}>{visit.id}</dd>
             </div>
+
             <div>
               <dt>Status</dt>
               <dd>{visit.status}</dd>
             </div>
-            <div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
               <dt>Work order</dt>
-              <dd>{visit.workOrderId}</dd>
+              <dd>
+                <Link className="link-button" href={`/work-orders/${visit.workOrderId}`}>
+                  {woLabel}
+                </Link>
+              </dd>
             </div>
+
             <div>
               <dt>Scheduled</dt>
               <dd>{formatDate(visit.scheduledFor)}</dd>
@@ -226,6 +274,16 @@ export default function VisitDetailPage() {
             <div>
               <dt>Completed</dt>
               <dd>{formatDate(visit.completedAt)}</dd>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <dt>Summary</dt>
+              <dd>{safe((visit as any).summary)}</dd>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <dt>Outcome</dt>
+              <dd>{safe((visit as any).outcome)}</dd>
             </div>
           </dl>
         </div>

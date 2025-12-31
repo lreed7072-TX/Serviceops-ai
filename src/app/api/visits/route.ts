@@ -59,19 +59,52 @@ export async function POST(request: Request) {
     return jsonError("Assigned tech not found.", 404);
   }
 
-  const visit = await prisma.visit.create({
-    data: {
-      orgId: authResult.auth.orgId,
-      workOrderId: workOrder.id,
-      assignedTechId: assignedTech?.id ?? null,
-      status: body.status ?? VisitStatus.PLANNED,
-      scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
-      startedAt: body.startedAt ? new Date(body.startedAt) : null,
-      completedAt: body.completedAt ? new Date(body.completedAt) : null,
-      summary: body.summary ?? null,
-      outcome: body.outcome ?? null,
-    },
-  });
+      // Generate next Visit number like V00001 (per-org).
+    // Concurrency: @@unique([orgId, visitNumber]) + retry on collision.
+    let visit: any = null;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const last = await prisma.visit.findFirst({
+        where: { orgId: authResult.auth.orgId, visitNumber: { not: null } },
+        select: { visitNumber: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const lastStr = (last as any)?.visitNumber ?? null;
+      const lastNum =
+        lastStr && /^V(\d+)$/.test(lastStr) ? Number.parseInt(lastStr.slice(1), 10) : 0;
+
+      const nextNum = lastNum + 1 + attempt;
+      const visitNumber = `V${String(nextNum).padStart(5, "0")}`;
+
+      try {
+        visit = await prisma.visit.create({
+          data: {
+            orgId: authResult.auth.orgId,
+            workOrderId: workOrder.id,
+            visitNumber,
+            assignedTechId: assignedTech?.id ?? null,
+            status: body.status ?? VisitStatus.PLANNED,
+            scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
+            startedAt: body.startedAt ? new Date(body.startedAt) : null,
+            completedAt: body.completedAt ? new Date(body.completedAt) : null,
+            summary: body.summary ?? null,
+            outcome: body.outcome ?? null,
+          },
+        });
+        break;
+      } catch (err: any) {
+        const msg = String(err?.message ?? "").toLowerCase();
+        const isUnique = err?.code === "P2002" || msg.includes("unique");
+        if (!isUnique || attempt === 4) throw err;
+      }
+    }
+
+    if (!visit) {
+      return jsonError("Unable to create visit.", 500);
+    }
+
+
 
   return NextResponse.json({ data: visit }, { status: 201 });
 }

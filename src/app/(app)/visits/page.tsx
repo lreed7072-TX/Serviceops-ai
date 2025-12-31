@@ -113,7 +113,7 @@ export default function VisitsPage() {
                 <li key={visit.id} className="task-item">
                   <div className="task-meta-row">
                     <div>
-                      <strong>Visit {shortId(visit.id)}</strong>
+                      <strong>Visit {(visit as any).visitNumber ?? shortId(visit.id)}</strong>
                       <p className="muted">
                         <Link className="link-button" href={`/work-orders/${visit.workOrderId}`}>
                           {woLabel}

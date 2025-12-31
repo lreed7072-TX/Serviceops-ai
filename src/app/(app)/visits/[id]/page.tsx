@@ -223,7 +223,7 @@ export default function VisitDetailPage() {
     <div>
       <div className="page-header">
         <div>
-          <h2>Visit</h2>
+          <h2>Visit {(visit as any)?.visitNumber ?? ""}</h2>
           <p>Review visit details and closeout readiness.</p>
         </div>
 

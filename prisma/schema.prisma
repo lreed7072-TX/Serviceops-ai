@@ -329,6 +329,7 @@ model Visit {
   workOrderId    String     @db.Uuid
   assignedTechId String?    @db.Uuid
   status         VisitStatus @default(PLANNED)
+  visitNumber    String?
   scheduledFor   DateTime?
   startedAt      DateTime?
   completedAt    DateTime?
@@ -347,6 +348,7 @@ model Visit {
 
   @@index([orgId])
   @@index([orgId, workOrderId])
+  @@unique([orgId, visitNumber])
 }
 
 model Finding {

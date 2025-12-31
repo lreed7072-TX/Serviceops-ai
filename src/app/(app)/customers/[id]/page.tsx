@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 
@@ -18,15 +18,32 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit modal state
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
   const [editName, setEditName] = useState("");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editBilling, setEditBilling] = useState("");
   const [editNotes, setEditNotes] = useState("");
+
+  const safe = (v: unknown) => {
+    if (typeof v !== "string") return "—";
+    const t = v.trim();
+    return t.length ? t : "—";
+  };
+
+  const primeEditFields = (c: Customer) => {
+    setEditName(c.name ?? "");
+    setEditStatus(((c.status ?? "ACTIVE") as any) === "INACTIVE" ? "INACTIVE" : "ACTIVE");
+    setEditEmail((((c as any).primaryEmail ?? "") as string) || "");
+    setEditPhone((((c as any).primaryPhone ?? "") as string) || "");
+    setEditBilling((((c as any).billingAddress ?? "") as string) || "");
+    setEditNotes((((c as any).notes ?? "") as string) || "");
+  };
 
   useEffect(() => {
     if (!customerId) return;
@@ -57,6 +74,8 @@ export default function CustomerDetailPage() {
 
         setCustomer(custPayload.data);
         setSites((sitesPayload.data ?? []).filter((s) => s.customerId === customerId));
+        primeEditFields(custPayload.data);
+
         setError(null);
       } catch (err) {
         if (cancelled) return;
@@ -73,15 +92,6 @@ export default function CustomerDetailPage() {
     };
   }, [customerId]);
 
-  const title = customer?.name ?? "Customer";
-
-  const safe = (v: unknown) => {
-    if (typeof v !== "string") return "—";
-    const t = v.trim();
-    return t.length ? t : "—";
-  };
-
-  
   async function saveCustomer(e: React.FormEvent) {
     e.preventDefault();
     if (!customerId) return;
@@ -109,8 +119,9 @@ export default function CustomerDetailPage() {
         throw new Error(payload.error ?? `Save failed (${res.status})`);
       }
 
-      const payload = (await res.json()) as { data: Customer };
+      const payload = (await res.json()) as SingleResponse<Customer>;
       setCustomer(payload.data);
+      primeEditFields(payload.data);
       setShowEdit(false);
     } catch (err: any) {
       setSaveError(err?.message ?? "Failed to save customer.");
@@ -119,10 +130,97 @@ export default function CustomerDetailPage() {
     }
   }
 
-if (!customerId) {
+  if (!customerId) {
     return (
       <div className="card">
         <p>Missing customer ID in URL.</p>
+      </div>
+    );
+  }
+
+  const title = customer?.name ?? "Customer";
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h2>Customer</h2>
+          <p>Customer profile and sites.</p>
+        </div>
+        <Link className="link-button" href="/customers">
+          ← Back to list
+        </Link>
+      </div>
+
+      {error && <div className="page-alert error">{error}</div>}
+      {loading && !error && <div className="page-alert info">Loading customer…</div>}
+
+      {customer && (
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+            <h3 style={{ margin: 0 }}>{title}</h3>
+            <button type="button" className="link-button" onClick={() => setShowEdit(true)}>
+              Edit
+            </button>
+          </div>
+
+          <dl className="detail-grid">
+            <div>
+              <dt>Status</dt>
+              <dd>{customer.status ?? "ACTIVE"}</dd>
+            </div>
+
+            <div>
+              <dt>Email</dt>
+              <dd>{safe((customer as any).primaryEmail)}</dd>
+            </div>
+
+            <div>
+              <dt>Phone</dt>
+              <dd>{safe((customer as any).primaryPhone)}</dd>
+            </div>
+
+            <div>
+              <dt>Billing address</dt>
+              <dd>{safe((customer as any).billingAddress)}</dd>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <dt>Notes</dt>
+              <dd>{safe((customer as any).notes)}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
+
+      <div className="card">
+        <h3>Sites</h3>
+        {loading ? (
+          <p>Loading sites…</p>
+        ) : sites.length === 0 ? (
+          <p>No sites yet for this customer.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sites.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.name}</td>
+                  <td>
+                    {[s.address, s.city, s.state, s.postalCode, s.country].filter(Boolean).join(", ") || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {showEdit && customer && (
         <div
           role="dialog"
@@ -239,89 +337,6 @@ if (!customerId) {
           </div>
         </div>
       )}
-
-      </div>
-
-    );
-  }
-
-  return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h2>Customer</h2>
-          <p>Customer profile and sites.</p>
-        </div>
-        <Link className="link-button" href="/customers">
-          ← Back to list
-        </Link>
-      </div>
-
-      {error && <div className="page-alert error">{error}</div>}
-      {loading && !error && <div className="page-alert info">Loading customer…</div>}
-
-      {customer && (
-        <div className="card">
-          <h3>{title}</h3>
-
-          <dl className="detail-grid">
-            <div>
-              <dt>Status</dt>
-              <dd>{customer.status ?? "ACTIVE"}</dd>
-            </div>
-
-            <div>
-              <dt>Email</dt>
-              <dd>{safe((customer as any).primaryEmail)}</dd>
-            </div>
-
-            <div>
-              <dt>Phone</dt>
-              <dd>{safe((customer as any).primaryPhone)}</dd>
-            </div>
-
-            <div>
-              <dt>Billing address</dt>
-              <dd>{safe((customer as any).billingAddress)}</dd>
-            </div>
-
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>Notes</dt>
-              <dd>{safe((customer as any).notes)}</dd>
-            </div>
-          </dl>
-        </div>
-      )}
-
-      <div className="card">
-        <h3>Sites</h3>
-        {loading ? (
-          <p>Loading sites…</p>
-        ) : sites.length === 0 ? (
-          <p>No sites yet for this customer.</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Address</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sites.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>
-                    {[s.address, s.city, s.state, s.postalCode, s.country]
-                      .filter(Boolean)
-                      .join(", ") || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
     </div>
   );
 }

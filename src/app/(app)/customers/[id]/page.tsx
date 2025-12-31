@@ -241,18 +241,6 @@ if (!customerId) {
       )}
 
       </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving || !editName.trim()}>
-                  {saving ? "Saving…" : "Save changes"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     );
   }

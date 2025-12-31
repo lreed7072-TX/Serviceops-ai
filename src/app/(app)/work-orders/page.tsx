@@ -721,8 +721,9 @@ export default function WorkOrdersPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Status</th>
+                <th>WO #</th>
+                  <th>Title</th>
+                  <th>Status</th>
                 <th>Execution mode</th>
                 <th>Updated</th>
                 <th></th>
@@ -731,7 +732,8 @@ export default function WorkOrdersPage() {
             <tbody>
               {workOrders.map((workOrder) => (
                 <tr key={workOrder.id}>
-                  <td>{workOrder.title}</td>
+                    <td>{(workOrder as any).workOrderNumber ?? "—"}</td>
+                    <td>{workOrder.title}</td>
                   <td>{workOrder.status}</td>
                   <td>{executionModeLabels[workOrder.executionMode]}</td>
                   <td>{new Date(workOrder.updatedAt).toLocaleString()}</td>

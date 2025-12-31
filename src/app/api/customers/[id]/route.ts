@@ -7,6 +7,10 @@ export const runtime = "nodejs";
 type CustomerUpdatePayload = {
   name?: string;
   status?: string;
+  primaryEmail?: string | null;
+  primaryPhone?: string | null;
+  billingAddress?: string | null;
+  notes?: string | null;
 };
 
 type RouteParams = {
@@ -52,6 +56,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
     data: {
       name: body.name ?? existing.name,
       status: body.status ?? existing.status,
+        primaryEmail: body.primaryEmail ?? existing.primaryEmail,
+        primaryPhone: body.primaryPhone ?? existing.primaryPhone,
+        billingAddress: body.billingAddress ?? existing.billingAddress,
+        notes: body.notes ?? existing.notes,
     },
   });
 

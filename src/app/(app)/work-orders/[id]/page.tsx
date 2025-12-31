@@ -381,6 +381,10 @@ export default function WorkOrderDetailPage() {
           <h3>{workOrder.title}</h3>
           <p>{workOrder.description ?? "No description provided."}</p>
           <dl className="detail-grid">
+              <div>
+                <dt>WO #</dt>
+                <dd>{(workOrder as any).workOrderNumber ?? "—"}</dd>
+              </div>
             <div>
               <dt>Status</dt>
               <dd>{workOrder.status}</dd>

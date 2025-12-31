@@ -6,6 +6,9 @@ type Customer = {
   id: string;
   name: string;
   status: string;
+  primaryEmail?: string | null;
+  primaryPhone?: string | null;
+  notes?: string | null;
 };
 
 export default function CustomersPage() {

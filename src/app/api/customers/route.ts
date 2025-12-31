@@ -11,6 +11,12 @@ type CustomerPayload = {
   primaryEmail?: string | null;
   primaryPhone?: string | null;
   billingAddress?: string | null;
+  billingStreet1?: string | null;
+  billingStreet2?: string | null;
+  billingCity?: string | null;
+  billingState?: string | null;
+  billingPostalCode?: string | null;
+  billingCountry?: string | null;
   notes?: string | null;
 };
 
@@ -51,6 +57,12 @@ export async function POST(request: Request) {
           primaryEmail: body.primaryEmail ?? null,
           primaryPhone: body.primaryPhone ?? null,
           billingAddress: body.billingAddress ?? null,
+          billingStreet1: body.billingStreet1 ?? null,
+          billingStreet2: body.billingStreet2 ?? null,
+          billingCity: body.billingCity ?? null,
+          billingState: body.billingState ?? null,
+          billingPostalCode: body.billingPostalCode ?? null,
+          billingCountry: body.billingCountry ?? null,
           notes: body.notes ?? null,
         },
     });

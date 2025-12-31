@@ -162,6 +162,12 @@ model Customer {
   primaryEmail  String?
   primaryPhone  String?
   billingAddress String?
+  billingStreet1    String?
+  billingStreet2    String?
+  billingCity       String?
+  billingState      String?
+  billingPostalCode String?
+  billingCountry    String?
   notes         String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

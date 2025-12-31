@@ -27,7 +27,11 @@ export default function CustomerDetailPage() {
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [editBilling, setEditBilling] = useState("");
+  const [editBillingStreet1, setEditBillingStreet1] = useState("");
+  const [editBillingStreet2, setEditBillingStreet2] = useState("");
+  const [editBillingCity, setEditBillingCity] = useState("");
+  const [editBillingState, setEditBillingState] = useState("");
+  const [editBillingPostalCode, setEditBillingPostalCode] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
   const safe = (v: unknown) => {
@@ -41,7 +45,11 @@ export default function CustomerDetailPage() {
     setEditStatus(((c.status ?? "ACTIVE") as any) === "INACTIVE" ? "INACTIVE" : "ACTIVE");
     setEditEmail((((c as any).primaryEmail ?? "") as string) || "");
     setEditPhone((((c as any).primaryPhone ?? "") as string) || "");
-    setEditBilling((((c as any).billingAddress ?? "") as string) || "");
+    setEditBillingStreet1((((c as any).billingStreet1 ?? "") as string) || "");
+    setEditBillingStreet2((((c as any).billingStreet2 ?? "") as string) || "");
+    setEditBillingCity((((c as any).billingCity ?? "") as string) || "");
+    setEditBillingState((((c as any).billingState ?? "") as string) || "");
+    setEditBillingPostalCode((((c as any).billingPostalCode ?? "") as string) || "");
     setEditNotes((((c as any).notes ?? "") as string) || "");
   };
 
@@ -109,7 +117,12 @@ export default function CustomerDetailPage() {
           status: editStatus,
           primaryEmail: editEmail.trim() || null,
           primaryPhone: editPhone.trim() || null,
-          billingAddress: editBilling.trim() || null,
+          billingStreet1: editBillingStreet1.trim() || null,
+          billingStreet2: editBillingStreet2.trim() || null,
+          billingCity: editBillingCity.trim() || null,
+          billingState: editBillingState.trim() || null,
+          billingPostalCode: editBillingPostalCode.trim() || null,
+          billingCountry: "US",
           notes: editNotes.trim() || null,
         }),
       });
@@ -182,7 +195,7 @@ export default function CustomerDetailPage() {
 
             <div>
               <dt>Billing address</dt>
-              <dd>{safe((customer as any).billingAddress)}</dd>
+              <dd>{[(customer as any).billingStreet1,(customer as any).billingStreet2,(customer as any).billingCity,(customer as any).billingState,(customer as any).billingPostalCode,(customer as any).billingCountry].filter(Boolean).join(", ") || safe((customer as any).billingAddress)}</dd>
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>
@@ -246,6 +259,8 @@ export default function CustomerDetailPage() {
               borderRadius: 14,
               border: "1px solid rgba(0,0,0,0.12)",
               padding: 16,
+              maxHeight: "80vh",
+              overflowY: "auto",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
@@ -294,15 +309,54 @@ export default function CustomerDetailPage() {
                   style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
                 />
               </label>
+              <div style={{ display: "grid", gap: 12 }}>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing street 1</span>
+                  <input
+                    value={editBillingStreet1}
+                    onChange={(e) => setEditBillingStreet1(e.target.value)}
+                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                  />
+                </label>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Billing address</span>
-                <input
-                  value={editBilling}
-                  onChange={(e) => setEditBilling(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing street 2</span>
+                  <input
+                    value={editBillingStreet2}
+                    onChange={(e) => setEditBillingStreet2(e.target.value)}
+                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing city</span>
+                  <input
+                    value={editBillingCity}
+                    onChange={(e) => setEditBillingCity(e.target.value)}
+                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing state</span>
+                  <input
+                    value={editBillingState}
+                    onChange={(e) => setEditBillingState(e.target.value)}
+                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing ZIP</span>
+                  <input
+                    value={editBillingPostalCode}
+                    onChange={(e) => setEditBillingPostalCode(e.target.value)}
+                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                  />
+                </label>
+              </div>
+
+
 
               <label style={{ display: "grid", gap: 6 }}>
                 <span style={{ fontWeight: 600 }}>Notes</span>

@@ -10,6 +10,12 @@ type CustomerUpdatePayload = {
   primaryEmail?: string | null;
   primaryPhone?: string | null;
   billingAddress?: string | null;
+  billingStreet1?: string | null;
+  billingStreet2?: string | null;
+  billingCity?: string | null;
+  billingState?: string | null;
+  billingPostalCode?: string | null;
+  billingCountry?: string | null;
   notes?: string | null;
 };
 
@@ -59,6 +65,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
         primaryEmail: body.primaryEmail ?? existing.primaryEmail,
         primaryPhone: body.primaryPhone ?? existing.primaryPhone,
         billingAddress: body.billingAddress ?? existing.billingAddress,
+        billingStreet1: body.billingStreet1 ?? existing.billingStreet1,
+        billingStreet2: body.billingStreet2 ?? existing.billingStreet2,
+        billingCity: body.billingCity ?? existing.billingCity,
+        billingState: body.billingState ?? existing.billingState,
+        billingPostalCode: body.billingPostalCode ?? existing.billingPostalCode,
+        billingCountry: body.billingCountry ?? existing.billingCountry,
         notes: body.notes ?? existing.notes,
     },
   });

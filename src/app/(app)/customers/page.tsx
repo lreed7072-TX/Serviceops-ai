@@ -22,8 +22,12 @@ export default function CustomersPage() {
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [primaryEmail, setPrimaryEmail] = useState("");
   const [primaryPhone, setPrimaryPhone] = useState("");
-  const [billingAddress, setBillingAddress] = useState("");
-  const [notes, setNotes] = useState("");
+const [billingStreet1, setBillingStreet1] = useState("");
+  const [billingStreet2, setBillingStreet2] = useState("");
+  const [billingCity, setBillingCity] = useState("");
+  const [billingState, setBillingState] = useState("");
+  const [billingPostalCode, setBillingPostalCode] = useState("");
+const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function loadCustomers() {
@@ -67,7 +71,12 @@ export default function CustomersPage() {
           status,
           primaryEmail: primaryEmail.trim() || null,
           primaryPhone: primaryPhone.trim() || null,
-          billingAddress: billingAddress.trim() || null,
+          billingStreet1: billingStreet1.trim() || null,
+          billingStreet2: billingStreet2.trim() || null,
+          billingCity: billingCity.trim() || null,
+          billingState: billingState.trim() || null,
+          billingPostalCode: billingPostalCode.trim() || null,
+          billingCountry: "US",
           notes: notes.trim() || null,
         }),
       });
@@ -82,7 +91,6 @@ export default function CustomersPage() {
       setStatus("ACTIVE");
       setPrimaryEmail("");
       setPrimaryPhone("");
-      setBillingAddress("");
       setNotes("");
       await loadCustomers();
     } catch (e: any) {
@@ -264,20 +272,77 @@ export default function CustomersPage() {
                   }}
                 />
               </label>
+              <div style={{ display: "grid", gap: 12 }}>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing street 1</span>
+                  <input
+                    value={billingStreet1}
+                    onChange={(e) => setBillingStreet1(e.target.value)}
+                    placeholder="Optional"
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.18)",
+                    }}
+                  />
+                </label>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Billing address</span>
-                <input
-                  value={billingAddress}
-                  onChange={(e) => setBillingAddress(e.target.value)}
-                  placeholder="Optional"
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.18)",
-                  }}
-                />
-              </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing street 2</span>
+                  <input
+                    value={billingStreet2}
+                    onChange={(e) => setBillingStreet2(e.target.value)}
+                    placeholder="Optional"
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.18)",
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing city</span>
+                  <input
+                    value={billingCity}
+                    onChange={(e) => setBillingCity(e.target.value)}
+                    placeholder="Optional"
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.18)",
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing state</span>
+                  <input
+                    value={billingState}
+                    onChange={(e) => setBillingState(e.target.value)}
+                    placeholder="Optional"
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.18)",
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Billing ZIP</span>
+                  <input
+                    value={billingPostalCode}
+                    onChange={(e) => setBillingPostalCode(e.target.value)}
+                    placeholder="Optional"
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.18)",
+                    }}
+                  />
+                </label>
+              </div>
 
               <label style={{ display: "grid", gap: 6 }}>
                 <span style={{ fontWeight: 600 }}>Notes</span>

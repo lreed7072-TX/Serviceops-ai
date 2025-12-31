@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { Customer, Site } from "@prisma/client";
@@ -320,7 +321,7 @@ export default function SitesPage() {
             <tbody>
               {sites.map((site) => (
                 <tr key={site.id}>
-                  <td>{site.name}</td>
+                  <td><Link href={`/sites/${site.id}`}>{site.name}</Link></td>
                   <td>{customerLookup.get(site.customerId)?.name ?? "—"}</td>
                   <td>{renderLocation(site)}</td>
                   <td>{new Date(site.updatedAt).toLocaleString()}</td>

@@ -22,39 +22,17 @@ type WorkOrderPayload = {
 };
 
 export async function GET(request: Request) {
-const authResult = await requireAuthSessionFirst(request);
-if ("error" in authResult) return authResult.error;
-const auth = authResult.auth;
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const auth = authResult.auth;
 
+    const workOrders = await prisma.workOrder.findMany({
+      where: { orgId: auth.orgId },
+      orderBy: { createdAt: "desc" },
+    });
 
-  if ("error" in authResult) return authResult.error;
-// Generate next Work Order number like WO00109 (per-org).
-// Concurrency: @@unique([orgId, workOrderNumber]) + retry on collision.
-let workOrderNumber: string | null = null;
-
-for (let attempt = 0; attempt < 5; attempt += 1) {
-  const last = await prisma.workOrder.findFirst({
-    where: { orgId: auth.orgId, workOrderNumber: { not: null } },
-    select: { workOrderNumber: true },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const lastStr = last?.workOrderNumber ?? null;
-  const lastNum =
-    lastStr && /^WO(\d+)$/.test(lastStr) ? Number.parseInt(lastStr.slice(2), 10) : 0;
-
-  const nextNum = lastNum + 1 + attempt;
-  workOrderNumber = `WO${String(nextNum).padStart(5, "0")}`;
-
-  // We just compute the candidate number here; create happens below.
-  break;
-}  const workOrders = await prisma.workOrder.findMany({
-    where: { orgId: auth.orgId },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json({ data: workOrders });
-}
+    return NextResponse.json({ data: workOrders });
+  }
 
 export async function POST(request: Request) {
   const authResult = await requireAuthSessionFirst(request);

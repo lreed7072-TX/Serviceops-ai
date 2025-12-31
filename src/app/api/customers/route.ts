@@ -8,6 +8,10 @@ export const runtime = "nodejs";
 type CustomerPayload = {
   name?: string;
   status?: string;
+  primaryEmail?: string | null;
+  primaryPhone?: string | null;
+  billingAddress?: string | null;
+  notes?: string | null;
 };
 
 export async function GET(request: Request) {
@@ -44,7 +48,11 @@ export async function POST(request: Request) {
         orgId: auth.orgId,
         name: body.name,
         status: body.status ?? "ACTIVE",
-      },
+          primaryEmail: body.primaryEmail ?? null,
+          primaryPhone: body.primaryPhone ?? null,
+          billingAddress: body.billingAddress ?? null,
+          notes: body.notes ?? null,
+        },
     });
 
     return NextResponse.json({ data: customer }, { status: 201 });

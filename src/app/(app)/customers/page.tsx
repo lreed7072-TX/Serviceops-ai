@@ -16,6 +16,10 @@ export default function CustomersPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+  const [primaryEmail, setPrimaryEmail] = useState("");
+  const [primaryPhone, setPrimaryPhone] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function loadCustomers() {
@@ -54,7 +58,14 @@ export default function CustomersPage() {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), status }),
+        body: JSON.stringify({
+          name: name.trim(),
+          status,
+          primaryEmail: primaryEmail.trim() || null,
+          primaryPhone: primaryPhone.trim() || null,
+          billingAddress: billingAddress.trim() || null,
+          notes: notes.trim() || null,
+        }),
       });
 
       if (!res.ok) {
@@ -65,6 +76,10 @@ export default function CustomersPage() {
       setIsOpen(false);
       setName("");
       setStatus("ACTIVE");
+      setPrimaryEmail("");
+      setPrimaryPhone("");
+      setBillingAddress("");
+      setNotes("");
       await loadCustomers();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to create customer.");
@@ -215,6 +230,65 @@ export default function CustomersPage() {
                   <option value="ACTIVE">Active</option>
                   <option value="INACTIVE">Inactive</option>
                 </select>
+              </label>
+
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontWeight: 600 }}>Primary email</span>
+                <input
+                  value={primaryEmail}
+                  onChange={(e) => setPrimaryEmail(e.target.value)}
+                  placeholder="e.g. billing@acme.com"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.18)",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontWeight: 600 }}>Primary phone</span>
+                <input
+                  value={primaryPhone}
+                  onChange={(e) => setPrimaryPhone(e.target.value)}
+                  placeholder="e.g. (555) 555-1234"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.18)",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontWeight: 600 }}>Billing address</span>
+                <input
+                  value={billingAddress}
+                  onChange={(e) => setBillingAddress(e.target.value)}
+                  placeholder="Optional"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.18)",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontWeight: 600 }}>Notes</span>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional"
+                  rows={4}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.18)",
+                    resize: "vertical",
+                  }}
+                />
               </label>
 
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>

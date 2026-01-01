@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { TaskStatus } from "@prisma/client";
-import type { TaskInstance, WorkOrder, WorkPackage } from "@prisma/client";
+import type { TaskInstance, WorkOrder, WorkPackage, User } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
@@ -20,10 +20,11 @@ type ListResponse<T> = {
 type TaskWithPackage = TaskInstance & { workPackage: WorkPackage };
 
 type TaskFormState = {
-  title: string;
-  description: string;
-  isCritical: boolean;
-};
+    title: string;
+    description: string;
+    assignedToId: string;
+    isCritical: boolean;
+  };
 
 type TaskEditState = TaskFormState & {
   sequenceNumber: string;
@@ -51,16 +52,18 @@ const nextStatusMap: Record<TaskStatus, TaskStatus | null> = {
 };
 
 const defaultTaskFormState: TaskFormState = {
-  title: "",
-  description: "",
-  isCritical: false,
-};
+    title: "",
+    description: "",
+    assignedToId: "",
+    isCritical: false,
+  };
 
 export default function WorkOrderDetailPage() {
   const params = useParams();
   const workOrderId = params?.id as string | undefined;
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [packages, setPackages] = useState<WorkPackage[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<TaskWithPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,10 +82,11 @@ export default function WorkOrderDetailPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const [workOrderRes, packagesRes, tasksRes] = await Promise.all([
+        const [workOrderRes, packagesRes, tasksRes, usersRes] = await Promise.all([
           apiFetch(`/api/work-orders/${workOrderId}`, { cache: "no-store" }),
           apiFetch(`/api/work-orders/${workOrderId}/packages`, { cache: "no-store" }),
           apiFetch(`/api/work-orders/${workOrderId}/tasks`, { cache: "no-store" }),
+            apiFetch(`/api/users`, { cache: "no-store" }),
         ]);
 
         if (!workOrderRes.ok) {
@@ -93,7 +97,11 @@ export default function WorkOrderDetailPage() {
           const payload = (await packagesRes.json()) as { error?: string };
           throw new Error(payload.error ?? "Failed to load packages.");
         }
-        if (!tasksRes.ok) {
+        if (!usersRes.ok) {
+            const payload = (await usersRes.json()) as { error?: string };
+            throw new Error(payload.error ?? "Failed to load users.");
+          }
+          if (!tasksRes.ok) {
           const payload = (await tasksRes.json()) as { error?: string };
           throw new Error(payload.error ?? "Failed to load tasks.");
         }
@@ -101,11 +109,13 @@ export default function WorkOrderDetailPage() {
         const workOrderPayload = (await workOrderRes.json()) as SingleResponse<WorkOrder>;
         const packagesPayload = (await packagesRes.json()) as ListResponse<WorkPackage>;
         const tasksPayload = (await tasksRes.json()) as ListResponse<TaskWithPackage>;
+          const usersPayload = (await usersRes.json()) as ListResponse<User>;
 
         if (cancelled) return;
         setWorkOrder(workOrderPayload.data);
         setPackages(packagesPayload.data ?? []);
         setTasks(tasksPayload.data ?? []);
+          setUsers(usersPayload.data ?? []);
         setError(null);
         setTaskError(null);
       } catch (err) {
@@ -201,7 +211,8 @@ export default function WorkOrderDetailPage() {
         body: JSON.stringify({
           title: formState.title.trim(),
           description: formState.description.trim() ? formState.description.trim() : null,
-          isCritical: formState.isCritical,
+          assignedToId: formState.assignedToId.trim() ? formState.assignedToId.trim() : null,
+            isCritical: formState.isCritical,
         }),
       });
 
@@ -584,7 +595,26 @@ export default function WorkOrderDetailPage() {
                       placeholder="Optional details"
                     />
                   </label>
-                  <label className="checkbox-field">
+                  
+                    <label className="form-field">
+                      <span>Assign technician</span>
+                      <select
+                        value={formState.assignedToId}
+                        onChange={(event) =>
+                          handleTaskFormChange(pkg.id, "assignedToId", event.target.value)
+                        }
+                        disabled={formLoading}
+                      >
+                        <option value="">Unassigned</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {(u.name && u.name.trim().length ? u.name : u.email) + ` (${u.role})`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+<label className="checkbox-field">
                     <input
                       type="checkbox"
                       checked={formState.isCritical}

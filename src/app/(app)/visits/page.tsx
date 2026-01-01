@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Visit, WorkOrder } from "@prisma/client";
+import { VisitStatus } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 
 type ListResponse<T> = { data?: T[] };
@@ -33,8 +34,17 @@ const formatDate = (value?: string | Date | null) => {
 export default function VisitsPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Create Visit form state
+  const [workOrderId, setWorkOrderId] = useState("");
+  const [status, setStatus] = useState<VisitStatus>(VisitStatus.PLANNED);
+  const [scheduledFor, setScheduledFor] = useState(""); // datetime-local string
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
 
   const workOrderLookup = useMemo(() => {
     const map = new Map<string, WorkOrder>();
@@ -42,10 +52,29 @@ export default function VisitsPage() {
     return map;
   }, [workOrders]);
 
+  const load = async () => {
+    try {
+      setLoading(true);
+      const [visitData, woData] = await Promise.all([
+        fetchList<Visit>("/api/visits"),
+        fetchList<WorkOrder>("/api/work-orders"),
+      ]);
+      setVisits(visitData);
+      setWorkOrders(woData);
+      setLoadError(null);
+    } catch (err) {
+      console.error(err);
+      setLoadError(err instanceof Error ? err.message : "Failed to load visits.");
+      setVisits([]);
+      setWorkOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
-
-    const load = async () => {
+    (async () => {
       try {
         setLoading(true);
         const [visitData, woData] = await Promise.all([
@@ -53,26 +82,74 @@ export default function VisitsPage() {
           fetchList<WorkOrder>("/api/work-orders"),
         ]);
         if (cancelled) return;
-
         setVisits(visitData);
         setWorkOrders(woData);
-        setError(null);
+        setLoadError(null);
       } catch (err) {
         if (cancelled) return;
         console.error(err);
-        setError(err instanceof Error ? err.message : "Failed to load visits.");
+        setLoadError(err instanceof Error ? err.message : "Failed to load visits.");
         setVisits([]);
         setWorkOrders([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
-    };
+    })();
 
-    load();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const canCreate = workOrderId.trim().length > 0 && !creating;
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+    setCreateSuccess(null);
+
+    if (!workOrderId.trim()) {
+      setCreateError("Work order is required.");
+      return;
+    }
+
+    try {
+      setCreating(true);
+
+      const res = await apiFetch("/api/visits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workOrderId,
+          status,
+          scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : null,
+        }),
+      });
+
+      if (!res.ok) {
+        let detail: string | undefined;
+        try {
+          const payload = (await res.json()) as { error?: string };
+          detail = payload.error;
+        } catch {}
+        throw new Error(detail ?? `Failed to create visit (${res.status}).`);
+      }
+
+      const payload = (await res.json()) as { data?: any };
+      const createdNumber = payload?.data?.visitNumber ?? null;
+
+      setCreateSuccess(createdNumber ? `Created ${createdNumber}.` : "Visit created.");
+      setWorkOrderId("");
+      setStatus(VisitStatus.PLANNED);
+      setScheduledFor("");
+
+      await load();
+    } catch (err: any) {
+      setCreateError(err?.message ?? "Failed to create visit.");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <div>
@@ -85,8 +162,74 @@ export default function VisitsPage() {
       </div>
 
       <div className="card">
-        <h3>Today's visits</h3>
-        {error && <p className="form-feedback error">{error}</p>}
+        <h3>Create visit</h3>
+
+        <form className="form-grid" onSubmit={handleCreate}>
+          <label className="form-field">
+            <span>Work order</span>
+            <select
+              value={workOrderId}
+              onChange={(e) => setWorkOrderId(e.target.value)}
+              disabled={loading || creating}
+              required
+            >
+              <option value="">Select a work order</option>
+              {workOrders.map((wo) => {
+                const woNumber = (wo as any).workOrderNumber ?? "WO—";
+                return (
+                  <option key={wo.id} value={wo.id}>
+                    {woNumber} — {wo.title}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Status</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as VisitStatus)}
+              disabled={loading || creating}
+            >
+              {Object.values(VisitStatus).map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Scheduled for</span>
+            <input
+              type="datetime-local"
+              value={scheduledFor}
+              onChange={(e) => setScheduledFor(e.target.value)}
+              disabled={loading || creating}
+            />
+          </label>
+
+          {createError && <p className="form-feedback error">{createError}</p>}
+          {createSuccess && <p className="form-feedback success">{createSuccess}</p>}
+
+          <div className="form-actions" style={{ gridColumn: "1 / -1" }}>
+            <button type="submit" disabled={!canCreate}>
+              {creating ? "Creating…" : "Create visit"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h3>Visits</h3>
+          <button type="button" className="link-button" onClick={load} disabled={loading}>
+            Refresh
+          </button>
+        </div>
+
+        {loadError && <p className="form-feedback error">{loadError}</p>}
 
         {loading ? (
           <p>Loading visits…</p>
@@ -109,11 +252,13 @@ export default function VisitsPage() {
               const summarySnippet =
                 summary.length > 0 ? (summary.length > 90 ? summary.slice(0, 90) + "…" : summary) : "";
 
+              const visitLabel = (visit as any).visitNumber ?? shortId(visit.id);
+
               return (
                 <li key={visit.id} className="task-item">
                   <div className="task-meta-row">
                     <div>
-                      <strong>Visit {(visit as any).visitNumber ?? shortId(visit.id)}</strong>
+                      <strong>Visit {visitLabel}</strong>
                       <p className="muted">
                         <Link className="link-button" href={`/work-orders/${visit.workOrderId}`}>
                           {woLabel}

@@ -7,6 +7,7 @@ import type { FormEvent } from "react";
 import { TaskStatus } from "@prisma/client";
 import type { TaskInstance, WorkOrder, WorkPackage } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type SingleResponse<T> = {
   data: T;
@@ -400,6 +401,9 @@ export default function WorkOrderDetailPage() {
           </dl>
         </div>
       )}
+
+
+        <AttachmentsPanel entityType="workOrder" entityId={workOrderId} />
 
       <div className="card">
         <h3>Packages & tasks</h3>

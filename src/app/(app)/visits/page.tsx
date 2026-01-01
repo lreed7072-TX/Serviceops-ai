@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Visit, WorkOrder } from "@prisma/client";
+
+type UserLite = { id: string; email: string; name?: string | null; role?: string | null };
 import { VisitStatus } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 
@@ -34,6 +36,7 @@ const formatDate = (value?: string | Date | null) => {
 export default function VisitsPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [users, setUsers] = useState<UserLite[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -42,6 +45,7 @@ export default function VisitsPage() {
   const [workOrderId, setWorkOrderId] = useState("");
   const [status, setStatus] = useState<VisitStatus>(VisitStatus.PLANNED);
   const [scheduledFor, setScheduledFor] = useState(""); // datetime-local string
+  const [assignedTechId, setAssignedTechId] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
@@ -55,12 +59,14 @@ export default function VisitsPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const [visitData, woData] = await Promise.all([
+      const [visitData, woData, userData] = await Promise.all([
         fetchList<Visit>("/api/visits"),
         fetchList<WorkOrder>("/api/work-orders"),
+        fetchList<UserLite>("/api/users"),
       ]);
       setVisits(visitData);
       setWorkOrders(woData);
+      setUsers(userData);
       setLoadError(null);
     } catch (err) {
       console.error(err);
@@ -77,13 +83,15 @@ export default function VisitsPage() {
     (async () => {
       try {
         setLoading(true);
-        const [visitData, woData] = await Promise.all([
+        const [visitData, woData, userData] = await Promise.all([
           fetchList<Visit>("/api/visits"),
           fetchList<WorkOrder>("/api/work-orders"),
+          fetchList<UserLite>("/api/users"),
         ]);
         if (cancelled) return;
         setVisits(visitData);
         setWorkOrders(woData);
+        setUsers(userData);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
@@ -122,6 +130,7 @@ export default function VisitsPage() {
         body: JSON.stringify({
           workOrderId,
           status,
+          assignedTechId: assignedTechId.trim() || null,
           scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : null,
         }),
       });
@@ -142,6 +151,7 @@ export default function VisitsPage() {
       setWorkOrderId("");
       setStatus(VisitStatus.PLANNED);
       setScheduledFor("");
+      setAssignedTechId("");
 
       await load();
     } catch (err: any) {
@@ -195,6 +205,22 @@ export default function VisitsPage() {
               {Object.values(VisitStatus).map((v) => (
                 <option key={v} value={v}>
                   {v}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Technician</span>
+            <select
+              value={assignedTechId}
+              onChange={(e) => setAssignedTechId(e.target.value)}
+              disabled={loading || creating}
+            >
+              <option value="">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {(u.name && u.name.trim().length ? u.name : u.email) + (u.role ? ` (${u.role})` : "")}
                 </option>
               ))}
             </select>

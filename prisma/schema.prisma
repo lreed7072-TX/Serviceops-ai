@@ -103,6 +103,7 @@ model Org {
   findings     Finding[]
   measures     Measurement[]
   files        File[]
+  fileLinks   FileLink[]
   reports      Report[]
   kbFiles      KbFile[]
   kbChunks     KbChunk[]
@@ -402,9 +403,31 @@ model File {
   report Report? @relation(fields: [reportId], references: [id])
   kbFile KbFile? @relation(fields: [kbFileId], references: [id])
 
+  links      FileLink[]
+
   @@index([orgId])
   @@index([orgId, visitId])
 }
+
+model FileLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @db.Uuid
+  fileId     String   @db.Uuid
+  entityType String
+  entityId   String   @db.Uuid
+  label      String?
+  createdAt  DateTime @default(now())
+
+  org  Org  @relation(fields: [orgId], references: [id])
+  file File @relation(fields: [fileId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, entityType, entityId])
+  @@index([orgId, fileId])
+  @@unique([orgId, fileId, entityType, entityId])
+}
+
+
 
 model Report {
   id        String   @id @default(uuid()) @db.Uuid

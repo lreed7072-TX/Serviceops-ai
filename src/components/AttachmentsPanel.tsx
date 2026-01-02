@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
 
 type AttachmentItem = {
@@ -230,12 +231,8 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
                 <td>{new Date(it.file.createdAt).toLocaleString()}</td>
                 <td>
                   <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                    <button type="button" onClick={() => onDownload(it.file.id)} style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)", background: "white", cursor: "pointer", fontWeight: 600 }}>
-                      Download
-                    </button>
-                    <button type="button" onClick={() => onDelete(it.id)} style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)", background: "white", cursor: "pointer", fontWeight: 600 }}>
-                      Remove
-                    </button>
+                    <Button variant="secondary" type="button" onClick={() => onDownload(it.file.id)}>Download</Button>
+                    <Button variant="secondary" type="button" onClick={() => onDelete(it.id)}>Remove</Button>
                   </div>
                 </td>
               </tr>

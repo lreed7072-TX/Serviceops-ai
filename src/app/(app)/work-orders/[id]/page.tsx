@@ -487,6 +487,29 @@ export default function WorkOrderDetailPage() {
                                     }
                                   />
                                 </label>
+
+
+                                <label className="form-field">
+                                  <span>Edit assigned technician</span>
+                                  <select
+                                    value={editingTaskValues.assignedToId}
+                                    onChange={(event) =>
+                                      setEditingTaskValues({
+                                        ...editingTaskValues,
+                                        assignedToId: event.target.value,
+                                      })
+                                    }
+                                    disabled={actionLoading}
+                                  >
+                                    <option value="">Unassigned</option>
+                                    {users.map((u) => (
+                                      <option key={u.id} value={u.id}>
+                                        {(u.name && u.name.trim().length ? u.name : u.email) + ` (${u.role})`}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+
                                 <label className="form-field">
                                   <span>Sequence number</span>
                                   <input

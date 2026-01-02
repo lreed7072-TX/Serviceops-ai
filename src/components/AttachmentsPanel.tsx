@@ -178,8 +178,16 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
 
       {err ? <p className="form-feedback error">{err}</p> : null}
 
-      <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-        <label className="form-field">
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          alignItems: "end",
+          marginBottom: 8,
+        }}
+      >
+        <label className="form-field" style={{ flex: "1 1 360px", margin: 0 }}>
           <span>Label (optional)</span>
           <input
             value={label}
@@ -189,7 +197,7 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
           />
         </label>
 
-        <label className="form-field">
+        <label className="form-field" style={{ flex: "1 1 360px", margin: 0 }}>
           <span>File</span>
           <input
             type="file"
@@ -198,12 +206,21 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
           />
         </label>
 
-        <div className="form-actions">
-          <button type="button" onClick={onUpload} disabled={!file || uploading}>
+        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="primary"
+            type="button"
+            onClick={onUpload}
+            disabled={!file || uploading}
+          >
             {uploading ? "Uploading…" : "Upload"}
-          </button>
+          </Button>
         </div>
       </div>
+
+      <p className="muted" style={{ marginTop: 0, marginBottom: 12 }}>
+        {file ? `Selected: ${file.name}` : "No file selected."}
+      </p>
 
       {loading ? (
         <p>Loading attachments…</p>

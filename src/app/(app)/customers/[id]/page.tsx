@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type SingleResponse<T> = { data: T };
 type ListResponse<T> = { data?: T[] };
@@ -206,7 +207,10 @@ export default function CustomerDetailPage() {
         </div>
       )}
 
-      <div className="card">
+      
+        <AttachmentsPanel entityType="customer" entityId={customerId as string} />
+
+<div className="card">
         <h3>Sites</h3>
         {loading ? (
           <p>Loading sites…</p>

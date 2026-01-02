@@ -6,6 +6,9 @@ import type { FormEvent } from "react";
 import { AssetCriticality, AssetStatus, ExecutionMode } from "@prisma/client";
 import type { Asset, Customer, Site, WorkOrder } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+
 
 type ListResponse<T> = {
   data?: T[];
@@ -590,13 +593,15 @@ export default function WorkOrdersPage() {
       {!loadError && loading && (
         <div className="page-alert info">Loading work order data…</div>
       )}
-      <div className="page-header">
-        <div>
-          <h2>Work Orders</h2>
-          <p>Dispatch queue and SLA tracking.</p>
-        </div>
-        <span className="badge">Dispatcher view</span>
-      </div>
+            <PageHeader
+        title="Work Orders"
+        subtitle="Dispatch queue and SLA tracking."
+        right={
+          <>
+            <Badge>Dispatcher view</Badge>
+          </>
+        }
+      />
 
       <div className="card">
         <h3>Create work order</h3>

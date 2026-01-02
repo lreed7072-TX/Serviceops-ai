@@ -136,6 +136,12 @@ export default function WorkOrderDetailPage() {
     };
   }, [workOrderId]);
 
+    const userLookup = useMemo(() => {
+      const map = new Map<string, User>();
+      users.forEach((u) => map.set(u.id, u));
+      return map;
+    }, [users]);
+
   const groupedTasks = useMemo(() => {
     const map: Record<string, TaskWithPackage[]> = {};
     tasks.forEach((task) => {
@@ -532,6 +538,14 @@ export default function WorkOrderDetailPage() {
                               <span className={`task-status ${statusClass}`}>
                                 {taskStatusLabels[task.status]}
                               </span>
+                                <span className="muted">
+                                  Tech:{" "}
+                                  {task.assignedToId
+                                    ? (userLookup.get(task.assignedToId)?.name?.trim() ||
+                                        userLookup.get(task.assignedToId)?.email ||
+                                        "—")
+                                    : "Unassigned"}
+                                </span>
                               <div className="task-actions">
                                 {nextStatus && (
                                   <button

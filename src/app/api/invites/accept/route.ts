@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { InviteStatus } from "@prisma/client";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
 export const runtime = "nodejs";
 
 type AcceptInvitePayload = {
   token?: string;
-  name?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -15,48 +16,81 @@ export async function POST(request: Request) {
     return jsonError("Invite token is required.");
   }
 
-  const invite = await prisma.invite.findUnique({
-    where: { token: body.token },
+  // Must be signed in (works for Google OR email/password OR magic-link).
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) {
+    return NextResponse.json(
+      { error: "Please sign in to accept this invite." },
+      { status: 401 }
+    );
+  }
+
+  const authUser = data.user;
+  const authEmail = (authUser.email ?? "").toLowerCase();
+
+  const invite = await prisma.invite.findUnique({ where: { token: body.token } });
+  if (!invite) return jsonError("Invite not found.", 404);
+  if (invite.status !== InviteStatus.PENDING) return jsonError("Invite already used.", 409);
+  if (invite.expiresAt < new Date()) return jsonError("Invite expired.", 410);
+
+  // Prevent accepting someone else's invite.
+  if (authEmail && invite.email.toLowerCase() !== authEmail) {
+    return jsonError("This invite is for a different email.", 403);
+  }
+
+  // Ensure Org exists (usually already does).
+  await prisma.org.upsert({
+    where: { id: invite.orgId },
+    update: {},
+    create: {
+      id: invite.orgId,
+      name: "Default Org",
+    },
   });
 
-  if (!invite) {
-    return jsonError("Invite not found.", 404);
-  }
-
-  if (invite.status !== InviteStatus.PENDING) {
-    return jsonError("Invite is no longer valid.", 410);
-  }
-
-  if (invite.expiresAt < new Date()) {
-    await prisma.invite.update({
-      where: { id: invite.id },
-      data: { status: InviteStatus.EXPIRED },
-    });
-    return jsonError("Invite has expired.", 410);
-  }
-
-  const existingUser = await prisma.user.findFirst({
-    where: { email: invite.email, orgId: invite.orgId },
+  // Ensure Prisma User exists (used by /api/users + task assignment UI).
+  await prisma.user.upsert({
+    where: { orgId_email: { orgId: invite.orgId, email: invite.email } },
+    update: {
+      role: invite.role,
+      name:
+        (authUser.user_metadata as any)?.full_name ??
+        (authUser.user_metadata as any)?.name ??
+        undefined,
+    },
+    create: {
+      orgId: invite.orgId,
+      email: invite.email,
+      name:
+        (authUser.user_metadata as any)?.full_name ??
+        (authUser.user_metadata as any)?.name ??
+        null,
+      role: invite.role,
+    },
   });
 
-  if (existingUser) {
-    return jsonError("User already exists for this org.", 409);
-  }
+  // Ensure user_org_roles mapping exists (used by session auth).
+  await prisma.$executeRawUnsafe(
+    `
+    INSERT INTO user_org_roles (user_id, org_id, role)
+    VALUES ($1::uuid, $2::uuid, $3)
+    ON CONFLICT (user_id, org_id)
+    DO UPDATE SET role = EXCLUDED.role
+    `,
+    authUser.id,
+    invite.orgId,
+    invite.role
+  );
 
-  const [user] = await prisma.$transaction([
-    prisma.user.create({
-      data: {
-        orgId: invite.orgId,
-        email: invite.email,
-        name: body.name ?? null,
-        role: invite.role,
-      },
-    }),
-    prisma.invite.update({
-      where: { id: invite.id },
-      data: { status: InviteStatus.ACCEPTED },
-    }),
-  ]);
+  // Mark invite accepted.
+  await prisma.invite.update({
+    where: { id: invite.id },
+    data: { status: InviteStatus.ACCEPTED },
+  });
 
-  return NextResponse.json({ data: user }, { status: 201 });
+  return NextResponse.json({
+    ok: true,
+    data: { orgId: invite.orgId, role: invite.role },
+  });
 }

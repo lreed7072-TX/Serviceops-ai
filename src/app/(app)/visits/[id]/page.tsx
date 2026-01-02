@@ -249,7 +249,6 @@ export default function VisitDetailPage() {
               <dt>ID</dt>
               <dd style={{ wordBreak: "break-word" }}>{visit.id}</dd>
             </div>
-        <AttachmentsPanel entityType="visit" entityId={visit.id} />
 
 
             <div>
@@ -291,6 +290,9 @@ export default function VisitDetailPage() {
           </dl>
         </div>
       )}
+
+
+        <AttachmentsPanel entityType="visit" entityId={visitId as string} />
 
       <div className="card">
         <div className="card-header">

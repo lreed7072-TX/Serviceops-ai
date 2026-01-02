@@ -268,6 +268,7 @@ export default function WorkOrderDetailPage() {
     setEditingTaskValues({
       title: task.title,
       description: task.description ?? "",
+    assignedToId: task.assignedToId ?? "",
       isCritical: task.isCritical,
       sequenceNumber: task.sequenceNumber != null ? String(task.sequenceNumber) : "",
     });

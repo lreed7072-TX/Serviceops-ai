@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Asset, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type SingleResponse<T> = {
   data: T;
@@ -418,6 +419,7 @@ export default function AssetDetailPage() {
               </button>
             </form>
           </div>
+            <AttachmentsPanel entityType="asset" entityId={asset.id} />
         </>
       )}
     </div>

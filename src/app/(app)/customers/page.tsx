@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+
 
 type Customer = {
   id: string;
@@ -102,14 +105,12 @@ const [notes, setNotes] = useState("");
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2>Customers</h2>
-          <p>Manage client accounts across regions and service tiers.</p>
-        </div>
-
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <span className="badge">CRUD API ready</span>
+            <PageHeader
+        title="Customers"
+        subtitle="Manage client accounts across regions and service tiers."
+        right={
+          <>
+            <Badge>CRUD API ready</Badge>
           <button
             type="button"
             onClick={() => setIsOpen(true)}
@@ -124,8 +125,9 @@ const [notes, setNotes] = useState("");
           >
             + New Customer
           </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {err ? (
         <div style={{ marginBottom: 12, padding: 12, border: "1px solid rgba(255,0,0,0.25)", borderRadius: 10 }}>

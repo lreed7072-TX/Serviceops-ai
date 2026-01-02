@@ -18,6 +18,12 @@ export async function POST(request: Request) {
   const roleError = requireRole(authResult.auth, [Role.ADMIN]);
   if (roleError) return roleError;
 
+
+  const appBase =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+    new URL(request.url).origin;
+
+
   const body = await parseJson<InvitePayload>(request);
   if (!body?.email || !body?.role) {
     return jsonError("Email and role are required.");
@@ -48,5 +54,5 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ data: invite }, { status: 201 });
+  return NextResponse.json({ data: invite, inviteUrl: `${appBase}/invite?token=${invite.token}` }, { status: 201 });
 }

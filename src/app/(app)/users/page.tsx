@@ -22,6 +22,7 @@ export default function UsersPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [inviteOk, setInviteOk] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -53,6 +54,7 @@ export default function UsersPage() {
     setInviting(true);
     setInviteErr(null);
     setInviteOk(null);
+    setInviteUrl(null);
 
     try {
       const email = inviteEmail.trim();
@@ -69,7 +71,9 @@ export default function UsersPage() {
         throw new Error(text || `Invite failed (${res.status})`);
       }
 
-      setInviteOk("Invite created. The user will appear after they accept and log in.");
+      const json = await res.json().catch(() => ({} as any));
+      if (json?.inviteUrl) setInviteUrl(String(json.inviteUrl));
+      setInviteOk("Invite created. Copy the invite link and send it to the user.");
       setInviteEmail("");
       setInviteRole("TECH" as Role);
       setShowInvite(false);
@@ -102,7 +106,30 @@ export default function UsersPage() {
       />
 
       {err ? <div className="page-alert error">Error: {err}</div> : null}
-      {inviteOk ? <div className="page-alert info">{inviteOk}</div> : null}
+      {inviteOk ? (
+        <div className="page-alert info">
+          <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+            <span>{inviteOk}</span>
+            {inviteUrl ? (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(inviteUrl);
+                  } catch {
+                    // fallback: prompt
+                    window.prompt("Copy invite link:", inviteUrl);
+                  }
+                }}
+              >
+                Copy invite link
+              </Button>
+            ) : null}
+          </div>
+          {inviteUrl ? <div className="muted" style={{ marginTop: 6, wordBreak: "break-all" }}>{inviteUrl}</div> : null}
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>

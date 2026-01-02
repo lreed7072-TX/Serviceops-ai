@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type SingleResponse<T> = { data: T };
 type ListResponse<T> = { data?: T[] };
@@ -147,6 +148,8 @@ if (!siteId) {
 
       {error && <div className="page-alert error">{error}</div>}
       {loading && !error && <div className="page-alert info">Loading site…</div>}
+
+        <AttachmentsPanel entityType="site" entityId={siteId as string} />
 
       {site && (
         <div className="card">

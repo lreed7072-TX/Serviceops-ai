@@ -544,6 +544,10 @@ export default function WorkOrderDetailPage() {
                                   </button>
                                 </div>
                               </form>
+
+                              <AttachmentsPanel entityType="task" entityId={task.id} />
+
+
                             </li>
                           );
                         }

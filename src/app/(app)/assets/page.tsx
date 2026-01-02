@@ -6,6 +6,9 @@ import type { FormEvent } from "react";
 import type { Asset, Customer, Site } from "@prisma/client";
 import { AssetCriticality, AssetStatus } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+
 
 type ListResponse<T> = { data?: T[] };
 
@@ -194,13 +197,15 @@ export default function AssetsPage() {
       )}
       {!loadError && loading && <div className="page-alert info">Loading asset data…</div>}
 
-      <div className="page-header">
-        <div>
-          <h2>Assets</h2>
-          <p>Equipment registry with serials, condition, and history.</p>
-        </div>
-        <span className="badge">Org scoped</span>
-      </div>
+            <PageHeader
+        title="Assets"
+        subtitle="Equipment registry with serials, condition, and history."
+        right={
+          <>
+            <Badge>Org scoped</Badge>
+          </>
+        }
+      />
 
       <div className="card">
         <h3>Create asset</h3>

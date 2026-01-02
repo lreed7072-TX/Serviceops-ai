@@ -7,6 +7,7 @@ import type { Visit, WorkOrder } from "@prisma/client";
 import { VisitStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type SingleResponse<T> = { data: T };
 
@@ -248,6 +249,8 @@ export default function VisitDetailPage() {
               <dt>ID</dt>
               <dd style={{ wordBreak: "break-word" }}>{visit.id}</dd>
             </div>
+        <AttachmentsPanel entityType="visit" entityId={visit.id} />
+
 
             <div>
               <dt>Status</dt>

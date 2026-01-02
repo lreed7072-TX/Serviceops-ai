@@ -7,6 +7,9 @@ import type { Visit, WorkOrder } from "@prisma/client";
 type UserLite = { id: string; email: string; name?: string | null; role?: string | null };
 import { VisitStatus } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+
 
 type ListResponse<T> = { data?: T[] };
 
@@ -163,13 +166,15 @@ export default function VisitsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2>Visit Execution</h2>
-          <p>Track arrival, checklist completion, and closeout status.</p>
-        </div>
-        <span className="badge">Tech workflow</span>
-      </div>
+            <PageHeader
+        title="Visit Execution"
+        subtitle="Track arrival, checklist completion, and closeout status."
+        right={
+          <>
+            <Badge>Tech workflow</Badge>
+          </>
+        }
+      />
 
       <div className="card">
         <h3>Create visit</h3>

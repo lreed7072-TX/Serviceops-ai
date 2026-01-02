@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+
 
 type ListResponse<T> = {
   data?: T[];
@@ -177,13 +180,15 @@ export default function SitesPage() {
         <div className="page-alert info">Loading customer and site data…</div>
       )}
 
-      <div className="page-header">
-        <div>
-          <h2>Sites</h2>
-          <p>Track facilities, addresses, and service coverage.</p>
-        </div>
-        <span className="badge">Org scoped</span>
-      </div>
+            <PageHeader
+        title="Sites"
+        subtitle="Track facilities, addresses, and service coverage."
+        right={
+          <>
+            <Badge>Org scoped</Badge>
+          </>
+        }
+      />
 
       <div className="card">
         <h3>Create site</h3>

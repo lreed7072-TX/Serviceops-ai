@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
+import { Role } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
   if ("error" in authResult) return authResult.error;
   const { auth } = authResult;
 
+
+    const roleError = requireRole(auth, [Role.ADMIN, Role.DISPATCHER]);
+    if (roleError) return roleError;
   try {
     const body = await parseJson<CustomerPayload>(request);
     if (!body?.name) {

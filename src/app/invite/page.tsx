@@ -24,13 +24,17 @@ function InviteInner() {
   const [err, setErr] = useState<string | null>(null);
 
   const acceptInvite = async () => {
+    const session = await supabase.auth.getSession();
+    const accessToken = session.data.session?.access_token ?? "";
     const res = await fetch("/api/invites/accept", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify({ token }),
     });
-
-    if (!res.ok) {
+if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new Error(text || `Accept failed (${res.status})`);
     }

@@ -12,22 +12,37 @@ type AcceptInvitePayload = {
 
 export async function POST(request: Request) {
   const body = await parseJson<AcceptInvitePayload>(request);
-  if (!body?.token) {
-    return jsonError("Invite token is required.");
+  if (!body?.token) return jsonError("Invite token is required.");
+
+  // Must be signed in. Accept either cookie session OR Authorization: Bearer <access_token>.
+  const supabase = await createSupabaseServerClient();
+
+  let user = null as any;
+
+  // 1) cookie session
+  {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data?.user) user = data.user;
   }
 
-  // Must be signed in (works for Google OR email/password OR magic-link).
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
+  // 2) bearer token fallback (for email/password on /invite)
+  if (!user) {
+    const authHeader = request.headers.get("authorization") ?? "";
+    if (authHeader.toLowerCase().startsWith("bearer ")) {
+      const token = authHeader.slice(7).trim();
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error && data?.user) user = data.user;
+    }
+  }
+
+  if (!user) {
     return NextResponse.json(
       { error: "Please sign in to accept this invite." },
       { status: 401 }
     );
   }
 
-  const authUser = data.user;
-  const authEmail = (authUser.email ?? "").toLowerCase();
+  const authEmail = (user.email ?? "").toLowerCase();
 
   const invite = await prisma.invite.findUnique({ where: { token: body.token } });
   if (!invite) return jsonError("Invite not found.", 404);
@@ -43,10 +58,7 @@ export async function POST(request: Request) {
   await prisma.org.upsert({
     where: { id: invite.orgId },
     update: {},
-    create: {
-      id: invite.orgId,
-      name: "Default Org",
-    },
+    create: { id: invite.orgId, name: "Default Org" },
   });
 
   // Ensure Prisma User exists (used by /api/users + task assignment UI).
@@ -55,16 +67,16 @@ export async function POST(request: Request) {
     update: {
       role: invite.role,
       name:
-        (authUser.user_metadata as any)?.full_name ??
-        (authUser.user_metadata as any)?.name ??
+        (user.user_metadata as any)?.full_name ??
+        (user.user_metadata as any)?.name ??
         undefined,
     },
     create: {
       orgId: invite.orgId,
       email: invite.email,
       name:
-        (authUser.user_metadata as any)?.full_name ??
-        (authUser.user_metadata as any)?.name ??
+        (user.user_metadata as any)?.full_name ??
+        (user.user_metadata as any)?.name ??
         null,
       role: invite.role,
     },
@@ -78,19 +90,15 @@ export async function POST(request: Request) {
     ON CONFLICT (user_id, org_id)
     DO UPDATE SET role = EXCLUDED.role
     `,
-    authUser.id,
+    user.id,
     invite.orgId,
     invite.role
   );
 
-  // Mark invite accepted.
   await prisma.invite.update({
     where: { id: invite.id },
     data: { status: InviteStatus.ACCEPTED },
   });
 
-  return NextResponse.json({
-    ok: true,
-    data: { orgId: invite.orgId, role: invite.role },
-  });
+  return NextResponse.json({ ok: true, data: { orgId: invite.orgId, role: invite.role } });
 }

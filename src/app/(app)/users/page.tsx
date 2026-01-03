@@ -22,6 +22,9 @@ export default function UsersPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [inviteOk, setInviteOk] = useState<string | null>(null);
+  const [roleDraft, setRoleDraft] = useState<Record<string, Role>>({});
+  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
+
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   const load = async () => {
@@ -46,6 +49,49 @@ export default function UsersPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const setBusy = (id: string, v: boolean) => setRowBusy((prev) => ({ ...prev, [id]: v }));
+
+  async function updateRole(userId: string) {
+    const role = roleDraft[userId];
+    if (!role) return;
+    setBusy(userId, true);
+    setErr(null);
+    try {
+      const res = await apiFetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Update failed (${res.status})`);
+      }
+      await load();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to update role.");
+    } finally {
+      setBusy(userId, false);
+    }
+  }
+
+  async function removeAccess(userId: string) {
+    if (!confirm("Remove this user’s access to the organization?")) return;
+    setBusy(userId, true);
+    setErr(null);
+    try {
+      const res = await apiFetch(`/api/users/${userId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Remove failed (${res.status})`);
+      }
+      await load();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to remove access.");
+    } finally {
+      setBusy(userId, false);
+    }
+  }
 
   const onInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +195,7 @@ export default function UsersPage() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Created</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -156,8 +203,28 @@ export default function UsersPage() {
                 <tr key={u.id}>
                   <td>{u.name?.trim() ? u.name : "—"}</td>
                   <td>{u.email}</td>
-                  <td>{u.role}</td>
+                  <td>
+                    <select
+                      value={roleDraft[u.id] ?? u.role}
+                      onChange={(e) => setRoleDraft((prev) => ({ ...prev, [u.id]: e.target.value as Role }))}
+                      disabled={!!rowBusy[u.id]}
+                    >
+                      <option value="TECH">TECH</option>
+                      <option value="DISPATCHER">DISPATCHER</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                  </td>
                   <td>{new Date(u.createdAt).toLocaleString()}</td>
+                  <td>
+                    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                      <Button variant="secondary" type="button" onClick={() => updateRole(u.id)} disabled={!!rowBusy[u.id]}>
+                        Save role
+                      </Button>
+                      <Button variant="danger" type="button" onClick={() => removeAccess(u.id)} disabled={!!rowBusy[u.id]}>
+                        Remove access
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

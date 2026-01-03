@@ -24,6 +24,8 @@ export default function UsersPage() {
   const [inviteOk, setInviteOk] = useState<string | null>(null);
   const [roleDraft, setRoleDraft] = useState<Record<string, Role>>({});
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [meEmail, setMeEmail] = useState<string>("");
 
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
@@ -46,7 +48,26 @@ export default function UsersPage() {
     }
   };
 
+  
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const json = await res.json().catch(() => null);
+        if (!cancelled && json?.ok && json?.user?.email) {
+          setMeEmail(String(json.user.email));
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+useEffect(() => {
     load();
   }, []);
 
@@ -75,8 +96,21 @@ export default function UsersPage() {
     }
   }
 
-  async function removeAccess(userId: string) {
-    if (!confirm("Remove this user’s access to the organization?")) return;
+  async function removeAccess(userId: string, userEmail: string) {
+    // Non-blocking confirm: first click arms, second click confirms.
+    if (pendingRemoveId !== userId) {
+      setPendingRemoveId(userId);
+      return;
+    }
+
+    setPendingRemoveId(null);
+
+    // Extra safety on client
+    if (meEmail && userEmail.toLowerCase() === meEmail.toLowerCase()) {
+      setErr("You cannot remove your own access.");
+      return;
+    }
+
     setBusy(userId, true);
     setErr(null);
     try {
@@ -220,8 +254,13 @@ export default function UsersPage() {
                       <Button variant="secondary" type="button" onClick={() => updateRole(u.id)} disabled={!!rowBusy[u.id]}>
                         Save role
                       </Button>
-                      <Button variant="danger" type="button" onClick={() => removeAccess(u.id)} disabled={!!rowBusy[u.id]}>
-                        Remove access
+                      <Button
+                        variant="danger"
+                        type="button"
+                        onClick={() => removeAccess(u.id, u.email)}
+                        disabled={!!rowBusy[u.id] || (!!meEmail && u.email.toLowerCase() === meEmail.toLowerCase())}
+                      >
+                        {pendingRemoveId === u.id ? "Confirm remove" : "Remove access"}
                       </Button>
                     </div>
                   </td>

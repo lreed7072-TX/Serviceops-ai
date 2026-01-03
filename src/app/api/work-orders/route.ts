@@ -26,8 +26,18 @@ export async function GET(request: Request) {
     if ("error" in authResult) return authResult.error;
     const auth = authResult.auth;
 
+    const whereBase: any = { orgId: auth.orgId };
+    if (auth.role === Role.TECH) {
+      whereBase.OR = [
+        { tasks: { some: { assignedToId: auth.userId } } },
+        { visits: { some: { assignedTechId: auth.userId } } },
+        { packages: { some: { leadTechId: auth.userId } } },
+      ];
+    }
+
     const workOrders = await prisma.workOrder.findMany({
-      where: { orgId: auth.orgId },
+      where: whereBase,
+
       orderBy: { createdAt: "desc" },
     });
 

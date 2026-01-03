@@ -29,12 +29,32 @@ export async function POST(request: Request) {
     return jsonError("Email and role are required.");
   }
 
+  // Re-invite behavior:
+  // - If the email still has org access (user_org_roles), block.
+  // - If the Prisma User row exists (history), allow invite and keep role consistent.
   const existingUser = await prisma.user.findFirst({
     where: { email: body.email, orgId: authResult.auth.orgId },
   });
 
+  const hasAccessRows = await prisma.$queryRawUnsafe(
+    `select 1
+     from auth.users au
+     join user_org_roles uor on uor.user_id = au.id
+     where uor.org_id = $1::uuid
+       and lower(au.email) = lower($2)
+     limit 1`,
+    authResult.auth.orgId,
+    body.email
+  );
+
+  if ((hasAccessRows as any[]).length > 0) {
+    return jsonError("User already has access to this org.", 409);
+  }
+
   if (existingUser) {
-    return jsonError("User already exists for this org.", 409);
+    await prisma.user
+      .update({ where: { id: existingUser.id }, data: { role: body.role } })
+      .catch(() => null);
   }
 
   const ttlHours = Number.parseInt(

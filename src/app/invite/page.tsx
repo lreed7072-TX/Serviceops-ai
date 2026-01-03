@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -10,81 +10,98 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 function InviteInner() {
   const params = useSearchParams();
   const router = useRouter();
-
   const token = useMemo(() => params.get("token") ?? "", [params]);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
-  const [mode, setMode] = useState<"signup" | "signin">("signup");
-  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [orgName, setOrgName] = useState("Organization");
+
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
 
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  const acceptInvite = async () => {
-    const session = await supabase.auth.getSession();
-    const accessToken = session.data.session?.access_token ?? "";
-    const res = await fetch("/api/invites/accept", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-      body: JSON.stringify({ token }),
-    });
-if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(text || `Accept failed (${res.status})`);
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoading(true);
+        setErr(null);
+        setMsg(null);
 
-  const onSubmit = async (e: React.FormEvent) => {
+        if (!token) throw new Error("Missing invite token.");
+
+        const res = await fetch("/api/invites/lookup", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          throw new Error(text || `Invite lookup failed (${res.status})`);
+        }
+
+        const json = await res.json();
+        if (cancelled) return;
+        setInviteEmail(String(json?.data?.email ?? ""));
+        setOrgName(String(json?.data?.orgName ?? "Organization"));
+      } catch (e: any) {
+        if (cancelled) return;
+        setErr(e?.message ?? "Failed to load invite.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const onAccept = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      setErr("Missing invite token.");
-      return;
-    }
+    if (busy) return;
 
-    const eMail = email.trim();
-    if (!eMail) {
-      setErr("Email is required.");
-      return;
-    }
-    if (!password || password.length < 8) {
-      setErr("Password must be at least 8 characters.");
-      return;
-    }
-
-    setBusy(true);
     setErr(null);
     setMsg(null);
 
+    if (!token) return setErr("Missing invite token.");
+    if (!inviteEmail) return setErr("Invite email missing.");
+    if (!password || password.length < 8) return setErr("Password must be at least 8 characters.");
+    if (password !== password2) return setErr("Passwords do not match.");
+
+    setBusy(true);
     try {
-      if (mode === "signup") {
-        // If email confirmations are OFF, this returns a session immediately.
-        const { error } = await supabase.auth.signUp({
-          email: eMail,
-          password,
-        });
-        if (error) throw error;
-        setMsg("Account created. Accepting invite…");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: eMail,
-          password,
-        });
-        if (error) throw error;
-        setMsg("Signed in. Accepting invite…");
+      setMsg("Creating account and accepting invite…");
+
+      // 1) Create/Update user + accept invite on server (no prior login required)
+      const res = await fetch("/api/invites/accept-with-password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Accept failed (${res.status})`);
       }
 
-      await acceptInvite();
+      // 2) Sign in so cookies/session are established
+      const { error } = await supabase.auth.signInWithPassword({
+        email: inviteEmail,
+        password,
+      });
+      if (error) throw error;
 
       setMsg("✅ Invite accepted. Redirecting…");
       router.replace("/dashboard");
     } catch (e: any) {
-      setErr(e?.message ?? "Failed.");
+      setErr(e?.message ?? "Failed to accept invite.");
+      setMsg(null);
     } finally {
       setBusy(false);
     }
@@ -94,11 +111,11 @@ if (!res.ok) {
     <div>
       <PageHeader
         title="Accept invite"
-        subtitle="Create an account or sign in, then join the organization."
+        subtitle="Set a password and join the organization."
         badge={<Badge>Invite</Badge>}
         right={
           <Button variant="secondary" type="button" onClick={() => router.push("/login")}>
-            Use Google login
+            Use existing login
           </Button>
         }
       />
@@ -107,64 +124,51 @@ if (!res.ok) {
       {msg ? <div className="page-alert info">{msg}</div> : null}
 
       <div className="card">
-        <h3>Join organization</h3>
+        <h3>Join {orgName}</h3>
 
-        {!token ? (
-          <p className="muted">This invite link is missing a token.</p>
+        {loading ? (
+          <p>Loading invite…</p>
+        ) : !token ? (
+          <p className="muted">Missing token.</p>
         ) : (
-          <>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-              <Button
-                variant={mode === "signup" ? "primary" : "secondary"}
-                type="button"
-                onClick={() => setMode("signup")}
+          <form onSubmit={onAccept} style={{ display: "grid", gap: 12 }}>
+            <label className="form-field" style={{ margin: 0 }}>
+              <span>Email</span>
+              <input value={inviteEmail} disabled />
+            </label>
+
+            <label className="form-field" style={{ margin: 0 }}>
+              <span>Set password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
                 disabled={busy}
-              >
-                Create account
-              </Button>
-              <Button
-                variant={mode === "signin" ? "primary" : "secondary"}
-                type="button"
-                onClick={() => setMode("signin")}
+              />
+            </label>
+
+            <label className="form-field" style={{ margin: 0 }}>
+              <span>Confirm password</span>
+              <input
+                type="password"
+                value={password2}
+                onChange={(e) => setPassword2(e.target.value)}
+                placeholder="Re-enter password"
                 disabled={busy}
-              >
-                Sign in
+              />
+            </label>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <Button variant="primary" type="submit" disabled={busy || !inviteEmail}>
+                {busy ? "Working…" : "Set password + Accept"}
               </Button>
             </div>
 
-            <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-              <label className="form-field" style={{ margin: 0 }}>
-                <span>Email</span>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  disabled={busy}
-                />
-              </label>
-
-              <label className="form-field" style={{ margin: 0 }}>
-                <span>Password</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  disabled={busy}
-                />
-              </label>
-
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <Button variant="primary" type="submit" disabled={busy}>
-                  {busy ? "Working…" : mode === "signup" ? "Create + Accept" : "Sign in + Accept"}
-                </Button>
-              </div>
-
-              <p className="muted" style={{ margin: 0 }}>
-                This flow supports any email domain. Google login is optional.
-              </p>
-            </form>
-          </>
+            <p className="muted" style={{ margin: 0 }}>
+              If this email already has an account, use “Use existing login” and then accept again.
+            </p>
+          </form>
         )}
       </div>
     </div>

@@ -27,8 +27,22 @@ const authResult = await requireAuthSessionFirst(request);
   const { auth } = authResult;
 
   try {
-    const customers = await prisma.customer.findMany({
-      where: { orgId: auth.orgId },
+    const whereBase: any = { orgId: auth.orgId };
+      if (auth.role === Role.TECH) {
+        whereBase.workOrders = {
+          some: {
+            OR: [
+              { tasks: { some: { assignedToId: auth.userId } } },
+              { visits: { some: { assignedTechId: auth.userId } } },
+              { packages: { some: { leadTechId: auth.userId } } },
+            ],
+          },
+        };
+      }
+
+      const customers = await prisma.customer.findMany({
+        where: whereBase,
+
       orderBy: { createdAt: "desc" },
     });
 

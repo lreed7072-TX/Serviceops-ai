@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
+import { Role } from "@prisma/client";
 import { requireAuthSessionFirst } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -21,8 +22,22 @@ export async function GET(request: Request) {
   const { auth } = authResult;
 
   try {
-    const sites = await prisma.site.findMany({
-      where: { orgId: auth.orgId },
+    const whereBase: any = { orgId: auth.orgId };
+      if (auth.role === Role.TECH) {
+        whereBase.workOrders = {
+          some: {
+            OR: [
+              { tasks: { some: { assignedToId: auth.userId } } },
+              { visits: { some: { assignedTechId: auth.userId } } },
+              { packages: { some: { leadTechId: auth.userId } } },
+            ],
+          },
+        };
+      }
+
+      const sites = await prisma.site.findMany({
+        where: whereBase,
+
       orderBy: { createdAt: "desc" },
     });
 

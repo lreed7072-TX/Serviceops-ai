@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
+import { Role } from "@prisma/client";
 export const runtime = "nodejs";
 
 type CustomerUpdatePayload = {
@@ -44,7 +45,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const body = await parseJson<CustomerUpdatePayload>(request);
+  
+  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
+  if (roleError) return roleError;
+const body = await parseJson<CustomerUpdatePayload>(request);
   if (!body) {
     return jsonError("Invalid JSON body.");
   }
@@ -83,7 +87,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const existing = await prisma.customer.findFirst({
+  
+  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
+  if (roleError) return roleError;
+const existing = await prisma.customer.findFirst({
     where: { id, orgId: authResult.auth.orgId },
   });
 

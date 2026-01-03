@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z, type ZodError, type ZodTypeAny } from "zod";
-import { AssetCriticality, AssetStatus, Prisma } from "@prisma/client";
+import { AssetCriticality, AssetStatus, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
@@ -164,8 +164,40 @@ const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
   const { auth } = authResult;
 
-  const assets = await prisma.asset.findMany({
-    where: { orgId: auth.orgId },
+  const whereBase: any = { orgId: auth.orgId };
+      if (auth.role === Role.TECH) {
+        // Tech sees assets only when tied to a work order they are involved in
+        whereBase.OR = [
+          {
+            workOrders: {
+              some: {
+                OR: [
+                  { tasks: { some: { assignedToId: auth.userId } } },
+                  { visits: { some: { assignedTechId: auth.userId } } },
+                  { packages: { some: { leadTechId: auth.userId } } },
+                ],
+              },
+            },
+          },
+          {
+            site: {
+              workOrders: {
+                some: {
+                  OR: [
+                    { tasks: { some: { assignedToId: auth.userId } } },
+                    { visits: { some: { assignedTechId: auth.userId } } },
+                    { packages: { some: { leadTechId: auth.userId } } },
+                  ],
+                },
+              },
+            },
+          },
+        ];
+      }
+
+      const assets = await prisma.asset.findMany({
+        where: whereBase,
+
     orderBy: { createdAt: "desc" },
   });
 

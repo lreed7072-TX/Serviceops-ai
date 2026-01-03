@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst } from "@/lib/auth";
-import { VisitStatus, Role } from "@prisma/client";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
+import { Role, VisitStatus } from "@prisma/client";
+
 export const runtime = "nodejs";
+
+type RouteParams = { params: Promise<{ id: string }> };
 
 type VisitUpdatePayload = {
   assignedTechId?: string | null;
@@ -15,46 +18,42 @@ type VisitUpdatePayload = {
   outcome?: string | null;
 };
 
-type RouteParams = {
-  params: Promise<{ id: string }>;
-};
-
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
+
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
   const whereVisit: any = { id, orgId: authResult.auth.orgId };
-    if (authResult.auth.role === Role.TECH) {
-      whereVisit.assignedTechId = authResult.auth.userId;
-    }
-    const visit = await prisma.visit.findFirst({ where: whereVisit });
-  });
 
-  if (!visit) {
-    return jsonError("Visit not found.", 404);
+  // TECH can only view visits assigned to them
+  if (authResult.auth.role === Role.TECH) {
+    whereVisit.assignedTechId = authResult.auth.userId;
   }
 
+  const visit = await prisma.visit.findFirst({ where: whereVisit });
+
+  if (!visit) return jsonError("Visit not found.", 404);
   return NextResponse.json({ data: visit });
 }
 
 export async function PUT(request: Request, { params }: RouteParams) {
   const { id } = await params;
+
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
+  // Only ADMIN/DISPATCHER can edit visit fields (TECH is view-only for now)
+  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
+  if (roleError) return roleError;
+
   const body = await parseJson<VisitUpdatePayload>(request);
-  if (!body) {
-    return jsonError("Invalid JSON body.");
-  }
+  if (!body) return jsonError("Invalid JSON body.", 400);
 
   const existing = await prisma.visit.findFirst({
     where: { id, orgId: authResult.auth.orgId },
   });
-
-  if (!existing) {
-    return jsonError("Visit not found.", 404);
-  }
+  if (!existing) return jsonError("Visit not found.", 404);
 
   let assignedTechId = existing.assignedTechId;
   if (body.assignedTechId !== undefined) {
@@ -62,9 +61,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       const assignedTech = await prisma.user.findFirst({
         where: { id: body.assignedTechId, orgId: authResult.auth.orgId },
       });
-      if (!assignedTech) {
-        return jsonError("Assigned tech not found.", 404);
-      }
+      if (!assignedTech) return jsonError("Assigned tech not found.", 404);
       assignedTechId = assignedTech.id;
     } else {
       assignedTechId = null;
@@ -72,7 +69,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const visit = await prisma.visit.update({
-    where: { id },
+    where: { id: existing.id },
     data: {
       assignedTechId,
       status: body.status ?? existing.status,
@@ -89,18 +86,18 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   const { id } = await params;
+
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+
+  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
+  if (roleError) return roleError;
 
   const existing = await prisma.visit.findFirst({
     where: { id, orgId: authResult.auth.orgId },
   });
+  if (!existing) return jsonError("Visit not found.", 404);
 
-  if (!existing) {
-    return jsonError("Visit not found.", 404);
-  }
-
-  await prisma.visit.delete({ where: { id } });
-
-  return NextResponse.json({ data: { id } });
+  await prisma.visit.delete({ where: { id: existing.id } });
+  return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
-import { VisitStatus } from "@prisma/client";
+import { VisitStatus, Role } from "@prisma/client";
 export const runtime = "nodejs";
 
 type VisitUpdatePayload = {
@@ -24,8 +24,11 @@ export async function GET(request: Request, { params }: RouteParams) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const visit = await prisma.visit.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
+  const whereVisit: any = { id, orgId: authResult.auth.orgId };
+    if (authResult.auth.role === Role.TECH) {
+      whereVisit.assignedTechId = authResult.auth.userId;
+    }
+    const visit = await prisma.visit.findFirst({ where: whereVisit });
   });
 
   if (!visit) {

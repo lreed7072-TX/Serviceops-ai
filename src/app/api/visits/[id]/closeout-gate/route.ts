@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus, Role } from "@prisma/client";
 export const runtime = "nodejs";
 
 type RouteParams = {
@@ -22,15 +22,14 @@ export async function GET(request: Request, { params }: RouteParams) {
     return jsonError("Visit ID must be a valid UUID or CUID.", 400);
   }
 
-  const visit = await prisma.visit.findFirst({
-    where: { id: parsedId.data, orgId: authResult.auth.orgId },
-    select: {
-      id: true,
-      workOrderId: true,
-    },
-  });
-
-  if (!visit) {
+  const whereVisit: any = { id: parsedId.data, orgId: authResult.auth.orgId };
+    if (authResult.auth.role === Role.TECH) {
+      whereVisit.assignedTechId = authResult.auth.userId;
+    }
+    const visit = await prisma.visit.findFirst({
+      where: whereVisit,
+      select: { id: true, workOrderId: true },
+    });if (!visit) {
     return jsonError("Visit not found.", 404);
   }
 

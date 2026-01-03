@@ -20,8 +20,14 @@ export async function GET(request: Request) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const visits = await prisma.visit.findMany({
-    where: { orgId: authResult.auth.orgId },
+  const whereBase: any = { orgId: authResult.auth.orgId };
+    if (authResult.auth.role === Role.TECH) {
+      whereBase.assignedTechId = authResult.auth.userId;
+    }
+
+    const visits = await prisma.visit.findMany({
+      where: whereBase,
+
     orderBy: { createdAt: "desc" },
   });
 

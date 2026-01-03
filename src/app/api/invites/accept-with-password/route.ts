@@ -23,6 +23,8 @@ export async function POST(request: Request) {
   if (invite.status !== InviteStatus.PENDING) return jsonError("Invite already used.", 409);
   if (invite.expiresAt < new Date()) return jsonError("Invite expired.", 410);
 
+  const inviteEmail = invite.email.trim().toLowerCase();
+
   // Ensure Org exists (satisfy FK constraints)
   await prisma.org.upsert({
     where: { id: invite.orgId },
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
   // Find existing auth user by email (auth schema).
   const rows = await prisma.$queryRawUnsafe(
     `select id::text as id from auth.users where email = $1 limit 1`,
-    invite.email
+    inviteEmail
   );
   const existingAuthId = (rows as any[])[0]?.id as string | undefined;
 
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
   } else {
     // Create user (admin)
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: invite.email,
+      email: inviteEmail,
       password: body.password,
       email_confirm: true,
     });
@@ -62,9 +64,9 @@ export async function POST(request: Request) {
 
   // Ensure Prisma User exists (used by /users + task assignment UI)
   await prisma.user.upsert({
-    where: { orgId_email: { orgId: invite.orgId, email: invite.email } },
+    where: { orgId_email: { orgId: invite.orgId, email: inviteEmail } },
     update: { role: invite.role },
-    create: { orgId: invite.orgId, email: invite.email, role: invite.role, name: null },
+    create: { orgId: invite.orgId, email: inviteEmail, role: invite.role, name: null },
   });
 
   // Ensure org mapping exists (session auth)
@@ -85,5 +87,5 @@ export async function POST(request: Request) {
     data: { status: InviteStatus.ACCEPTED },
   });
 
-  return NextResponse.json({ ok: true, data: { email: invite.email } });
+  return NextResponse.json({ ok: true, data: { email: inviteEmail } });
 }

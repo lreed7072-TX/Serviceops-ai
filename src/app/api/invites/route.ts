@@ -29,11 +29,14 @@ export async function POST(request: Request) {
     return jsonError("Email and role are required.");
   }
 
+    const normalizedEmail = body.email.trim().toLowerCase();
+
+
   // Re-invite behavior:
   // - If the email still has org access (user_org_roles), block.
   // - If the Prisma User row exists (history), allow invite and keep role consistent.
   const existingUser = await prisma.user.findFirst({
-    where: { email: body.email, orgId: authResult.auth.orgId },
+    where: { email: normalizedEmail, orgId: authResult.auth.orgId },
   });
 
   const hasAccessRows = await prisma.$queryRawUnsafe(
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
        and lower(au.email) = lower($2)
      limit 1`,
     authResult.auth.orgId,
-    body.email
+    normalizedEmail
   );
 
   if ((hasAccessRows as any[]).length > 0) {
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
   const invite = await prisma.invite.create({
     data: {
       orgId: authResult.auth.orgId,
-      email: body.email,
+      email: normalizedEmail,
       role: body.role,
       token: randomUUID(),
       expiresAt,

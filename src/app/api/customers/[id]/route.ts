@@ -29,11 +29,21 @@ export async function GET(request: Request, { params }: RouteParams) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const customer = await prisma.customer.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
-  });
+  const whereCustomer: any = { id, orgId: authResult.auth.orgId };
+    if (authResult.auth.role === Role.TECH) {
+      whereCustomer.workOrders = {
+        some: {
+          OR: [
+            { tasks: { some: { assignedToId: authResult.auth.userId } } },
+            { visits: { some: { assignedTechId: authResult.auth.userId } } },
+            { packages: { some: { leadTechId: authResult.auth.userId } } },
+          ],
+        },
+      };
+    }
 
-  if (!customer) {
+    const customer = await prisma.customer.findFirst({ where: whereCustomer });
+if (!customer) {
     return jsonError("Customer not found.", 404);
   }
 

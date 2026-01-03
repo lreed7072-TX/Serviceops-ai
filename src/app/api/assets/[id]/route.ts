@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
@@ -84,11 +85,39 @@ export async function GET(request: Request, { params }: RouteParams) {
     return jsonError("Asset ID must be a valid UUID or CUID.", 400);
   }
 
-  const asset = await prisma.asset.findFirst({
-    where: { id: parsedId.data, orgId: authResult.auth.orgId },
-  });
+  const whereAsset: any = { id: parsedId.data, orgId: authResult.auth.orgId };
 
-  if (!asset) {
+    if (authResult.auth.role === Role.TECH) {
+      whereAsset.OR = [
+        {
+          workOrders: {
+            some: {
+              OR: [
+                { tasks: { some: { assignedToId: authResult.auth.userId } } },
+                { visits: { some: { assignedTechId: authResult.auth.userId } } },
+                { packages: { some: { leadTechId: authResult.auth.userId } } },
+              ],
+            },
+          },
+        },
+        {
+          site: {
+            workOrders: {
+              some: {
+                OR: [
+                  { tasks: { some: { assignedToId: authResult.auth.userId } } },
+                  { visits: { some: { assignedTechId: authResult.auth.userId } } },
+                  { packages: { some: { leadTechId: authResult.auth.userId } } },
+                ],
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    const asset = await prisma.asset.findFirst({ where: whereAsset });
+if (!asset) {
     return jsonError("Asset not found.", 404);
   }
 

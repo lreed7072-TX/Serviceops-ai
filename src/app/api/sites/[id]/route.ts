@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
+import { Role } from "@prisma/client";
 export const runtime = "nodejs";
 
 type SiteUpdatePayload = {
@@ -22,11 +23,21 @@ export async function GET(request: Request, { params }: RouteParams) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const site = await prisma.site.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
-  });
+  const whereSite: any = { id, orgId: authResult.auth.orgId };
+    if (authResult.auth.role === Role.TECH) {
+      whereSite.workOrders = {
+        some: {
+          OR: [
+            { tasks: { some: { assignedToId: authResult.auth.userId } } },
+            { visits: { some: { assignedTechId: authResult.auth.userId } } },
+            { packages: { some: { leadTechId: authResult.auth.userId } } },
+          ],
+        },
+      };
+    }
 
-  if (!site) {
+    const site = await prisma.site.findFirst({ where: whereSite });
+if (!site) {
     return jsonError("Site not found.", 404);
   }
 

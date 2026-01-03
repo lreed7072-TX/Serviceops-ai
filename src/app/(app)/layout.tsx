@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoutButton } from "@/components/LogoutButton";
 
 type NavLink = {
   href: string;
@@ -29,6 +30,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+          <div style={{ paddingTop: 12 }}>
+            <div style={{ height: 1, background: "rgba(0,0,0,0.08)", margin: "12px 0" }} />
+            <LogoutButton />
+          </div>
+
       </aside>
       <main className="main">{children}</main>
     </div>

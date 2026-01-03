@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst } from "@/lib/auth";
-import { TaskStatus } from "@prisma/client";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
+import { TaskStatus, Role } from "@prisma/client";
 export const runtime = "nodejs";
 
 type RouteParams = {
@@ -22,6 +22,9 @@ export async function POST(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+
+    const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
+    if (roleError) return roleError;
 
   const workPackage = await prisma.workPackage.findFirst({
     where: { id, orgId: authResult.auth.orgId },

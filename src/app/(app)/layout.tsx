@@ -14,6 +14,7 @@ const navLinks: NavLink[] = [
   { href: "/visits", label: "Visit Execution" },
   { href: "/reports", label: "Reports" },
   { href: "/knowledge-base", label: "Knowledge Base" },
+  { href: "/users", label: "Users" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

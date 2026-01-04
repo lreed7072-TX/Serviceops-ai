@@ -1,7 +1,7 @@
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-const isProd = process.env.VERCEL_ENV === "production";
+const isProd = process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production";
 
 // Fail fast if anyone ever sets dev-auth vars in Production
 if (isProd) {
@@ -29,7 +29,7 @@ function getDevEnvAuth() {
   return { orgId, userId, role };
 }
 
-const isVercelProduction = process.env.VERCEL_ENV === "production";
+const isVercelProduction = process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production";
 
 export function getAuthContext(request: Request): AuthContext | null {
   let orgId = request.headers.get("x-org-id");

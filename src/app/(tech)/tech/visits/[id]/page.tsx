@@ -9,38 +9,35 @@ import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type SingleResponse<T> = { data: T };
 
-export default function TechVisitDetailPage() {
+export default function TechVisitPage() {
   const params = useParams();
-  const id = params?.id as string | undefined;
+  const visitId = params?.id as string | undefined;
 
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!visitId) return;
     let cancelled = false;
-
-    const load = async () => {
+    (async () => {
       try {
         setLoading(true);
         setErr(null);
-        const res = await apiFetch(`/api/visits/${id}`, { cache: "no-store" });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json?.error ?? "Failed to load visit.");
-        if (!cancelled) setVisit((json as SingleResponse<Visit>).data);
+        const res = await apiFetch(`/api/visits/${visitId}`, { cache: "no-store" });
+        if (!res.ok) throw new Error((await res.text()) || `Load failed (${res.status})`);
+        const json = (await res.json()) as SingleResponse<Visit>;
+        if (!cancelled) setVisit(json.data);
       } catch (e: any) {
-        if (!cancelled) setErr(e?.message ?? "Failed to load.");
+        if (!cancelled) setErr(e?.message ?? "Failed to load visit.");
       } finally {
         if (!cancelled) setLoading(false);
       }
-    };
-
-    load();
+    })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [visitId]);
 
-  if (!id) return <div className="card"><p>Missing visit id.</p></div>;
+  if (!visitId) return <div className="card"><p>Missing visit ID.</p></div>;
 
   return (
     <div>
@@ -52,16 +49,18 @@ export default function TechVisitDetailPage() {
         <Link className="link-button" href="/tech">← Back to My Work</Link>
       </div>
 
-      {err && <div className="page-alert error">{err}</div>}
-      {loading && !err && <div className="page-alert info">Loading…</div>}
+      {err ? <div className="page-alert error">{err}</div> : null}
+      {loading && !err ? <div className="page-alert info">Loading…</div> : null}
 
-      {visit && (
+      {visit ? (
         <div className="card">
-          <h3>{(visit as any).visitNumber ? `Visit ${(visit as any).visitNumber}` : "Visit"}</h3>
-          <p className="muted">Status: {visit.status}</p>
+          <h3 style={{ marginTop: 0 }}>{(visit as any).visitNumber ?? "Visit"} — {visit.status}</h3>
+          <div className="muted">WorkOrder: {visit.workOrderId}</div>
+
+          <h3 style={{ marginTop: 16 }}>Visit attachments</h3>
           <AttachmentsPanel entityType="visit" entityId={visit.id} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

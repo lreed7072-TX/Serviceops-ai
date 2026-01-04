@@ -1,0 +1,316 @@
+{
+  "handoffPackageVersion": "2026-01-03",
+  "product": "ServiceOps AI",
+  "repo": {
+    "name": "Serviceops-ai",
+    "defaultBranch": "main",
+    "deploymentAlias": "https://serviceops-ai.vercel.app"
+  },
+  "currentState": {
+    "whatWorksNow": [
+      "Auth via Supabase session cookies (Google + email/password invite flow)",
+      "Org scoping via user_org_roles; app reads org/role from DB mapping",
+      "CRUD (org-scoped) for Customers, Sites, Assets, Work Orders, Visits, Work Packages, Tasks",
+      "Per-org numbering: WorkOrder.workOrderNumber (WO00001...), Visit.visitNumber (V00001...)",
+      "Tech dashboard at /tech showing assigned work orders, tasks, visits (summary tables)",
+      "Users page: invite, role change, remove access (admin tooling)",
+      "Attachments system (Supabase Storage bucket org-files) with File + FileLink + UI panel + download/remove",
+      "Logout endpoint + sidebar logout button"
+    ],
+    "whatIsIntentionallyLimited": [
+      "Technicians should not browse customers/sites/assets/users unless explicitly granted",
+      "Technicians should only see assigned work (and optionally assigned visits)",
+      "Technicians should update task status + add evidence/notes/photos"
+    ],
+    "knownDataModelReality": {
+      "authUserIdVsPrismaUserId": "Supabase auth user_id may NOT equal Prisma User.id. Some assignments currently point at Prisma User.id; Tech session uses auth user_id from user_org_roles. This mismatch can cause 'assigned tasks not showing' unless mapping is consistent.",
+      "userEmailCaseSensitivity": "Case-only duplicates occurred; DB now has a per-org case-insensitive uniqueness index and invite API now lowercases email."
+    }
+  },
+  "criticalIssueToFixNext": {
+    "title": "Tech 'Open' buttons return to /tech and tech cannot open a task directly",
+    "rootCause": [
+      "Route group folders like src/app/(tech)/work-orders/[id] DO NOT add a /tech prefix; they collide with /(app)/work-orders/[id]. That caused build errors earlier.",
+      "There is likely a role-based redirect/guard that sends TECH users back to /tech when they attempt to visit /(app) routes like /work-orders/[id].",
+      "The Tech dashboard currently links to work-order pages; if the guard redirects TECH away from /(app), links will bounce back to /tech."
+    ],
+    "fixPlan": [
+      {
+        "step": 1,
+        "change": "Create TECH detail routes under an actual /tech path segment (NOT just a route group).",
+        "implementation": [
+          "Create: src/app/(tech)/tech/work-orders/[id]/page.tsx",
+          "Create: src/app/(tech)/tech/visits/[id]/page.tsx",
+          "Optional: Create: src/app/(tech)/tech/tasks/[id]/page.tsx (recommended)"
+        ],
+        "notes": "Because /tech is a real path segment in src/app/(tech)/tech, putting children under that folder yields /tech/work-orders/[id] etc and avoids collisions."
+      },
+      {
+        "step": 2,
+        "change": "Update Tech dashboard links to /tech/work-orders/[id] and /tech/visits/[id] and add 'Open Task' linking to /tech/tasks/[id] (or a WO deep link).",
+        "acceptanceCriteria": [
+          "Tech clicking Open on a WO opens /tech/work-orders/[id] (no redirect loop).",
+          "Tech clicking Open on a Visit opens /tech/visits/[id].",
+          "Tech clicking Open Task opens a task execution view (not just the WO page)."
+        ]
+      },
+      {
+        "step": 3,
+        "change": "Tech task execution view",
+        "requirements": [
+          "Shows task title/description, status, assigned package/WO context",
+          "Buttons: Start / Pause / Resume / Mark Done / Blocked / Add Note / Add Photo / Add Attachment",
+          "Evidence panel: notes + attachments (existing FileLink system) + optional TaskEvidence NOTE remains usable"
+        ]
+      }
+    ],
+    "decision": {
+      "recommended": "Add /tech/tasks/[id] so a tech can open a task directly. Keep /tech/work-orders/[id] for context and package grouping."
+    }
+  },
+  "RBACSpecification": {
+    "rolesInCodeToday": [
+      "ADMIN",
+      "DISPATCHER",
+      "TECH"
+    ],
+    "targetRolesFromOriginalPlan": [
+      "OwnerAdmin",
+      "ServiceManager",
+      "DispatcherCoordinator",
+      "Technician",
+      "SalesEstimator",
+      "CustomerPortalUser",
+      "AIOrchestratorSystemRole"
+    ],
+    "gap": "App currently implements a simplified subset. Mapping needed: OwnerAdmin->ADMIN, ServiceManager->ADMIN or new MANAGER, DispatcherCoordinator->DISPATCHER, Technician->TECH. Others not implemented yet.",
+    "mustHoldRules": [
+      "TECH can only see assigned work orders, assigned visits, assigned tasks",
+      "TECH can only change task status and add evidence (notes/files/photos); cannot create tasks, delete tasks, change other users, edit customers/sites/assets/work orders",
+      "DISPATCHER/ADMIN can create/assign work orders, visits, tasks, assets, sites, customers",
+      "ADMIN-only for user management + org settings"
+    ],
+    "UIEnforcement": [
+      "Sidebar items must be role-filtered (TECH sees only Tech area + Logout)",
+      "Direct navigation to restricted pages should show 'Not authorized' (or redirect to /tech) consistently"
+    ],
+    "APIEnforcement": [
+      "Every mutating endpoint must check requireRole() appropriately",
+      "Every list endpoint must scope by orgId and role-specific visibility"
+    ]
+  },
+  "NextFeatureBlock": {
+    "title": "Tech execution features (time, pause, notes, photos)",
+    "why": "You asked: tech needs pause/timer + quantify time per task + add notes/photos as necessary.",
+    "dataModelAdds": [
+      {
+        "entity": "TimeEntry",
+        "status": "NOT IMPLEMENTED",
+        "fields": [
+          "id",
+          "orgId",
+          "userId (auth user id)",
+          "workOrderId",
+          "taskInstanceId",
+          "startedAt",
+          "endedAt",
+          "durationSeconds",
+          "status (RUNNING|PAUSED|STOPPED)",
+          "createdAt"
+        ],
+        "notes": "Supports pause/resume by closing a segment and opening a new one, or by status tracking."
+      },
+      {
+        "entity": "TaskNote",
+        "status": "OPTIONAL (can reuse TaskEvidence NOTE)",
+        "fields": [
+          "id",
+          "orgId",
+          "taskInstanceId",
+          "noteText",
+          "createdByUserId",
+          "createdAt"
+        ],
+        "notes": "If TaskEvidence already exists, we can extend it to include PHOTO and FILE references (or just use FileLink)."
+      }
+    ],
+    "APIAdds": [
+      "/api/tech/tasks (GET assigned tasks with minimal context)",
+      "/api/tech/tasks/[id] (GET one task, ensure assigned)",
+      "/api/tech/tasks/[id]/timer (POST start/pause/resume/stop)",
+      "/api/tech/tasks/[id]/notes (POST create note)",
+      "Reuse existing /api/files upload + FileLink for attachments"
+    ],
+    "UIAdds": [
+      "/tech/tasks/[id] task execution screen (mobile-friendly)",
+      "Inline note editor + attachments panel + 'evidence complete' checklist"
+    ]
+  },
+  "AttachmentsSystem": {
+    "status": "IMPLEMENTED (WorkOrder, Visit, Customer, Site, Asset, Task)",
+    "storage": {
+      "provider": "Supabase Storage",
+      "bucket": "org-files",
+      "keyPattern": "org/{orgId}/{entityType}/{entityId}/{fileId}/{filename}"
+    },
+    "schema": {
+      "File": [
+        "id",
+        "orgId",
+        "filename",
+        "mimeType",
+        "storageKey",
+        "sizeBytes",
+        "createdAt"
+      ],
+      "FileLink": [
+        "id",
+        "orgId",
+        "fileId",
+        "entityType",
+        "entityId",
+        "label",
+        "createdAt"
+      ]
+    },
+    "knownGap": [
+      "Need consistent RBAC: TECH can upload to assigned task/WO/visit only; ADMIN/DISPATCHER can upload anywhere in org.",
+      "Need UI polish: upload row + table actions standardized with Button UI primitives (in progress)."
+    ]
+  },
+  "GapAnalysisAgainstOriginalSpec": {
+    "implementedSubset": [
+      "Work order creation + execution mode",
+      "Work packages + tasks + basic status lifecycle",
+      "Visits + closeout gate check",
+      "Attachments + evidence notes",
+      "User invite + role mgmt (partial)",
+      "Basic tech dashboard"
+    ],
+    "majorMissingBlocks": {
+      "quotesAndEstimating": {
+        "status": "NOT IMPLEMENTED",
+        "needed": [
+          "Quote + QuoteLineItem models",
+          "Quote workflow statuses",
+          "Customer approval (portal) OR internal approval",
+          "Convert approved quote -> work order"
+        ]
+      },
+      "standardsPacksAndProcedureTemplates": {
+        "status": "NOT IMPLEMENTED",
+        "needed": [
+          "StandardsPack, ProcedureTemplate, ProcedureStepTemplate, WorkflowDefinition, WorkflowRule models",
+          "Template authoring UI + versioning",
+          "WorkOrderType classification + default templates"
+        ]
+      },
+      "aiOrchestrator": {
+        "status": "NOT IMPLEMENTED",
+        "needed": [
+          "AITaskPlan storage",
+          "RAG/vector store plumbing (KbFile/KbChunk exists but not wired for task planning)",
+          "Supervisor-approved replans + ReplanEvent audit trail"
+        ]
+      },
+      "executionDataCapture": {
+        "status": "PARTIAL",
+        "have": [
+          "TaskEvidence NOTE",
+          "File attachments"
+        ],
+        "missing": [
+          "Measurements schemas + measurement capture UI",
+          "TimeEntry",
+          "MaterialUsage",
+          "Signatures",
+          "Customer sign-off"
+        ]
+      },
+      "reviewCompletionFinance": {
+        "status": "NOT IMPLEMENTED",
+        "needed": [
+          "Manager review screen",
+          "Completion reports",
+          "Billing export"
+        ]
+      },
+      "kaizenAnalytics": {
+        "status": "NOT IMPLEMENTED",
+        "needed": [
+          "Completeness metrics",
+          "Recurring issues",
+          "Procedure improvement suggestions"
+        ]
+      },
+      "customerPortal": {
+        "status": "NOT IMPLEMENTED",
+        "needed": [
+          "Customer user auth",
+          "Restricted views for quotes/work orders/reports"
+        ]
+      }
+    },
+    "qualityGapsToCloseForRobustness": [
+      "Remove authUserId vs PrismaUserId mismatch risk by making Prisma User.id == Supabase auth user id (preferred) OR store authUserId on User table and always join through it.",
+      "Enforce RBAC in UI navigation + server redirects consistently; prevent TECH from reaching /users and other admin pages.",
+      "Add a real email delivery provider for invites (Resend/SendGrid) so invite emails arrive automatically."
+    ]
+  },
+  "MobileTechAppPlan": {
+    "recommendedApproach": "PWA-first (fastest) + optional native wrapper later",
+    "phase1_PWA": {
+      "goals": [
+        "Offline-tolerant task list + cached work order data",
+        "Photo capture + upload queue",
+        "Timer/pause time entries",
+        "Attachments upload",
+        "Push notifications optional later"
+      ],
+      "tech": [
+        "Next.js app route /tech + mobile-first CSS",
+        "Service worker (Workbox) caching /tech API responses",
+        "IndexedDB queue for uploads when offline",
+        "Background sync when online"
+      ],
+      "deliverables": [
+        "/tech/tasks/[id] optimized for phone",
+        "Upload queue + retries + progress UI",
+        "Low-latency controls (avoid heavy rerenders)"
+      ]
+    },
+    "phase2_nativeWrapper": {
+      "options": [
+        "Capacitor wrapping the PWA",
+        "React Native (Expo) consuming same API"
+      ],
+      "whenToChoose": "Only if you need deeper device integrations (true background upload, advanced camera controls, MDM deployment)."
+    }
+  },
+  "ImmediateNextStepsChecklist": [
+    "1) Fix Tech navigation by implementing /tech/work-orders/[id] and /tech/visits/[id] (under src/app/(tech)/tech/...) and updating links accordingly",
+    "2) Add /tech/tasks/[id] task execution page (Start/Pause/Resume/Done + notes + attachments + photos)",
+    "3) Add TimeEntry model + endpoints + UI timer",
+    "4) Enforce RBAC in sidebar + route guard: TECH cannot access admin app shell routes; ADMIN/DISPATCHER cannot access tech shell unless testing",
+    "5) Resolve authUserId vs PrismaUserId mapping permanently (make User.id = auth user id OR store authUserId and use it consistently everywhere)",
+    "6) Add invite email delivery (Resend/SendGrid) so invites arrive; keep accept-with-password flow as UX",
+    "7) Add 'Assigned Visits' behavior: dispatcher assigns Visit.assignedTechId; tech sees /tech/visits/[id] and can update summary/outcome + attachments"
+  ],
+  "AcceptanceCriteriaForThisCheckpoint": {
+    "techWorkflow": [
+      "Tech sees ONLY assigned work orders, tasks, and visits",
+      "Tech can open a specific task and complete it without hunting through admin UI",
+      "Tech can add notes/photos/attachments to a task",
+      "Tech can start/pause/resume time tracking per task",
+      "Tech can open an assigned visit and fill summary/outcome + closeout gate"
+    ],
+    "adminWorkflow": [
+      "Admin/Dispatcher can create WO/Visit/Tasks and assign to tech",
+      "Admin can attach documents at any entity level",
+      "Admin can manage users/roles; TECH cannot"
+    ]
+  },
+  "OneAssumptionToConfirmIfNeeded": {
+    "question": "Do you want TECH to edit Visit.summary/outcome directly during execution, or should that be manager-only after completion?"
+  }
+}

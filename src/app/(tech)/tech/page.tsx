@@ -131,7 +131,7 @@ export default function TechHomePage() {
                   <td>{wo.title}</td>
                   <td>{wo.status}</td>
                   <td style={{ textAlign: "right" }}>
-                    <Link className="link-button" href={`/work-orders/${wo.id}`}>
+                    <Link className="link-button" href={`/tech/work-orders/${wo.id}`}>
                       Open
                     </Link>
                   </td>
@@ -184,7 +184,7 @@ export default function TechHomePage() {
                   <td>{t.status}</td>
                   <td>{t.workPackage?.name ?? "—"}</td>
                   <td style={{ textAlign: "right" }}>
-                    <Link className="link-button" href={`/work-orders/${t.workOrder.id}`}>
+                    <Link className="link-button" href={`/tech/work-orders/${t.workOrder.id}`}>
                       Open WO
                     </Link>
                   </td>
@@ -223,7 +223,7 @@ export default function TechHomePage() {
                   <td>{v.status}</td>
                   <td>{v.scheduledFor ? new Date(v.scheduledFor).toLocaleString() : "—"}</td>
                   <td style={{ textAlign: "right" }}>
-                    <Link className="link-button" href={`/visits/${v.id}`}>
+                    <Link className="link-button" href={`/tech/visits/${v.id}`}>
                       Open
                     </Link>
                   </td>

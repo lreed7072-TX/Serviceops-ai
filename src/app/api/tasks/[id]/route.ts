@@ -11,6 +11,45 @@ type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
+/**
+ * GET /api/tasks/:id
+ * Retrieve a single task with related work order and package info.
+ */
+export async function GET(request: Request, { params }: RouteParams) {
+  const { id } = await params;
+
+  const authResult = await requireAuthSessionFirst(request);
+  if ("error" in authResult) return authResult.error;
+
+  const { auth } = authResult;
+
+  const task = await prisma.taskInstance.findFirst({
+    where: { id, orgId: auth.orgId },
+    include: {
+      workOrder: {
+        select: { id: true, title: true, workOrderNumber: true },
+      },
+      workPackage: {
+        select: { id: true, name: true, packageType: true },
+      },
+      assignedTo: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  if (!task) {
+    return jsonError("Task not found.", 404);
+  }
+
+  // TECH can only view tasks assigned to them
+  if (auth.role === Role.TECH && task.assignedToId !== auth.userId) {
+    return jsonError("Access denied.", 403);
+  }
+
+  return NextResponse.json({ data: task });
+}
+
 type TaskUpdatePayload = {
   title?: string;
   description?: string | null;

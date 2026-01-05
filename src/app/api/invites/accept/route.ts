@@ -61,7 +61,8 @@ export async function POST(request: Request) {
     create: { id: invite.orgId, name: "Default Org" },
   });
 
-  // Ensure Prisma User exists (used by /api/users + task assignment UI).
+  // Ensure Prisma User exists with id = Supabase auth user id.
+  // This ensures task assignments (which use User.id) match the session user id.
   await prisma.user.upsert({
     where: { orgId_email: { orgId: invite.orgId, email: invite.email } },
     update: {
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
         undefined,
     },
     create: {
+      id: user.id,
       orgId: invite.orgId,
       email: invite.email,
       name:

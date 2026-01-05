@@ -1,55 +1,102 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { TaskEvidenceType } from "@prisma/client";
+
 export const runtime = "nodejs";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
-const taskIdSchema = z.union([z.string().uuid(), z.string().cuid()]);
+type EvidencePayload = {
+  type: "NOTE" | "PHOTO" | "FILE";
+  noteText?: string;
+  url?: string;
+};
 
-const taskEvidenceSchema = z.object({
-  type: z.literal(TaskEvidenceType.NOTE),
-  noteText: z.string().trim().min(1).max(2000),
-});
+/**
+ * GET /api/tasks/:id/evidence
+ * List all evidence for a task
+ */
+export async function GET(request: Request, { params }: RouteParams) {
+  const { id: taskId } = await params;
 
-export async function POST(request: Request, { params }: RouteParams) {
-  const { id } = await params;
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const parsedId = taskIdSchema.safeParse(id);
-  if (!parsedId.success) {
-    return jsonError("Task ID must be a valid UUID or CUID.", 400);
-  }
+  const { auth } = authResult;
 
+  // Verify task exists in org
   const task = await prisma.taskInstance.findFirst({
-    where: { id: parsedId.data, orgId: authResult.auth.orgId },
+    where: { id: taskId, orgId: auth.orgId },
+    select: { id: true },
   });
 
   if (!task) {
     return jsonError("Task not found.", 404);
   }
 
-  const body = await parseJson<unknown>(request);
-  const parsedBody = taskEvidenceSchema.safeParse(body ?? {});
-  if (!parsedBody.success) {
-    return jsonError("Invalid evidence payload.", 400);
-  }
-
-  const evidence = await prisma.taskEvidence.create({
-    data: {
-      orgId: authResult.auth.orgId,
-      taskInstanceId: task.id,
-      type: TaskEvidenceType.NOTE,
-      noteText: parsedBody.data.noteText,
-      createdByUserId: authResult.auth.userId,
+  const evidence = await prisma.taskEvidence.findMany({
+    where: { taskInstanceId: taskId, orgId: auth.orgId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      createdByUser: {
+        select: { id: true, name: true, email: true },
+      },
     },
   });
 
   return NextResponse.json({ data: evidence });
+}
+
+/**
+ * POST /api/tasks/:id/evidence
+ * Add evidence (note, photo URL, file URL) to a task
+ */
+export async function POST(request: Request, { params }: RouteParams) {
+  const { id: taskId } = await params;
+
+  const authResult = await requireAuthSessionFirst(request);
+  if ("error" in authResult) return authResult.error;
+
+  const { auth } = authResult;
+
+  // Verify task exists in org
+  const task = await prisma.taskInstance.findFirst({
+    where: { id: taskId, orgId: auth.orgId },
+    select: { id: true, assignedToId: true },
+  });
+
+  if (!task) {
+    return jsonError("Task not found.", 404);
+  }
+
+  const body = await parseJson<EvidencePayload>(request);
+  if (!body?.type) {
+    return jsonError("Evidence type is required.", 400);
+  }
+
+  // Validate based on type
+  if (body.type === "NOTE" && !body.noteText?.trim()) {
+    return jsonError("Note text is required for NOTE type.", 400);
+  }
+
+  if ((body.type === "PHOTO" || body.type === "FILE") && !body.url?.trim()) {
+    return jsonError("URL is required for PHOTO/FILE type.", 400);
+  }
+
+  const evidence = await prisma.taskEvidence.create({
+    data: {
+      orgId: auth.orgId,
+      taskInstanceId: taskId,
+      type: body.type as TaskEvidenceType,
+      noteText: body.noteText?.trim() ?? null,
+      url: body.url?.trim() ?? null,
+      createdByUserId: auth.userId,
+    },
+  });
+
+  return NextResponse.json({ data: evidence }, { status: 201 });
 }

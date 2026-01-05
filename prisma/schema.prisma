@@ -112,6 +112,7 @@ model Org {
   taskEvidence TaskEvidence[]
   reportTemplates ReportTemplate[]
   reportBlocks ReportBlock[]
+  timeEntries  TimeEntry[]
 }
 
 model User {
@@ -131,6 +132,7 @@ model User {
   createdTaskEvidence TaskEvidence[] @relation("TaskEvidenceCreatedBy")
   createdReportTemplates ReportTemplate[] @relation("ReportTemplateCreatedBy")
   updatedReportTemplates ReportTemplate[] @relation("ReportTemplateUpdatedBy")
+  timeEntries  TimeEntry[]  @relation("TimeEntryUser")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -253,6 +255,7 @@ model WorkOrder {
   visits   Visit[]
   packages WorkPackage[]
   tasks    TaskInstance[]
+  timeEntries TimeEntry[]
 
   @@index([orgId])
   @@index([orgId, customerId])
@@ -299,6 +302,7 @@ model TaskInstance {
   workPackage WorkPackage @relation(fields: [workPackageId], references: [id])
   assignedTo User?       @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
   evidence   TaskEvidence[]
+  timeEntries TimeEntry[]
 
   @@index([orgId])
   @@index([orgId, workOrderId])
@@ -519,6 +523,40 @@ model KbChunk {
 
   @@index([orgId])
   @@index([orgId, kbFileId])
+}
+
+enum TimeEntryStatus {
+  RUNNING
+  PAUSED
+  STOPPED
+}
+
+model TimeEntry {
+  id             String          @id @default(uuid()) @db.Uuid
+  orgId          String          @db.Uuid
+  userId         String          @db.Uuid
+  workOrderId    String          @db.Uuid
+  taskInstanceId String?         @db.Uuid
+  status         TimeEntryStatus @default(RUNNING)
+  startedAt      DateTime        @default(now())
+  pausedAt       DateTime?
+  stoppedAt      DateTime?
+  // Accumulated seconds before current running segment
+  accumulatedSeconds Int         @default(0)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  org          Org           @relation(fields: [orgId], references: [id])
+  user         User          @relation("TimeEntryUser", fields: [userId], references: [id])
+  workOrder    WorkOrder     @relation(fields: [workOrderId], references: [id])
+  taskInstance TaskInstance? @relation(fields: [taskInstanceId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, userId])
+  @@index([orgId, workOrderId])
+  @@index([orgId, taskInstanceId])
+  @@index([userId, status])
 }
 
 model user_org_roles {

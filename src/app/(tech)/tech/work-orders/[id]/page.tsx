@@ -2,152 +2,233 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import type { TaskInstance, WorkOrder, WorkPackage } from "@prisma/client";
-import { TaskStatus } from "@prisma/client";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
-type ListResponse<T> = { data?: T[] };
-type SingleResponse<T> = { data: T };
-type TaskWithPackage = TaskInstance & { workPackage: WorkPackage };
-
-const taskStatusLabels: Record<TaskStatus, string> = {
-  TODO: "To do",
-  IN_PROGRESS: "In progress",
-  DONE: "Done",
-  BLOCKED: "Blocked",
-  SKIPPED: "Skipped",
+type WorkOrderData = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  workOrderNumber: string | null;
+  executionMode: string;
 };
 
-export default function TechWorkOrderDetailPage() {
-  const params = useParams();
-  const id = params?.id as string | undefined;
+type PackageData = {
+  id: string;
+  name: string;
+  packageType: string;
+  status: string;
+};
 
-  const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
-  const [packages, setPackages] = useState<WorkPackage[]>([]);
-  const [tasks, setTasks] = useState<TaskWithPackage[]>([]);
+type TaskData = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  isCritical: boolean;
+  workPackageId: string;
+};
+
+type TimerData = {
+  id: string;
+  status: "RUNNING" | "PAUSED" | "STOPPED";
+  taskInstanceId: string | null;
+  currentSeconds: number;
+};
+
+function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export default function TechWorkOrderPage() {
+  const params = useParams();
+  const workOrderId = params?.id as string | undefined;
+
+  const [workOrder, setWorkOrder] = useState<WorkOrderData | null>(null);
+  const [packages, setPackages] = useState<PackageData[]>([]);
+  const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [timer, setTimer] = useState<TimerData | null>(null);
+  const [displaySeconds, setDisplaySeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
+  const loadTimer = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/tech/timer", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        setTimer(json.data);
+        if (json.data) setDisplaySeconds(json.data.currentSeconds);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
-    const load = async () => {
+  useEffect(() => {
+    if (!workOrderId) return;
+
+    (async () => {
       try {
         setLoading(true);
-        setErr(null);
-
         const [woRes, pkgRes, taskRes] = await Promise.all([
-          apiFetch(`/api/work-orders/${id}`, { cache: "no-store" }),
-          apiFetch(`/api/work-orders/${id}/packages`, { cache: "no-store" }),
-          apiFetch(`/api/work-orders/${id}/tasks`, { cache: "no-store" }),
+          apiFetch(`/api/work-orders/${workOrderId}`, { cache: "no-store" }),
+          apiFetch(`/api/work-orders/${workOrderId}/packages`, { cache: "no-store" }),
+          apiFetch(`/api/work-orders/${workOrderId}/tasks`, { cache: "no-store" }),
         ]);
 
-        const woJson = await woRes.json().catch(() => ({}));
-        const pkgJson = await pkgRes.json().catch(() => ({}));
-        const taskJson = await taskRes.json().catch(() => ({}));
+        if (!woRes.ok) throw new Error("Failed to load work order");
+        if (!pkgRes.ok) throw new Error("Failed to load packages");
+        if (!taskRes.ok) throw new Error("Failed to load tasks");
 
-        if (!woRes.ok) throw new Error(woJson?.error ?? "Failed to load work order.");
-        if (!pkgRes.ok) throw new Error(pkgJson?.error ?? "Failed to load packages.");
-        if (!taskRes.ok) throw new Error(taskJson?.error ?? "Failed to load tasks.");
+        const woJson = await woRes.json();
+        const pkgJson = await pkgRes.json();
+        const taskJson = await taskRes.json();
 
-        if (cancelled) return;
-        setWorkOrder((woJson as SingleResponse<WorkOrder>).data);
-        setPackages((pkgJson as ListResponse<WorkPackage>).data ?? []);
-        setTasks((taskJson as ListResponse<TaskWithPackage>).data ?? []);
+        setWorkOrder(woJson.data);
+        setPackages(pkgJson.data ?? []);
+        setTasks(taskJson.data ?? []);
+
+        await loadTimer();
       } catch (e: any) {
-        if (!cancelled) setErr(e?.message ?? "Failed to load.");
+        setErr(e?.message ?? "Failed to load");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
-    };
+    })();
+  }, [workOrderId, loadTimer]);
 
-    load();
-    return () => { cancelled = true; };
-  }, [id]);
+  // Live timer tick
+  useEffect(() => {
+    if (!timer || timer.status !== "RUNNING") return;
+    const interval = setInterval(() => {
+      setDisplaySeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timer]);
 
-  const grouped = useMemo(() => {
-    const map: Record<string, TaskWithPackage[]> = {};
-    for (const t of tasks) {
-      map[t.workPackageId] = map[t.workPackageId] ?? [];
-      map[t.workPackageId].push(t);
-    }
-    return map;
-  }, [tasks]);
+  // Group tasks by package
+  const tasksByPackage: Record<string, TaskData[]> = {};
+  tasks.forEach((t) => {
+    if (!tasksByPackage[t.workPackageId]) tasksByPackage[t.workPackageId] = [];
+    tasksByPackage[t.workPackageId].push(t);
+  });
 
-  if (!id) return <div className="card"><p>Missing work order id.</p></div>;
+  // Sort tasks: in progress first, then todo, done last
+  Object.keys(tasksByPackage).forEach((pkgId) => {
+    tasksByPackage[pkgId].sort((a, b) => {
+      const order: Record<string, number> = { IN_PROGRESS: 0, TODO: 1, BLOCKED: 2, DONE: 3, SKIPPED: 4 };
+      return (order[a.status] ?? 5) - (order[b.status] ?? 5);
+    });
+  });
+
+  if (!workOrderId) {
+    return <div className="tech-container"><p>Missing work order ID.</p></div>;
+  }
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h2>Work order</h2>
-          <p>Tech execution view (assigned only).</p>
-        </div>
-        <Link className="link-button" href="/tech">← Back to My Work</Link>
+    <div className="tech-container">
+      <div className="tech-header">
+        <Link href="/tech" className="tech-back">← Back</Link>
+        <h1>Work Order</h1>
       </div>
 
-      {err && <div className="page-alert error">{err}</div>}
-      {loading && !err && <div className="page-alert info">Loading…</div>}
+      {err && <div className="tech-alert error">{err}</div>}
+      {loading && <div className="tech-alert info">Loading…</div>}
 
       {workOrder && (
         <>
-          <div className="card">
-            <h3>
-              {(workOrder as any).workOrderNumber
-                ? `${(workOrder as any).workOrderNumber} — ${workOrder.title}`
-                : workOrder.title}
-            </h3>
-            <p className="muted">{workOrder.description ?? "—"}</p>
+          {/* Work Order Info */}
+          <div className="tech-card">
+            <div className="tech-card-header">
+              <div>
+                <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>
+                  {workOrder.workOrderNumber || "Work Order"}
+                </div>
+                <h2 style={{ margin: 0 }}>{workOrder.title}</h2>
+              </div>
+              <span className={`tech-status ${workOrder.status.toLowerCase()}`}>
+                {workOrder.status}
+              </span>
+            </div>
+            {workOrder.description && (
+              <p className="tech-description">{workOrder.description}</p>
+            )}
           </div>
 
-          <div className="card">
-            <AttachmentsPanel entityType="workOrder" entityId={workOrder.id} />
-          </div>
-        </>
-      )}
+          {/* Packages & Tasks */}
+          {packages.map((pkg) => {
+            const pkgTasks = tasksByPackage[pkg.id] ?? [];
+            const completedCount = pkgTasks.filter((t) => t.status === "DONE").length;
 
-      <div className="card">
-        <h3>Packages & tasks</h3>
-        {packages.length === 0 ? (
-          <p className="muted">No packages.</p>
-        ) : (
-          packages.map((pkg) => {
-            const pkgTasks = grouped[pkg.id] ?? [];
             return (
-              <div key={pkg.id} className="package-block">
-                <div className="package-block-header">
-                  <div>
-                    <h4>{pkg.name}</h4>
-                    <p className="muted">{pkg.packageType}</p>
-                  </div>
+              <div key={pkg.id} className="tech-card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h3 style={{ margin: 0, textTransform: "none", letterSpacing: "0" }}>{pkg.name}</h3>
+                  <span style={{ fontSize: "13px", color: "var(--muted)" }}>
+                    {completedCount}/{pkgTasks.length} done
+                  </span>
                 </div>
 
                 {pkgTasks.length === 0 ? (
-                  <p className="muted">No assigned tasks in this package.</p>
+                  <p className="muted">No tasks in this package.</p>
                 ) : (
-                  <ul className="task-list">
-                    {pkgTasks.map((t) => (
-                      <li key={t.id} className="task-item">
-                        <div style={{ width: "100%" }}>
-                          <div className="task-title-row">
-                            <strong>{t.title}</strong>
-                            <span className="task-chip">{taskStatusLabels[t.status]}</span>
+                  <ul className="tech-list">
+                    {pkgTasks.map((t) => {
+                      const isTimerOnThis = timer?.taskInstanceId === t.id && timer.status !== "STOPPED";
+
+                      return (
+                        <li key={t.id} className="tech-list-item">
+                          <div className="tech-list-item-content">
+                            <div className="tech-list-item-title">
+                              {t.title}
+                              {t.isCritical && <span className="tech-badge critical">Critical</span>}
+                              {isTimerOnThis && timer?.status === "RUNNING" && (
+                                <span className="timer-indicator running">{formatTime(displaySeconds)}</span>
+                              )}
+                              {isTimerOnThis && timer?.status === "PAUSED" && (
+                                <span className="timer-indicator" style={{ background: "#fef3c7", color: "#92400e" }}>Paused</span>
+                              )}
+                            </div>
+                            <div className="tech-list-item-meta">
+                              <span className={`tech-status ${t.status.toLowerCase()}`} style={{ fontSize: "11px", padding: "2px 6px" }}>
+                                {t.status.replace("_", " ")}
+                              </span>
+                            </div>
                           </div>
-                          {t.description ? <p className="muted">{t.description}</p> : null}
-                          <AttachmentsPanel entityType="task" entityId={t.id} />
-                        </div>
-                      </li>
-                    ))}
+                          <div className="tech-list-item-action">
+                            <Link
+                              href={`/tech/tasks/${t.id}`}
+                              className="tech-btn primary"
+                              style={{ padding: "10px 16px", fontSize: "13px" }}
+                            >
+                              {t.status === "DONE" ? "View" : "Open"}
+                            </Link>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+
+          {/* Attachments */}
+          <div className="tech-card">
+            <h3>Attachments</h3>
+            <AttachmentsPanel entityType="workOrder" entityId={workOrderId} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

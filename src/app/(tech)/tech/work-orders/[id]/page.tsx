@@ -13,6 +13,10 @@ type WorkOrderData = {
   status: string;
   workOrderNumber: string | null;
   executionMode: string;
+  createdAt: string;
+  customer?: { id: string; name: string };
+  site?: { id: string; name: string; address: string | null; city: string | null; state: string | null };
+  asset?: { id: string; name: string; manufacturer: string | null; model: string | null; serialNumber: string | null };
 };
 
 type PackageData = {
@@ -46,6 +50,14 @@ function formatTime(seconds: number): string {
     return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function TechWorkOrderPage() {
@@ -130,6 +142,12 @@ export default function TechWorkOrderPage() {
     });
   });
 
+  // Calculate overall progress
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.status === "DONE").length;
+  const inProgressTasks = tasks.filter((t) => t.status === "IN_PROGRESS").length;
+  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   if (!workOrderId) {
     return <div className="tech-container"><p>Missing work order ID.</p></div>;
   }
@@ -146,21 +164,96 @@ export default function TechWorkOrderPage() {
 
       {workOrder && (
         <>
-          {/* Work Order Info */}
+          {/* Work Order Header */}
           <div className="tech-card">
             <div className="tech-card-header">
               <div>
-                <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>
+                <div className="wo-number">
                   {workOrder.workOrderNumber || "Work Order"}
                 </div>
                 <h2 style={{ margin: 0 }}>{workOrder.title}</h2>
               </div>
               <span className={`tech-status ${workOrder.status.toLowerCase()}`}>
-                {workOrder.status}
+                {workOrder.status.replace("_", " ")}
               </span>
             </div>
             {workOrder.description && (
               <p className="tech-description">{workOrder.description}</p>
+            )}
+            <div className="wo-meta">
+              <span>Created: {formatDate(workOrder.createdAt)}</span>
+            </div>
+          </div>
+
+          {/* Customer & Site Info */}
+          <div className="tech-card">
+            <h3>Location Details</h3>
+            <div className="info-grid">
+              {workOrder.customer && (
+                <div className="info-row">
+                  <span className="info-label">Customer</span>
+                  <span className="info-value">{workOrder.customer.name}</span>
+                </div>
+              )}
+              {workOrder.site && (
+                <>
+                  <div className="info-row">
+                    <span className="info-label">Site</span>
+                    <span className="info-value">{workOrder.site.name}</span>
+                  </div>
+                  {(workOrder.site.address || workOrder.site.city) && (
+                    <div className="info-row">
+                      <span className="info-label">Address</span>
+                      <span className="info-value">
+                        {[workOrder.site.address, workOrder.site.city, workOrder.site.state]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+              {workOrder.asset && (
+                <>
+                  <div className="info-row">
+                    <span className="info-label">Asset</span>
+                    <span className="info-value">{workOrder.asset.name}</span>
+                  </div>
+                  {(workOrder.asset.manufacturer || workOrder.asset.model) && (
+                    <div className="info-row">
+                      <span className="info-label">Equipment</span>
+                      <span className="info-value">
+                        {[workOrder.asset.manufacturer, workOrder.asset.model]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </span>
+                    </div>
+                  )}
+                  {workOrder.asset.serialNumber && (
+                    <div className="info-row">
+                      <span className="info-label">Serial #</span>
+                      <span className="info-value">{workOrder.asset.serialNumber}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Overview */}
+          <div className="tech-card">
+            <h3>Progress</h3>
+            <div className="progress-bar-container">
+              <div className="progress-bar" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <div className="progress-stats">
+              <span>{completedTasks} of {totalTasks} tasks complete</span>
+              <span>{progressPercent}%</span>
+            </div>
+            {inProgressTasks > 0 && (
+              <div className="progress-note">
+                {inProgressTasks} task{inProgressTasks > 1 ? "s" : ""} in progress
+              </div>
             )}
           </div>
 
@@ -171,9 +264,9 @@ export default function TechWorkOrderPage() {
 
             return (
               <div key={pkg.id} className="tech-card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <h3 style={{ margin: 0, textTransform: "none", letterSpacing: "0" }}>{pkg.name}</h3>
-                  <span style={{ fontSize: "13px", color: "var(--muted)" }}>
+                <div className="package-header">
+                  <h3 style={{ margin: 0 }}>{pkg.name}</h3>
+                  <span className="package-progress">
                     {completedCount}/{pkgTasks.length} done
                   </span>
                 </div>
@@ -195,11 +288,11 @@ export default function TechWorkOrderPage() {
                                 <span className="timer-indicator running">{formatTime(displaySeconds)}</span>
                               )}
                               {isTimerOnThis && timer?.status === "PAUSED" && (
-                                <span className="timer-indicator" style={{ background: "#fef3c7", color: "#92400e" }}>Paused</span>
+                                <span className="timer-indicator paused">Paused</span>
                               )}
                             </div>
                             <div className="tech-list-item-meta">
-                              <span className={`tech-status ${t.status.toLowerCase()}`} style={{ fontSize: "11px", padding: "2px 6px" }}>
+                              <span className={`tech-status ${t.status.toLowerCase()}`}>
                                 {t.status.replace("_", " ")}
                               </span>
                             </div>
@@ -208,7 +301,6 @@ export default function TechWorkOrderPage() {
                             <Link
                               href={`/tech/tasks/${t.id}`}
                               className="tech-btn primary"
-                              style={{ padding: "10px 16px", fontSize: "13px" }}
                             >
                               {t.status === "DONE" ? "View" : "Open"}
                             </Link>
@@ -224,7 +316,7 @@ export default function TechWorkOrderPage() {
 
           {/* Attachments */}
           <div className="tech-card">
-            <h3>Attachments</h3>
+            <h3>Work Order Attachments</h3>
             <AttachmentsPanel entityType="workOrder" entityId={workOrderId} />
           </div>
         </>

@@ -27,6 +27,15 @@ type TimerData = {
   accumulatedSeconds: number;
 };
 
+type EvidenceData = {
+  id: string;
+  type: "NOTE" | "PHOTO" | "FILE";
+  noteText: string | null;
+  url: string | null;
+  createdAt: string;
+  createdByUser: { id: string; name: string | null; email: string };
+};
+
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -37,12 +46,23 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function TechTaskPage() {
   const params = useParams();
   const taskId = params?.id as string | undefined;
 
   const [task, setTask] = useState<TaskData | null>(null);
   const [timer, setTimer] = useState<TimerData | null>(null);
+  const [evidence, setEvidence] = useState<EvidenceData[]>([]);
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -75,15 +95,27 @@ export default function TechTaskPage() {
         setDisplaySeconds(json.data.currentSeconds);
       }
     } catch (e) {
-      // Timer fetch errors are non-fatal
       console.error(e);
     }
   }, []);
 
+  // Load evidence (notes, photos, files)
+  const loadEvidence = useCallback(async () => {
+    if (!taskId) return;
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}/evidence`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load evidence");
+      const json = await res.json();
+      setEvidence(json.data ?? []);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [taskId]);
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([loadTask(), loadTimer()]).finally(() => setLoading(false));
-  }, [loadTask, loadTimer]);
+    Promise.all([loadTask(), loadTimer(), loadEvidence()]).finally(() => setLoading(false));
+  }, [loadTask, loadTimer, loadEvidence]);
 
   // Live timer tick
   useEffect(() => {
@@ -102,11 +134,9 @@ export default function TechTaskPage() {
   const isRunning = timer?.status === "RUNNING" && isTimerForThisTask;
   const isPaused = timer?.status === "PAUSED" && isTimerForThisTask;
 
-  // Timer actions
+  // Timer actions (internal - called by status actions)
   const startTimer = async () => {
     if (!task) return;
-    setActionLoading(true);
-    setErr(null);
     try {
       const res = await apiFetch("/api/tech/timer/start", {
         method: "POST",
@@ -119,74 +149,132 @@ export default function TechTaskPage() {
       if (!res.ok) throw new Error((await res.text()) || "Failed to start timer");
       await loadTimer();
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to start timer");
-    } finally {
-      setActionLoading(false);
+      throw e;
     }
   };
 
   const pauseTimer = async () => {
-    setActionLoading(true);
-    setErr(null);
     try {
       const res = await apiFetch("/api/tech/timer/pause", { method: "POST" });
       if (!res.ok) throw new Error((await res.text()) || "Failed to pause timer");
       await loadTimer();
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to pause timer");
-    } finally {
-      setActionLoading(false);
+      throw e;
     }
   };
 
   const resumeTimer = async () => {
-    setActionLoading(true);
-    setErr(null);
     try {
       const res = await apiFetch("/api/tech/timer/resume", { method: "POST" });
       if (!res.ok) throw new Error((await res.text()) || "Failed to resume timer");
       await loadTimer();
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to resume timer");
-    } finally {
-      setActionLoading(false);
+      throw e;
     }
   };
 
   const stopTimer = async () => {
-    setActionLoading(true);
-    setErr(null);
     try {
       const res = await apiFetch("/api/tech/timer/stop", { method: "POST" });
       if (!res.ok) throw new Error((await res.text()) || "Failed to stop timer");
       await loadTimer();
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to stop timer");
+      throw e;
+    }
+  };
+
+  // Combined Task Status + Timer Actions
+  const startTask = async () => {
+    if (!taskId || !task) return;
+    setActionLoading(true);
+    setErr(null);
+    try {
+      // Start timer first
+      await startTimer();
+      // Then update status
+      const res = await apiFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "IN_PROGRESS" }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Failed to start task");
+      await loadTask();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to start task");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Task status actions
-  const setTaskStatus = async (status: string) => {
+  const pauseTask = async () => {
     if (!taskId) return;
     setActionLoading(true);
     setErr(null);
     try {
+      // Pause timer if running on this task
+      if (isRunning) {
+        await pauseTimer();
+      }
+      // Update status to blocked
       const res = await apiFetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: "BLOCKED" }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to update status");
+      if (!res.ok) throw new Error((await res.text()) || "Failed to pause task");
       await loadTask();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to pause task");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-      // Auto-stop timer when marking done
-      if (status === "DONE" && isTimerForThisTask) {
+  const resumeTask = async () => {
+    if (!taskId || !task) return;
+    setActionLoading(true);
+    setErr(null);
+    try {
+      // Resume or start timer
+      if (isPaused) {
+        await resumeTimer();
+      } else if (!isTimerForThisTask) {
+        await startTimer();
+      }
+      // Update status
+      const res = await apiFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "IN_PROGRESS" }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Failed to resume task");
+      await loadTask();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to resume task");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const completeTask = async () => {
+    if (!taskId) return;
+    setActionLoading(true);
+    setErr(null);
+    try {
+      // Stop timer if active on this task
+      if (isTimerForThisTask) {
         await stopTimer();
       }
+      // Update status
+      const res = await apiFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DONE" }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Failed to complete task");
+      await loadTask();
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to update status");
+      setErr(e?.message ?? "Failed to complete task");
     } finally {
       setActionLoading(false);
     }
@@ -207,12 +295,19 @@ export default function TechTaskPage() {
       setNoteText("");
       setNoteSuccess(true);
       setTimeout(() => setNoteSuccess(false), 2000);
+      // Reload evidence to show the new note
+      await loadEvidence();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to add note");
     } finally {
       setNoteSaving(false);
     }
   };
+
+  // Separate evidence by type
+  const notes = evidence.filter((e) => e.type === "NOTE");
+  const photos = evidence.filter((e) => e.type === "PHOTO");
+  const files = evidence.filter((e) => e.type === "FILE");
 
   if (!taskId) {
     return <div className="tech-container"><p>Missing task ID.</p></div>;
@@ -244,132 +339,95 @@ export default function TechTaskPage() {
                 {task.status.replace("_", " ")}
               </span>
               {task.workOrder && (
-                <span className="tech-wo">
+                <Link 
+                  href={`/tech/work-orders/${task.workOrderId}`}
+                  className="tech-wo-link"
+                >
                   WO: {task.workOrder.workOrderNumber || task.workOrder.title}
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Timer Display (always visible when timer active) */}
+          {isTimerForThisTask && (
+            <div className="tech-card timer-card">
+              <div className="timer-display">
+                <span className="timer-time">{formatTime(displaySeconds)}</span>
+                <span className="timer-label">
+                  {isRunning ? "⏱ Timer Running" : "⏸ Timer Paused"}
                 </span>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Timer Card */}
-          <div className="tech-card timer-card">
-            <div className="timer-display">
-              <span className="timer-time">
-                {isTimerForThisTask ? formatTime(displaySeconds) : "0:00"}
-              </span>
-              <span className="timer-label">
-                {isRunning ? "Running" : isPaused ? "Paused" : "Not started"}
-              </span>
-            </div>
-
-            <div className="timer-controls">
-              {!isTimerForThisTask && (
-                <button
-                  className="tech-btn primary large"
-                  onClick={startTimer}
-                  disabled={actionLoading}
-                >
-                  ▶ Start Timer
-                </button>
-              )}
-
-              {isRunning && (
-                <button
-                  className="tech-btn warning large"
-                  onClick={pauseTimer}
-                  disabled={actionLoading}
-                >
-                  ⏸ Pause
-                </button>
-              )}
-
-              {isPaused && (
-                <>
-                  <button
-                    className="tech-btn primary large"
-                    onClick={resumeTimer}
-                    disabled={actionLoading}
-                  >
-                    ▶ Resume
-                  </button>
-                  <button
-                    className="tech-btn danger"
-                    onClick={stopTimer}
-                    disabled={actionLoading}
-                  >
-                    ⏹ Stop
-                  </button>
-                </>
-              )}
-
-              {isRunning && (
-                <button
-                  className="tech-btn danger"
-                  onClick={stopTimer}
-                  disabled={actionLoading}
-                >
-                  ⏹ Stop
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Task Status Actions */}
+          {/* Task Actions - Timer integrated with status */}
           <div className="tech-card">
-            <h3>Update Status</h3>
+            <h3>Actions</h3>
             <div className="status-grid">
               {task.status === "TODO" && (
                 <button
-                  className="tech-btn primary"
-                  onClick={() => setTaskStatus("IN_PROGRESS")}
+                  className="tech-btn primary large"
+                  onClick={startTask}
                   disabled={actionLoading}
                 >
-                  Start Task
+                  ▶ Start Task
                 </button>
               )}
+
               {task.status === "IN_PROGRESS" && (
                 <>
                   <button
-                    className="tech-btn success"
-                    onClick={() => setTaskStatus("DONE")}
+                    className="tech-btn success large"
+                    onClick={completeTask}
                     disabled={actionLoading}
                   >
-                    ✓ Mark Done
+                    ✓ Complete Task
                   </button>
                   <button
                     className="tech-btn warning"
-                    onClick={() => setTaskStatus("BLOCKED")}
+                    onClick={pauseTask}
                     disabled={actionLoading}
                   >
-                    ⚠ Blocked
+                    ⏸ Blocked / Pause
                   </button>
                 </>
               )}
+
               {task.status === "BLOCKED" && (
                 <>
                   <button
-                    className="tech-btn primary"
-                    onClick={() => setTaskStatus("IN_PROGRESS")}
+                    className="tech-btn primary large"
+                    onClick={resumeTask}
                     disabled={actionLoading}
                   >
-                    Resume
+                    ▶ Resume Task
                   </button>
                   <button
                     className="tech-btn success"
-                    onClick={() => setTaskStatus("DONE")}
+                    onClick={completeTask}
                     disabled={actionLoading}
                   >
-                    ✓ Mark Done
+                    ✓ Complete Task
                   </button>
                 </>
               )}
+
               {task.status === "DONE" && (
-                <p className="tech-complete">✓ Task completed</p>
+                <div className="tech-complete">
+                  <span style={{ fontSize: "24px" }}>✓</span>
+                  <span>Task Completed</span>
+                  {timer && timer.taskInstanceId === taskId && (
+                    <span style={{ fontSize: "14px", color: "var(--muted)" }}>
+                      Time logged: {formatTime(timer.accumulatedSeconds || displaySeconds)}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Quick Note */}
+          {/* Add Note */}
           <div className="tech-card">
             <h3>Add Note</h3>
             <textarea
@@ -389,9 +447,45 @@ export default function TechTaskPage() {
             {noteSuccess && <span className="note-success">✓ Saved</span>}
           </div>
 
-          {/* Attachments */}
+          {/* Display Notes */}
+          {notes.length > 0 && (
+            <div className="tech-card">
+              <h3>Notes ({notes.length})</h3>
+              <div className="evidence-list">
+                {notes.map((note) => (
+                  <div key={note.id} className="evidence-item note-item">
+                    <div className="evidence-content">{note.noteText}</div>
+                    <div className="evidence-meta">
+                      {note.createdByUser.name || note.createdByUser.email} • {formatDateTime(note.createdAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Display Photos */}
+          {photos.length > 0 && (
+            <div className="tech-card">
+              <h3>Photos ({photos.length})</h3>
+              <div className="photo-grid">
+                {photos.map((photo) => (
+                  <div key={photo.id} className="photo-item">
+                    <a href={photo.url || "#"} target="_blank" rel="noopener noreferrer">
+                      <img src={photo.url || ""} alt="Task photo" />
+                    </a>
+                    <div className="evidence-meta">
+                      {formatDateTime(photo.createdAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Attachments Panel (for adding new photos/files) */}
           <div className="tech-card">
-            <h3>Photos & Files</h3>
+            <h3>Add Photos & Files</h3>
             <AttachmentsPanel entityType="task" entityId={task.id} />
           </div>
         </>

@@ -562,7 +562,7 @@ model TimeEntry {
 model user_org_roles {
   user_id String @db.Uuid
   org_id  String @db.Uuid
-  role    Role
+  role    String
 
   @@id([user_id, org_id])
   @@index([user_id])

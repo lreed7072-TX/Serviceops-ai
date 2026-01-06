@@ -32,6 +32,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     const workOrder = await prisma.workOrder.findFirst({
       where: whereBase,
+      include: {
+        customer: { select: { id: true, name: true } },
+        site: { select: { id: true, name: true, address: true, city: true, state: true } },
+        asset: { select: { id: true, name: true, manufacturer: true, model: true, serialNumber: true } },
+      },
     });
 
   if (!workOrder) {

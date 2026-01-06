@@ -1694,3 +1694,191 @@ a {
 .modal .checkbox-label {
   color: var(--foreground, #1f2937);
 }
+
+
+/* =========================================
+   MEASUREMENTS STYLES
+   ========================================= */
+
+.modal-wide {
+  max-width: 600px;
+}
+
+.measurement-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.measurement-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--card-muted, #f9fafb);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.measurement-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.measurement-info strong {
+  font-weight: 600;
+}
+
+.measurement-unit {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.measurement-range {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--background);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge.numeric {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge.pass_fail {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.text {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.badge.required {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.add-measurement-form {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--card-muted, #f9fafb);
+  border-radius: 8px;
+}
+
+.add-measurement-form h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Tech Mobile Measurements */
+.measurements-section {
+  margin-top: 20px;
+}
+
+.measurements-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.measurement-capture {
+  background: var(--card, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.measurement-capture-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.measurement-capture-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.measurement-capture-unit {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.measurement-capture-range {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.measurement-capture input[type="number"],
+.measurement-capture input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.measurement-capture-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.measurement-capture-toggle button {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.measurement-capture-toggle button.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.measurement-capture-toggle button.pass.selected {
+  border-color: #16a34a;
+  background: #16a34a;
+}
+
+.measurement-capture-toggle button.fail.selected {
+  border-color: #dc2626;
+  background: #dc2626;
+}
+
+.measurement-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.measurement-status.in-spec {
+  color: #16a34a;
+}
+
+.measurement-status.out-of-spec {
+  color: #dc2626;
+}
+
+.measurement-captured-by {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}

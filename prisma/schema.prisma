@@ -115,6 +115,8 @@ model Org {
   timeEntries  TimeEntry[]
   standardsPacks StandardsPack[]
   standardsPackTasks StandardsPackTask[]
+  measurementDefinitions MeasurementDefinition[]
+  taskMeasurements TaskMeasurement[]
 }
 
 model User {
@@ -135,6 +137,7 @@ model User {
   createdReportTemplates ReportTemplate[] @relation("ReportTemplateCreatedBy")
   updatedReportTemplates ReportTemplate[] @relation("ReportTemplateUpdatedBy")
   timeEntries  TimeEntry[]  @relation("TimeEntryUser")
+  capturedMeasurements TaskMeasurement[] @relation("MeasurementCapturedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -305,6 +308,7 @@ model TaskInstance {
   assignedTo User?       @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
   evidence   TaskEvidence[]
   timeEntries TimeEntry[]
+  measurements TaskMeasurement[]
 
   @@index([orgId])
   @@index([orgId, workOrderId])
@@ -617,8 +621,74 @@ model StandardsPackTask {
 
   org           Org           @relation(fields: [orgId], references: [id])
   standardsPack StandardsPack @relation(fields: [standardsPackId], references: [id], onDelete: Cascade)
+  measurementDefinitions MeasurementDefinition[]
 
   @@index([orgId])
   @@index([orgId, standardsPackId])
   @@index([standardsPackId, sequenceNumber])
+}
+
+
+// ============================================
+// MEASUREMENTS - Structured Data Capture
+// ============================================
+
+enum MeasurementType {
+  NUMERIC
+  PASS_FAIL
+  TEXT
+}
+
+model MeasurementDefinition {
+  id                  String          @id @default(uuid()) @db.Uuid
+  orgId               String          @db.Uuid
+  standardsPackTaskId String          @db.Uuid
+  name                String          // e.g., "Bearing Temperature"
+  unit                String?         // e.g., "°F", "mils", "psi"
+  measurementType     MeasurementType @default(NUMERIC)
+  minValue            Float?          // Acceptable range min (for NUMERIC)
+  maxValue            Float?          // Acceptable range max (for NUMERIC)
+  isRequired          Boolean         @default(false)
+  sortOrder           Int             @default(0)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  org               Org               @relation(fields: [orgId], references: [id])
+  standardsPackTask StandardsPackTask @relation(fields: [standardsPackTaskId], references: [id], onDelete: Cascade)
+  taskMeasurements  TaskMeasurement[]
+
+  @@index([orgId])
+  @@index([orgId, standardsPackTaskId])
+}
+
+model TaskMeasurement {
+  id                      String    @id @default(uuid()) @db.Uuid
+  orgId                   String    @db.Uuid
+  taskInstanceId          String    @db.Uuid
+  measurementDefinitionId String?   @db.Uuid  // Link to original definition (nullable for ad-hoc)
+  name                    String    // Copied from definition or custom
+  unit                    String?
+  measurementType         MeasurementType @default(NUMERIC)
+  minValue                Float?
+  maxValue                Float?
+  // Captured values
+  numericValue            Float?
+  textValue               String?
+  passFail                Boolean?
+  // Calculated
+  isWithinSpec            Boolean?  // Auto-calculated for NUMERIC type
+  // Metadata
+  capturedAt              DateTime?
+  capturedByUserId        String?   @db.Uuid
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  org                   Org                    @relation(fields: [orgId], references: [id])
+  taskInstance          TaskInstance           @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
+  measurementDefinition MeasurementDefinition? @relation(fields: [measurementDefinitionId], references: [id])
+  capturedByUser        User?                  @relation("MeasurementCapturedBy", fields: [capturedByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, taskInstanceId])
+  @@index([taskInstanceId])
 }

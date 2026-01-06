@@ -37,6 +37,11 @@ export async function POST(request: Request, { params }: RouteParams) {
     include: {
       tasks: {
         orderBy: [{ packageType: "asc" }, { sequenceNumber: "asc" }],
+        include: {
+          measurementDefinitions: {
+            orderBy: { sortOrder: "asc" },
+          },
+        },
       },
     },
   });
@@ -142,6 +147,24 @@ export async function POST(request: Request, { params }: RouteParams) {
           requiresEvidence: templateTask.requiresEvidence,
         },
       });
+
+      // Create measurement placeholders from definitions
+      if (templateTask.measurementDefinitions && templateTask.measurementDefinitions.length > 0) {
+        for (const def of templateTask.measurementDefinitions) {
+          await prisma.taskMeasurement.create({
+            data: {
+              orgId: authResult.auth.orgId,
+              taskInstanceId: taskInstance.id,
+              measurementDefinitionId: def.id,
+              name: def.name,
+              unit: def.unit,
+              measurementType: def.measurementType,
+              minValue: def.minValue,
+              maxValue: def.maxValue,
+            },
+          });
+        }
+      }
 
       createdTasks.push(taskInstance);
     }

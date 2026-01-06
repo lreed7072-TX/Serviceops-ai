@@ -1659,3 +1659,38 @@ a {
   padding: 48px;
   color: var(--muted);
 }
+
+
+/* Modal Form Fixes */
+.modal .form-field label,
+.modal .form-field span {
+  color: var(--foreground, #1f2937) !important;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.modal .form-field input,
+.modal .form-field textarea,
+.modal .form-field select {
+  color: var(--foreground, #1f2937);
+  background: var(--background, #ffffff);
+}
+
+.modal .form-field input::placeholder,
+.modal .form-field textarea::placeholder {
+  color: #9ca3af;
+}
+
+.modal h2 {
+  color: var(--foreground, #1f2937);
+}
+
+.modal .form-row {
+  color: var(--foreground, #1f2937);
+}
+
+.modal .checkbox-label {
+  color: var(--foreground, #1f2937);
+}

@@ -67,13 +67,29 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
     return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
   };
 
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith("image/")) return "🖼️";
+    if (mimeType.includes("pdf")) return "📄";
+    if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return "📊";
+    if (mimeType.includes("document") || mimeType.includes("word")) return "📝";
+    return "📎";
+  };
+
+  const getShortType = (mimeType: string) => {
+    if (mimeType.startsWith("image/")) return mimeType.split("/")[1]?.toUpperCase() || "Image";
+    if (mimeType.includes("pdf")) return "PDF";
+    if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return "Excel";
+    if (mimeType.includes("document") || mimeType.includes("word")) return "Word";
+    if (mimeType.includes("zip") || mimeType.includes("compressed")) return "ZIP";
+    return "File";
+  };
+
   const onUpload = async () => {
     if (!file) return;
     setUploading(true);
     setErr(null);
 
     try {
-      // 1) Ask server for signed upload URL + create File + FileLink
       const createRes = await fetch("/api/files/upload", {
         method: "POST",
         credentials: "include",
@@ -98,7 +114,6 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
 
       if (!signedUrl) throw new Error("Upload URL missing.");
 
-      // 2) Upload bytes directly to Supabase Storage
       const putRes = await fetch(signedUrl, {
         method: "PUT",
         headers: { "content-type": file.type || "application/octet-stream" },
@@ -110,7 +125,6 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
         throw new Error(text || `Upload failed (${putRes.status})`);
       }
 
-      // 3) Reset UI + refresh list
       setFile(null);
       setLabel("");
       await load();
@@ -122,7 +136,6 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
   };
 
   const onDelete = async (linkId: string) => {
-    // Optimistic UI: remove immediately to keep interaction snappy (better INP).
     const prev = items;
     setItems((cur) => cur.filter((x) => x.id !== linkId));
     setErr(null);
@@ -138,10 +151,8 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
         throw new Error(text || `Delete failed (${res.status})`);
       }
 
-      // Refresh in background (don’t block the click)
       load();
     } catch (e: any) {
-      // Revert if delete failed
       setItems(prev);
       setErr(e?.message ?? "Delete failed.");
     }
@@ -168,95 +179,89 @@ export function AttachmentsPanel(props: { entityType: string; entityId: string }
   };
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h3>Attachments</h3>
-        <button type="button" className="link-button" onClick={load} disabled={loading || uploading}>
-          Refresh
+    <div className="attachments-panel">
+      {/* Upload Form */}
+      <div className="attachment-upload-form">
+        <label className="attachment-field">
+          <span className="attachment-field-label">Label (optional)</span>
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Pump manual, Spec sheet"
+            disabled={uploading}
+            className="attachment-input"
+          />
+        </label>
+
+        <div className="attachment-file-row">
+          <label className="attachment-file-btn">
+            Choose File
+            <input
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={uploading}
+              style={{ display: "none" }}
+            />
+          </label>
+          <span className="attachment-file-name">
+            {file ? file.name : "No file selected"}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className="tech-btn primary"
+          onClick={onUpload}
+          disabled={!file || uploading}
+        >
+          {uploading ? "Uploading…" : "Upload"}
         </button>
       </div>
 
-      {err ? <p className="form-feedback error">{err}</p> : null}
+      {err && <div className="tech-alert error" style={{ marginTop: 12 }}>{err}</div>}
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          alignItems: "end",
-          marginBottom: 8,
-        }}
-      >
-        <label className="form-field" style={{ flex: "1 1 360px", margin: 0 }}>
-          <span>Label (optional)</span>
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Pump manual, Startup checklist, Spec sheet"
-            disabled={uploading}
-          />
-        </label>
-
-        <label className="form-field" style={{ flex: "1 1 360px", margin: 0 }}>
-          <span>File</span>
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            disabled={uploading}
-          />
-        </label>
-
-        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="primary"
-            type="button"
-            onClick={onUpload}
-            disabled={!file || uploading}
-          >
-            {uploading ? "Uploading…" : "Upload"}
-          </Button>
-        </div>
+      {/* Attachments List */}
+      <div className="attachments-list">
+        {loading ? (
+          <p className="muted">Loading…</p>
+        ) : items.length === 0 ? (
+          <p className="muted">No attachments yet.</p>
+        ) : (
+          items.map((it) => (
+            <div key={it.id} className="attachment-card">
+              <div className="attachment-icon">{getFileIcon(it.file.mimeType)}</div>
+              <div className="attachment-info">
+                <div className="attachment-filename">{it.file.filename}</div>
+                <div className="attachment-meta">
+                  {it.label && <span className="attachment-label">{it.label}</span>}
+                  <span>{getShortType(it.file.mimeType)}</span>
+                  <span>•</span>
+                  <span>{prettyBytes(it.file.sizeBytes)}</span>
+                </div>
+              </div>
+              <div className="attachment-actions">
+                <button
+                  type="button"
+                  className="attachment-action-btn"
+                  onClick={() => onDownload(it.file.id)}
+                  title="Download"
+                >
+                  ⬇️
+                </button>
+                <button
+                  type="button"
+                  className="attachment-action-btn delete"
+                  onClick={() => onDelete(it.id)}
+                  title="Remove"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
-
-      <p className="muted" style={{ marginTop: 0, marginBottom: 12 }}>
-        {file ? `Selected: ${file.name}` : "No file selected."}
-      </p>
-
-      {loading ? (
-        <p>Loading attachments…</p>
-      ) : items.length === 0 ? (
-        <p className="muted">No attachments yet.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Filename</th>
-              <th>Label</th>
-              <th>Type</th>
-              <th>Size</th>
-              <th>Uploaded</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it) => (
-              <tr key={it.id}>
-                <td style={{ wordBreak: "break-word" }}>{it.file.filename}</td>
-                <td>{it.label ?? "—"}</td>
-                <td>{it.file.mimeType}</td>
-                <td>{prettyBytes(it.file.sizeBytes)}</td>
-                <td>{new Date(it.file.createdAt).toLocaleString()}</td>
-                <td>
-                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                    <Button variant="secondary" type="button" onClick={() => onDownload(it.file.id)}>Download</Button>
-                    <Button variant="secondary" type="button" onClick={() => onDelete(it.id)}>Remove</Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
     </div>
   );
 }

@@ -113,6 +113,8 @@ model Org {
   reportTemplates ReportTemplate[]
   reportBlocks ReportBlock[]
   timeEntries  TimeEntry[]
+  standardsPacks StandardsPack[]
+  standardsPackTasks StandardsPackTask[]
 }
 
 model User {
@@ -568,3 +570,55 @@ model user_org_roles {
   @@index([user_id])
 }
 
+
+
+// ============================================
+// STANDARDS PACKS - Reusable Task Templates
+// ============================================
+
+enum StandardsPackStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model StandardsPack {
+  id              String              @id @default(uuid()) @db.Uuid
+  orgId           String              @db.Uuid
+  name            String
+  description     String?
+  equipmentType   String?             // e.g., "Centrifugal Pump", "Control Valve"
+  status          StandardsPackStatus @default(DRAFT)
+  estimatedHours  Float?              // Total estimated hours for all tasks
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  org   Org                  @relation(fields: [orgId], references: [id])
+  tasks StandardsPackTask[]
+
+  @@index([orgId])
+  @@index([orgId, status])
+  @@index([orgId, equipmentType])
+}
+
+model StandardsPackTask {
+  id               String          @id @default(uuid()) @db.Uuid
+  orgId            String          @db.Uuid
+  standardsPackId  String          @db.Uuid
+  title            String
+  description      String?
+  packageType      WorkPackageType @default(MECH_ELEC_UNIFIED)
+  sequenceNumber   Int             @default(0)
+  isCritical       Boolean         @default(false)
+  requiresEvidence Boolean         @default(false)
+  estimatedMinutes Int?            // Estimated time for this task
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  org           Org           @relation(fields: [orgId], references: [id])
+  standardsPack StandardsPack @relation(fields: [standardsPackId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, standardsPackId])
+  @@index([standardsPackId, sequenceNumber])
+}

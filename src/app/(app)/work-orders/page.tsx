@@ -25,6 +25,14 @@ type WorkOrderFormState = {
   siteId: string;
   assetId: string;
   executionMode: ExecutionMode;
+  standardsPackId: string;
+};
+
+type StandardsPack = {
+  id: string;
+  name: string;
+  equipmentType: string | null;
+  _count: { tasks: number };
 };
 
 type CustomerModalState = {
@@ -73,6 +81,7 @@ const createInitialFormState = (): WorkOrderFormState => ({
   siteId: "",
   assetId: "",
   executionMode: ExecutionMode.UNIFIED,
+  standardsPackId: "",
 });
 
 const createCustomerModalState = (): CustomerModalState => ({
@@ -152,6 +161,7 @@ export default function WorkOrdersPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [standardsPacks, setStandardsPacks] = useState<StandardsPack[]>([]);
   const [form, setForm] = useState<WorkOrderFormState>(() => createInitialFormState());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -187,17 +197,19 @@ export default function WorkOrdersPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const [customerData, siteData, assetData, workOrderData] = await Promise.all([
+        const [customerData, siteData, assetData, workOrderData, packsData] = await Promise.all([
           fetchList<Customer>("/api/customers"),
           fetchList<Site>("/api/sites"),
           fetchList<Asset>("/api/assets"),
           fetchList<WorkOrder>("/api/work-orders"),
+          fetchList<StandardsPack>("/api/standards-packs?status=ACTIVE"),
         ]);
         if (!active) return;
         setCustomers(customerData);
         setSites(siteData);
         setAssets(assetData);
         setWorkOrders(workOrderData);
+        setStandardsPacks(packsData);
         setLoadError(null);
       } catch (error) {
         if (!active) return;
@@ -572,8 +584,27 @@ export default function WorkOrdersPage() {
         throw new Error(detail ?? "Failed to create work order.");
       }
 
+      const woData = (await response.json()) as SingleResponse<WorkOrder>;
+      const newWorkOrderId = woData.data.id;
+
+      // Apply standards pack if selected
+      if (form.standardsPackId) {
+        try {
+          const applyRes = await apiFetch(`/api/standards-packs/${form.standardsPackId}/apply`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workOrderId: newWorkOrderId }),
+          });
+          if (!applyRes.ok) {
+            console.error("Failed to apply standards pack");
+          }
+        } catch (e) {
+          console.error("Failed to apply standards pack", e);
+        }
+      }
+
       setForm(createInitialFormState());
-      setSubmitSuccess("Work order created.");
+      setSubmitSuccess("Work order created." + (form.standardsPackId ? " Tasks generated from pack." : ""));
       await refreshWorkOrders();
     } catch (error) {
       console.error(error);
@@ -695,6 +726,27 @@ export default function WorkOrdersPage() {
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="form-field">
+            <span>Standards Pack (optional)</span>
+            <select
+              value={form.standardsPackId}
+              onChange={(event) => setForm((prev) => ({ ...prev, standardsPackId: event.target.value }))}
+              disabled={loading || submitting}
+            >
+              <option value="">No pack - create tasks manually</option>
+              {standardsPacks.map((pack) => (
+                <option key={pack.id} value={pack.id}>
+                  {pack.name} ({pack._count.tasks} tasks){pack.equipmentType ? ` - ${pack.equipmentType}` : ""}
+                </option>
+              ))}
+            </select>
+            {standardsPacks.length === 0 && (
+              <small style={{ color: "var(--muted)", marginTop: 4 }}>
+                No active packs. <a href="/standards-packs">Create one</a>
+              </small>
+            )}
           </label>
 
           <button type="submit" disabled={!canSubmit || submitting}>

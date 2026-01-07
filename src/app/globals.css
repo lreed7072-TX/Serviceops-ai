@@ -1884,3 +1884,50 @@ a {
   color: var(--muted);
   margin-top: 4px;
 }
+
+
+/* =========================================
+   DATA TABLE STYLES
+   ========================================= */
+
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table td strong {
+  font-weight: 600;
+}
+
+.data-table tr:hover {
+  background: var(--card-muted, #f9fafb);
+}
+
+.data-table .inactive-row {
+  opacity: 0.5;
+}
+
+.badge.part { background: #dbeafe; color: #1d4ed8; }
+.badge.consumable { background: #fef3c7; color: #92400e; }
+.badge.fluid { background: #d1fae5; color: #065f46; }
+.badge.other { background: #e5e7eb; color: #4b5563; }

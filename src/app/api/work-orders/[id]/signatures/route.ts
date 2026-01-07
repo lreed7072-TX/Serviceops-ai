@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const signatures = await prisma.signature.findMany({
     where: { workOrderId },
-    include: { capturedByUser: { select: { id: true, name: true } } },
+    include: { capturedBy: { select: { id: true, name: true } } },
     orderBy: { capturedAt: "desc" },
   });
 

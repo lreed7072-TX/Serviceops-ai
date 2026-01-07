@@ -462,6 +462,65 @@ export default function TechTaskPage() {
             </div>
           )}
 
+          {/* Materials Section */}
+          <div className="tech-card">
+            <div className="tech-card-header">
+              <h3>Materials Used</h3>
+              <button className="tech-btn small" onClick={() => setShowAddMaterial(true)}>+ Add</button>
+            </div>
+            {materials.length === 0 ? (
+              <p className="muted">No materials recorded yet.</p>
+            ) : (
+              <div className="materials-list">
+                {materials.map((m) => (
+                  <div key={m.id} className="material-item">
+                    <div className="material-info">
+                      <strong>{m.name}</strong>
+                      {m.partNumber && <span className="material-part">#{m.partNumber}</span>}
+                      <span className="material-qty">{m.quantity} {m.unit || "ea"}</span>
+                      {m.totalCost && <span className="material-cost">${m.totalCost.toFixed(2)}</span>}
+                    </div>
+                    <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add Material Modal */}
+          {showAddMaterial && (
+            <div className="modal-overlay" onClick={() => setShowAddMaterial(false)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <h2>Add Material</h2>
+                <div className="form-field">
+                  <label>Select Material</label>
+                  <select value={selectedMaterial} onChange={(e) => setSelectedMaterial(e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {catalog.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.partNumber ? `(#${c.partNumber})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Quantity</label>
+                  <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} min="1" />
+                </div>
+                <div className="form-field">
+                  <label>Notes (optional)</label>
+                  <input type="text" value={matNotes} onChange={(e) => setMatNotes(e.target.value)} placeholder="S/N, condition, etc." />
+                </div>
+                <div className="modal-actions">
+                  <button className="btn btn-secondary" onClick={() => setShowAddMaterial(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={addMaterial} disabled={!selectedMaterial || savingMaterial}>
+                    {savingMaterial ? "Adding..." : "Add Material"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+
           {/* Task Actions */}
           <div className="tech-card">
             <h3>Actions</h3>

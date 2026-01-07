@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const signatures = await prisma.signature.findMany({
     where: { workOrderId },
     include: { capturedBy: { select: { id: true, name: true } } },
-    orderBy: { capturedAt: "desc" },
+    orderBy: { signedAt: "desc" },
   });
 
   return NextResponse.json({ data: signatures });
@@ -58,7 +58,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       signerTitle: signerTitle || null,
       signatureData,
       capturedByUserId: auth.userId,
-      capturedAt: new Date(),
     },
   });
 

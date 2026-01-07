@@ -117,6 +117,8 @@ model Org {
   standardsPackTasks StandardsPackTask[]
   measurementDefinitions MeasurementDefinition[]
   taskMeasurements TaskMeasurement[]
+  materials Material[]
+  taskMaterialUsages TaskMaterialUsage[]
 }
 
 model User {
@@ -138,6 +140,7 @@ model User {
   updatedReportTemplates ReportTemplate[] @relation("ReportTemplateUpdatedBy")
   timeEntries  TimeEntry[]  @relation("TimeEntryUser")
   capturedMeasurements TaskMeasurement[] @relation("MeasurementCapturedBy")
+  addedMaterialUsages TaskMaterialUsage[] @relation("MaterialUsageAddedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -309,6 +312,7 @@ model TaskInstance {
   evidence   TaskEvidence[]
   timeEntries TimeEntry[]
   measurements TaskMeasurement[]
+  materialUsages TaskMaterialUsage[]
 
   @@index([orgId])
   @@index([orgId, workOrderId])
@@ -687,6 +691,66 @@ model TaskMeasurement {
   taskInstance          TaskInstance           @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
   measurementDefinition MeasurementDefinition? @relation(fields: [measurementDefinitionId], references: [id])
   capturedByUser        User?                  @relation("MeasurementCapturedBy", fields: [capturedByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, taskInstanceId])
+  @@index([taskInstanceId])
+}
+
+
+// ============================================
+// MATERIALS - Parts/Inventory Tracking
+// ============================================
+
+enum MaterialCategory {
+  PART
+  CONSUMABLE
+  FLUID
+  OTHER
+}
+
+model Material {
+  id           String           @id @default(uuid()) @db.Uuid
+  orgId        String           @db.Uuid
+  name         String
+  partNumber   String?
+  manufacturer String?
+  unitCost     Float?
+  unit         String?          // "each", "ft", "gal", etc.
+  category     MaterialCategory @default(PART)
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  org    Org                 @relation(fields: [orgId], references: [id])
+  usages TaskMaterialUsage[]
+
+  @@index([orgId])
+  @@index([orgId, isActive])
+  @@index([orgId, category])
+}
+
+model TaskMaterialUsage {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @db.Uuid
+  taskInstanceId String   @db.Uuid
+  materialId     String?  @db.Uuid  // Optional link to catalog
+  name           String
+  partNumber     String?
+  quantity       Float    @default(1)
+  unitCost       Float?
+  unit           String?
+  totalCost      Float?
+  notes          String?
+  addedByUserId  String?  @db.Uuid
+  addedAt        DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  org          Org           @relation(fields: [orgId], references: [id])
+  taskInstance TaskInstance  @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
+  material     Material?     @relation(fields: [materialId], references: [id])
+  addedByUser  User?         @relation("MaterialUsageAddedBy", fields: [addedByUserId], references: [id])
 
   @@index([orgId])
   @@index([orgId, taskInstanceId])

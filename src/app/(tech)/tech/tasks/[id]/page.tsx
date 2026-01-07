@@ -51,6 +51,27 @@ type MeasurementData = {
   capturedByUser: { id: string; name: string | null; email: string } | null;
 };
 
+type MaterialUsageData = {
+  id: string;
+  name: string;
+  partNumber: string | null;
+  quantity: number;
+  unitCost: number | null;
+  unit: string | null;
+  totalCost: number | null;
+  notes: string | null;
+  addedAt: string;
+  addedByUser: { id: string; name: string | null; email: string } | null;
+};
+
+type MaterialCatalog = {
+  id: string;
+  name: string;
+  partNumber: string | null;
+  unitCost: number | null;
+  unit: string | null;
+};
+
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);

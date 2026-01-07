@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       customer: { select: { id: true, name: true } },
       site: { select: { id: true, name: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
-      createdByUser: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, name: true } },
     },
   });
 

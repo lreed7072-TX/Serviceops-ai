@@ -1931,3 +1931,56 @@ a {
 .badge.consumable { background: #fef3c7; color: #92400e; }
 .badge.fluid { background: #d1fae5; color: #065f46; }
 .badge.other { background: #e5e7eb; color: #4b5563; }
+
+
+/* =========================================
+   MATERIALS LIST STYLES (Tech Mobile)
+   ========================================= */
+
+.materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.material-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--card-muted, #f9fafb);
+  border-radius: 8px;
+}
+
+.material-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.material-info strong {
+  font-weight: 600;
+}
+
+.material-part {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.material-qty {
+  background: var(--background);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.material-cost {
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.tech-btn.small {
+  padding: 6px 12px;
+  font-size: 13px;
+}

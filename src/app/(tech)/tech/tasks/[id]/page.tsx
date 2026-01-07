@@ -519,7 +519,7 @@ export default function TechTaskPage() {
                 </div>
               </div>
             </div>
-          )
+          )}
 
           {/* Task Actions */}
           <div className="tech-card">

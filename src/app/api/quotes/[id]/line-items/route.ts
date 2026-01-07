@@ -8,52 +8,44 @@ import { Decimal } from "@prisma/client/runtime/library";
 async function recalculateQuoteTotals(quoteId: string) {
   const lineItems = await prisma.quoteLineItem.findMany({ where: { quoteId } });
   const subtotal = lineItems.reduce((sum, item) => sum + Number(item.totalPrice), 0);
-  // For now, no tax calculation - can be added later
   const total = subtotal;
-
   await prisma.quote.update({
     where: { id: quoteId },
-    data: { subtotal, tax: 0, total },
+    data: { subtotal: new Decimal(subtotal), total: new Decimal(total) },
   });
 }
 
 // GET /api/quotes/[id]/line-items
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params;
-  const auth = await requireAuthSessionFirst();
-  if ("status" in auth) return auth;
-  const { orgId } = auth;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
-  // Verify quote exists
-  const quote = await prisma.quote.findFirst({ where: { id: quoteId, orgId } });
-  if (!quote) {
-    return NextResponse.json({ error: "Quote not found" }, { status: 404 });
-  }
+  const quote = await prisma.quote.findFirst({ where: { id: quoteId, orgId: auth.orgId } });
+  if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
 
   const lineItems = await prisma.quoteLineItem.findMany({
     where: { quoteId },
-    include: { material: { select: { id: true, name: true, partNumber: true } } },
+    include: { material: { select: { id: true, name: true, sku: true } } },
     orderBy: { sortOrder: "asc" },
   });
 
   return NextResponse.json({ data: lineItems });
 }
 
-// POST /api/quotes/[id]/line-items - Add line item
+// POST /api/quotes/[id]/line-items
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params;
-  const auth = await requireAuthSessionFirst();
-  if ("status" in auth) return auth;
-  const { orgId } = auth;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
   const roleError = requireRole(auth, [Role.ADMIN, Role.DISPATCHER]);
   if (roleError) return roleError;
 
-  const quote = await prisma.quote.findFirst({ where: { id: quoteId, orgId } });
-  if (!quote) {
-    return NextResponse.json({ error: "Quote not found" }, { status: 404 });
-  }
-
+  const quote = await prisma.quote.findFirst({ where: { id: quoteId, orgId: auth.orgId } });
+  if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   if (quote.status !== QuoteStatus.DRAFT) {
     return NextResponse.json({ error: "Can only add items to DRAFT quotes" }, { status: 400 });
   }
@@ -62,37 +54,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { itemType, description, quantity, unitPrice, materialId } = body;
 
   if (!itemType || !description || quantity === undefined || unitPrice === undefined) {
-    return NextResponse.json({ error: "itemType, description, quantity, and unitPrice required" }, { status: 400 });
+    return NextResponse.json({ error: "itemType, description, quantity, unitPrice required" }, { status: 400 });
   }
 
-  if (!Object.values(QuoteLineItemType).includes(itemType)) {
-    return NextResponse.json({ error: "Invalid itemType" }, { status: 400 });
-  }
-
-  const qty = Number(quantity);
-  const price = Number(unitPrice);
-  const totalPrice = qty * price;
-
-  // Get max sortOrder
   const lastItem = await prisma.quoteLineItem.findFirst({
     where: { quoteId },
     orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
   });
-  const sortOrder = (lastItem?.sortOrder ?? -1) + 1;
+  const sortOrder = (lastItem?.sortOrder || 0) + 1;
+
+  const totalPrice = new Decimal(quantity).mul(new Decimal(unitPrice));
 
   const lineItem = await prisma.quoteLineItem.create({
     data: {
-      orgId,
+      orgId: auth.orgId,
       quoteId,
-      itemType,
+      itemType: itemType as QuoteLineItemType,
       description,
-      quantity: qty,
-      unitPrice: price,
+      quantity: new Decimal(quantity),
+      unitPrice: new Decimal(unitPrice),
       totalPrice,
       materialId: materialId || null,
       sortOrder,
     },
-    include: { material: { select: { id: true, name: true, partNumber: true } } },
   });
 
   await recalculateQuoteTotals(quoteId);

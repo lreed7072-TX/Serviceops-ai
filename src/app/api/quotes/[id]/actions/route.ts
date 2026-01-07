@@ -6,8 +6,9 @@ import { Role, QuoteStatus, OrderType, WorkOrderStatus, ExecutionMode, WorkPacka
 // POST /api/quotes/[id]/actions - Perform action on quote
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params;
-  const auth = await requireAuthSessionFirst();
-  if ("status" in auth) return auth;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
   const { orgId, userId } = auth;
 
   const roleError = requireRole(auth, [Role.ADMIN, Role.DISPATCHER]);

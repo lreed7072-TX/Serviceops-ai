@@ -5,12 +5,13 @@ import { Role, QuoteStatus } from "@prisma/client";
 
 // GET /api/quotes - List quotes
 export async function GET(req: NextRequest) {
-  const auth = await requireAuthSessionFirst();
-  if ("status" in auth) return auth;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
   const { orgId } = auth;
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status") as QuoteStatus | null;
+  const status = searchParams.get("status");
   const customerId = searchParams.get("customerId");
 
   const where: any = { orgId };
@@ -22,8 +23,7 @@ export async function GET(req: NextRequest) {
     include: {
       customer: { select: { id: true, name: true } },
       site: { select: { id: true, name: true } },
-      createdBy: { select: { id: true, name: true, email: true } },
-      _count: { select: { lineItems: true } },
+      lineItems: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -33,58 +33,47 @@ export async function GET(req: NextRequest) {
 
 // POST /api/quotes - Create quote
 export async function POST(req: NextRequest) {
-  const auth = await requireAuthSessionFirst();
-  if ("status" in auth) return auth;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
   const { orgId, userId } = auth;
 
   const roleError = requireRole(auth, [Role.ADMIN, Role.DISPATCHER]);
   if (roleError) return roleError;
 
   const body = await req.json();
-  const { customerId, siteId, title, description, laborRate, materialMarkupPercent, validUntil, notes, terms } = body;
+  const { customerId, siteId, title, description, validUntil, laborRate, materialMarkupPercent } = body;
 
   if (!customerId || !title) {
-    return NextResponse.json({ error: "customerId and title are required" }, { status: 400 });
-  }
-
-  // Verify customer exists
-  const customer = await prisma.customer.findFirst({ where: { id: customerId, orgId } });
-  if (!customer) {
-    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    return NextResponse.json({ error: "Customer and title required" }, { status: 400 });
   }
 
   // Generate quote number
   let quote: any = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const last = await prisma.quote.findFirst({
-      where: { orgId, quoteNumber: { startsWith: "QT" } },
+      where: { orgId, quoteNumber: { startsWith: "QT-" } },
       select: { quoteNumber: true },
       orderBy: { createdAt: "desc" },
     });
-
-    const lastNum = last?.quoteNumber?.match(/^QT(\d+)$/)?.[1];
-    const nextNum = (lastNum ? parseInt(lastNum, 10) : 0) + 1 + attempt;
-    const quoteNumber = `QT${String(nextNum).padStart(5, "0")}`;
+    const match = last?.quoteNumber?.match(/^QT-(\d+)$/);
+    const nextNum = (match ? parseInt(match[1], 10) : 0) + 1 + attempt;
+    const quoteNumber = `QT-${String(nextNum).padStart(5, "0")}`;
 
     try {
       quote = await prisma.quote.create({
         data: {
           orgId,
-          quoteNumber,
           customerId,
           siteId: siteId || null,
+          quoteNumber,
           title,
           description: description || null,
+          status: QuoteStatus.DRAFT,
+          validUntil: validUntil ? new Date(validUntil) : null,
           laborRate: laborRate || null,
           materialMarkupPercent: materialMarkupPercent || null,
-          validUntil: validUntil ? new Date(validUntil) : null,
-          notes: notes || null,
-          terms: terms || null,
           createdByUserId: userId,
-        },
-        include: {
-          customer: { select: { id: true, name: true } },
-          site: { select: { id: true, name: true } },
         },
       });
       break;

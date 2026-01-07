@@ -8,14 +8,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; signatureId: string }> }
 ) {
   const { id: workOrderId, signatureId } = await params;
-  const auth = await requireAuthSessionFirst();
-  if ("status" in auth) return auth;
-  const { orgId } = auth;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
+
+  const workOrder = await prisma.workOrder.findFirst({
+    where: { id: workOrderId, orgId: auth.orgId },
+  });
+  if (!workOrder) {
+    return NextResponse.json({ error: "Work order not found" }, { status: 404 });
+  }
 
   const signature = await prisma.signature.findFirst({
-    where: { id: signatureId, workOrderId, orgId },
+    where: { id: signatureId, workOrderId },
   });
-
   if (!signature) {
     return NextResponse.json({ error: "Signature not found" }, { status: 404 });
   }

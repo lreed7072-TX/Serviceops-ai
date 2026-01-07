@@ -119,6 +119,7 @@ model Org {
   taskMeasurements TaskMeasurement[]
   materials Material[]
   taskMaterialUsages TaskMaterialUsage[]
+  signatures Signature[]
 }
 
 model User {
@@ -141,6 +142,7 @@ model User {
   timeEntries  TimeEntry[]  @relation("TimeEntryUser")
   capturedMeasurements TaskMeasurement[] @relation("MeasurementCapturedBy")
   addedMaterialUsages TaskMaterialUsage[] @relation("MaterialUsageAddedBy")
+  capturedSignatures Signature[] @relation("SignatureCapturedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -264,6 +266,7 @@ model WorkOrder {
   packages WorkPackage[]
   tasks    TaskInstance[]
   timeEntries TimeEntry[]
+  signatures Signature[]
 
   @@index([orgId])
   @@index([orgId, customerId])
@@ -755,4 +758,37 @@ model TaskMaterialUsage {
   @@index([orgId])
   @@index([orgId, taskInstanceId])
   @@index([taskInstanceId])
+}
+
+
+// ============================================
+// SIGNATURES - Customer/Tech Sign-off
+// ============================================
+
+enum SignatureType {
+  CUSTOMER
+  TECH
+  WITNESS
+}
+
+model Signature {
+  id            String        @id @default(uuid()) @db.Uuid
+  orgId         String        @db.Uuid
+  workOrderId   String        @db.Uuid
+  signatureType SignatureType
+  signerName    String
+  signerTitle   String?       // e.g., "Plant Manager", "Lead Tech"
+  signatureData String        @db.Text  // Base64 PNG or SVG path data
+  signedAt      DateTime      @default(now())
+  capturedByUserId String?    @db.Uuid
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  org         Org        @relation(fields: [orgId], references: [id])
+  workOrder   WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  capturedBy  User?      @relation("SignatureCapturedBy", fields: [capturedByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, workOrderId])
+  @@index([workOrderId])
 }

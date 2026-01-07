@@ -2256,3 +2256,111 @@ a {
   padding: 4px 12px;
   font-size: 13px;
 }
+
+
+/* =========================================
+   SIGNATURE PAD
+   ========================================= */
+
+.signature-pad-container {
+  padding: 16px;
+}
+
+.signature-pad-container h3 {
+  margin: 0 0 16px;
+}
+
+.signature-canvas-wrapper {
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  margin: 16px 0;
+  position: relative;
+}
+
+.signature-canvas-wrapper canvas {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.signature-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Signature Display */
+.signatures-section {
+  margin-top: 16px;
+}
+
+.signature-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--card-muted, #f9fafb);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.signature-image {
+  width: 120px;
+  height: 60px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.signature-info {
+  flex: 1;
+}
+
+.signature-info strong {
+  display: block;
+}
+
+.signature-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.signature-type.customer { background: #dbeafe; color: #1d4ed8; }
+.signature-type.tech { background: #d1fae5; color: #065f46; }
+.signature-type.witness { background: #fef3c7; color: #92400e; }
+
+.signature-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.add-signature-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.add-signature-buttons .btn {
+  flex: 1;
+  min-width: 120px;
+}

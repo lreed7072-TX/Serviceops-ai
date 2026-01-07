@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const lineItems = await prisma.quoteLineItem.findMany({
     where: { quoteId },
-    include: { material: { select: { id: true, name: true, sku: true } } },
+    include: { material: { select: { id: true, name: true, partNumber: true } } },
     orderBy: { sortOrder: "asc" },
   });
 

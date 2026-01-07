@@ -1984,3 +1984,69 @@ a {
   padding: 6px 12px;
   font-size: 13px;
 }
+
+
+/* =========================================
+   MATERIALS LIST - Tech Mobile
+   ========================================= */
+
+.materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.material-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--card-muted, #f9fafb);
+  border-radius: 8px;
+}
+
+.material-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.material-info strong {
+  font-weight: 600;
+}
+
+.material-part {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.material-qty {
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.material-cost {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.tech-btn.small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.tech-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tech-card-header h3 {
+  margin: 0;
+}

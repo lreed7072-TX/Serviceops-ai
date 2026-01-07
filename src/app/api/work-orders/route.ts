@@ -4,6 +4,7 @@ import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import {
   ExecutionMode,
+  OrderType,
   Role,
   WorkOrderStatus,
   WorkPackageType,
@@ -19,30 +20,45 @@ type WorkOrderPayload = {
   description?: string | null;
   status?: WorkOrderStatus;
   executionMode?: ExecutionMode;
+  orderType?: OrderType;
+};
+
+// Prefix mapping for order types
+const ORDER_TYPE_PREFIX: Record<OrderType, string> = {
+  WORK_ORDER: "WO",
+  SALES_ORDER: "SO",
+  PROJECT: "PJ",
 };
 
 export async function GET(request: Request) {
-    const authResult = await requireAuthSessionFirst(request);
-    if ("error" in authResult) return authResult.error;
-    const auth = authResult.auth;
+  const authResult = await requireAuthSessionFirst(request);
+  if ("error" in authResult) return authResult.error;
+  const auth = authResult.auth;
 
-    const whereBase: any = { orgId: auth.orgId };
-    if (auth.role === Role.TECH) {
-      whereBase.OR = [
-        { tasks: { some: { assignedToId: auth.userId } } },
-        { visits: { some: { assignedTechId: auth.userId } } },
-        { packages: { some: { leadTechId: auth.userId } } },
-      ];
-    }
+  const { searchParams } = new URL(request.url);
+  const typeFilter = searchParams.get("orderType") as OrderType | null;
 
-    const workOrders = await prisma.workOrder.findMany({
-      where: whereBase,
-
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ data: workOrders });
+  const whereBase: any = { orgId: auth.orgId };
+  
+  if (typeFilter && Object.values(OrderType).includes(typeFilter)) {
+    whereBase.orderType = typeFilter;
   }
+
+  if (auth.role === Role.TECH) {
+    whereBase.OR = [
+      { tasks: { some: { assignedToId: auth.userId } } },
+      { visits: { some: { assignedTechId: auth.userId } } },
+      { packages: { some: { leadTechId: auth.userId } } },
+    ];
+  }
+
+  const workOrders = await prisma.workOrder.findMany({
+    where: whereBase,
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json({ data: workOrders });
+}
 
 export async function POST(request: Request) {
   const authResult = await requireAuthSessionFirst(request);
@@ -55,6 +71,9 @@ export async function POST(request: Request) {
   if (!body?.customerId || !body?.siteId || !body?.title) {
     return jsonError("Customer ID, site ID, and title are required.");
   }
+
+  const orderType = body.orderType ?? OrderType.WORK_ORDER;
+  const prefix = ORDER_TYPE_PREFIX[orderType];
 
   const [customer, site, asset] = await Promise.all([
     prisma.customer.findFirst({
@@ -78,51 +97,57 @@ export async function POST(request: Request) {
     return jsonError("Asset not found.", 404);
   }
 
-    // Generate next Work Order number like WO00109 (per-org).
-    // Concurrency: @@unique([orgId, workOrderNumber]) + retry on collision.
-    let workOrder: any = null;
+  // Generate next order number with correct prefix (per-org, per-type)
+  let workOrder: any = null;
 
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const last = await prisma.workOrder.findFirst({
-        where: { orgId: auth.orgId, workOrderNumber: { not: null } },
-        select: { workOrderNumber: true },
-        orderBy: { createdAt: "desc" },
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    // Find the last order of this type
+    const last = await prisma.workOrder.findFirst({
+      where: { 
+        orgId: auth.orgId, 
+        orderType,
+        workOrderNumber: { startsWith: prefix } 
+      },
+      select: { workOrderNumber: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const lastStr = last?.workOrderNumber ?? null;
+    const regex = new RegExp(`^${prefix}(\\d+)$`);
+    const match = lastStr?.match(regex);
+    const lastNum = match ? Number.parseInt(match[1], 10) : 0;
+
+    const nextNum = lastNum + 1 + attempt;
+    const workOrderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
+
+    try {
+      workOrder = await prisma.workOrder.create({
+        data: {
+          orgId: auth.orgId,
+          workOrderNumber,
+          orderType,
+          customerId: customer.id,
+          siteId: site.id,
+          assetId: asset?.id ?? null,
+          title: body.title,
+          description: body.description ?? null,
+          status: body.status ?? WorkOrderStatus.OPEN,
+          executionMode: body.executionMode ?? ExecutionMode.UNIFIED,
+        },
       });
-
-      const lastStr = last?.workOrderNumber ?? null;
-      const lastNum =
-        lastStr && /^WO(\d+)$/.test(lastStr) ? Number.parseInt(lastStr.slice(2), 10) : 0;
-
-      const nextNum = lastNum + 1 + attempt;
-      const workOrderNumber = `WO${String(nextNum).padStart(5, "0")}`;
-
-      try {
-        workOrder = await prisma.workOrder.create({
-          data: {
-            orgId: auth.orgId,
-            workOrderNumber,
-            customerId: customer.id,
-            siteId: site.id,
-            assetId: asset?.id ?? null,
-            title: body.title,
-            description: body.description ?? null,
-            status: body.status ?? WorkOrderStatus.OPEN,
-            executionMode: body.executionMode ?? ExecutionMode.UNIFIED,
-          },
-        });
-        break;
-      } catch (err: any) {
-        const msg = String(err?.message ?? "").toLowerCase();
-        const isUnique = err?.code === "P2002" || msg.includes("unique");
-        if (!isUnique || attempt === 4) throw err;
-      }
+      break;
+    } catch (err: any) {
+      const msg = String(err?.message ?? "").toLowerCase();
+      const isUnique = err?.code === "P2002" || msg.includes("unique");
+      if (!isUnique || attempt === 4) throw err;
     }
+  }
 
-    if (!workOrder) {
-      return jsonError("Unable to create work order.", 500);
-    }
+  if (!workOrder) {
+    return jsonError("Unable to create order.", 500);
+  }
 
-
+  // Create default packages
   const packageTemplates =
     workOrder.executionMode === ExecutionMode.MULTI_LANE
       ? [

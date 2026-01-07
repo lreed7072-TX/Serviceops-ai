@@ -2364,3 +2364,32 @@ a {
   flex: 1;
   min-width: 120px;
 }
+
+
+/* =========================================
+   ORDER TYPE BADGES
+   ========================================= */
+
+.order-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.order-type-badge.work-order {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.order-type-badge.sales-order {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.order-type-badge.project {
+  background: #fef3c7;
+  color: #92400e;
+}

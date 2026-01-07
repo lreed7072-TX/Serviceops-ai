@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { AssetCriticality, AssetStatus, ExecutionMode } from "@prisma/client";
+import { AssetCriticality, AssetStatus, ExecutionMode, OrderType } from "@prisma/client";
 import type { Asset, Customer, Site, WorkOrder } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -25,6 +25,7 @@ type WorkOrderFormState = {
   siteId: string;
   assetId: string;
   executionMode: ExecutionMode;
+  orderType: OrderType;
   standardsPackId: string;
 };
 
@@ -69,6 +70,18 @@ const executionModeLabels: Record<ExecutionMode, string> = {
   MULTI_LANE: "Multi-lane",
 };
 
+const orderTypeLabels: Record<OrderType, string> = {
+  WORK_ORDER: "Work Order (WO)",
+  SALES_ORDER: "Sales Order (SO)",
+  PROJECT: "Project (PJ)",
+};
+
+const orderTypeOptions: OrderType[] = [
+  OrderType.WORK_ORDER,
+  OrderType.SALES_ORDER,
+  OrderType.PROJECT,
+];
+
 const executionModeOptions: ExecutionMode[] = [
   ExecutionMode.UNIFIED,
   ExecutionMode.MULTI_LANE,
@@ -81,6 +94,7 @@ const createInitialFormState = (): WorkOrderFormState => ({
   siteId: "",
   assetId: "",
   executionMode: ExecutionMode.UNIFIED,
+  orderType: OrderType.WORK_ORDER,
   standardsPackId: "",
 });
 
@@ -320,6 +334,9 @@ export default function WorkOrdersPage() {
       }
       if (field === "executionMode") {
         return { ...prev, executionMode: value as ExecutionMode };
+      }
+      if (field === "orderType") {
+        return { ...prev, orderType: value as OrderType };
       }
       return { ...prev, [field]: value };
     });
@@ -570,6 +587,7 @@ export default function WorkOrdersPage() {
           title: form.title.trim(),
           description: form.description.trim() ? form.description.trim() : null,
           executionMode: form.executionMode,
+          orderType: form.orderType,
         }),
       });
 
@@ -637,6 +655,21 @@ export default function WorkOrdersPage() {
       <div className="card">
         <h3>Create work order</h3>
         <form className="work-order-form" onSubmit={handleSubmit}>
+          <label className="form-field">
+            <span>Order Type</span>
+            <select
+              value={form.orderType}
+              onChange={(event) => handleFieldChange("orderType", event.target.value)}
+              disabled={loading || submitting}
+            >
+              {orderTypeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {orderTypeLabels[type]}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="form-field">
             <span>Title</span>
             <input
@@ -778,7 +811,8 @@ export default function WorkOrdersPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>WO #</th>
+                <th>Order #</th>
+                <th>Type</th>
                   <th>Title</th>
                   <th>Status</th>
                 <th>Execution mode</th>
@@ -790,6 +824,7 @@ export default function WorkOrdersPage() {
               {workOrders.map((workOrder) => (
                 <tr key={workOrder.id}>
                     <td>{(workOrder as any).workOrderNumber ?? "—"}</td>
+                    <td><span className={`order-type-badge ${((workOrder as any).orderType ?? "WORK_ORDER").toLowerCase().replace("_", "-")}`}>{((workOrder as any).orderType ?? "WORK_ORDER").replace("_", " ")}</span></td>
                     <td>{workOrder.title}</td>
                   <td>{workOrder.status}</td>
                   <td>{executionModeLabels[workOrder.executionMode]}</td>

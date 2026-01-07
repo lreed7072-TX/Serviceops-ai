@@ -195,8 +195,8 @@ export default function TechTaskPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements()]).finally(() => setLoading(false));
-  }, [loadTask, loadTimer, loadEvidence, loadMeasurements]);
+    Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements(), loadMaterials(), loadCatalog()]).finally(() => setLoading(false));
+  }, [loadTask, loadTimer, loadEvidence, loadMeasurements, loadMaterials, loadCatalog]);
 
   // Live timer tick
   useEffect(() => {
@@ -366,6 +366,49 @@ export default function TechTaskPage() {
       setErr(e?.message ?? "Failed to save measurement");
     } finally {
       setSavingMeasurement(null);
+    }
+  };
+
+  const addMaterial = async () => {
+    if (!taskId || !selectedMaterial) return;
+    const mat = catalog.find((c) => c.id === selectedMaterial);
+    if (!mat) return;
+    setSavingMaterial(true);
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}/materials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          materialId: mat.id,
+          name: mat.name,
+          partNumber: mat.partNumber,
+          quantity: parseFloat(matQty) || 1,
+          unitCost: mat.unitCost,
+          unit: mat.unit,
+          notes: matNotes.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add material");
+      setShowAddMaterial(false);
+      setSelectedMaterial("");
+      setMatQty("1");
+      setMatNotes("");
+      await loadMaterials();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to add material");
+    } finally {
+      setSavingMaterial(false);
+    }
+  };
+
+  const deleteMaterial = async (usageId: string) => {
+    if (!taskId || !confirm("Remove this material?")) return;
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}/materials/${usageId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      await loadMaterials();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to delete");
     }
   };
 

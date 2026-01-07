@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthSession, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Role, QuoteStatus, QuoteLineItemType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -20,7 +20,7 @@ async function recalculateQuoteTotals(quoteId: string) {
 // GET /api/quotes/[id]/line-items
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // POST /api/quotes/[id]/line-items - Add line item
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 

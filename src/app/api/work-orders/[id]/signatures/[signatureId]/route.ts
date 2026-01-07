@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthSession } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 
 // DELETE /api/work-orders/[id]/signatures/[signatureId]
 export async function DELETE(
@@ -8,7 +8,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; signatureId: string }> }
 ) {
   const { id: workOrderId, signatureId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 

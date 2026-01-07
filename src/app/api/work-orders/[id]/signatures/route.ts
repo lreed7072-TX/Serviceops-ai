@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthSession } from "@/lib/auth";
+import { requireAuthSessionFirst } from "@/lib/auth";
 
 // GET /api/work-orders/[id]/signatures - List signatures for work order
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: workOrderId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // POST /api/work-orders/[id]/signatures - Add signature
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: workOrderId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId, userId } = auth;
 

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthSession, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Role, QuoteStatus } from "@prisma/client";
 
 // GET /api/quotes - List quotes
 export async function GET(req: NextRequest) {
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/quotes - Create quote
 export async function POST(req: NextRequest) {
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId, userId } = auth;
 

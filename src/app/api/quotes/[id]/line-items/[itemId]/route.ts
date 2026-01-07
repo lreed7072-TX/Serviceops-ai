@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthSession, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Role, QuoteStatus } from "@prisma/client";
 
 // Helper to recalculate quote totals
@@ -20,7 +20,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   const { id: quoteId, itemId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 
@@ -65,7 +65,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   const { id: quoteId, itemId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId } = auth;
 

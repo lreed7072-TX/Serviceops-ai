@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthSession, requireRole } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
 import { Role, QuoteStatus, OrderType, WorkOrderStatus, ExecutionMode, WorkPackageType } from "@prisma/client";
 
 // POST /api/quotes/[id]/actions - Perform action on quote
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params;
-  const auth = await requireAuthSession();
+  const auth = await requireAuthSessionFirst();
   if ("status" in auth) return auth;
   const { orgId, userId } = auth;
 

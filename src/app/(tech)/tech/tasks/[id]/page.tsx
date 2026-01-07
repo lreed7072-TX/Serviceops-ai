@@ -51,7 +51,7 @@ type MeasurementData = {
   capturedByUser: { id: string; name: string | null; email: string } | null;
 };
 
-type MaterialUsageData = {
+type MaterialUsage = {
   id: string;
   name: string;
   partNumber: string | null;
@@ -64,7 +64,7 @@ type MaterialUsageData = {
   addedByUser: { id: string; name: string | null; email: string } | null;
 };
 
-type MaterialCatalog = {
+type CatalogMaterial = {
   id: string;
   name: string;
   partNumber: string | null;
@@ -76,20 +76,13 @@ function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  if (h > 0) {
-    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  }
+  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export default function TechTaskPage() {
@@ -100,6 +93,8 @@ export default function TechTaskPage() {
   const [timer, setTimer] = useState<TimerData | null>(null);
   const [evidence, setEvidence] = useState<EvidenceData[]>([]);
   const [measurements, setMeasurements] = useState<MeasurementData[]>([]);
+  const [materials, setMaterials] = useState<MaterialUsage[]>([]);
+  const [catalog, setCatalog] = useState<CatalogMaterial[]>([]);
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -108,116 +103,82 @@ export default function TechTaskPage() {
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSuccess, setNoteSuccess] = useState(false);
   const [savingMeasurement, setSavingMeasurement] = useState<string | null>(null);
-  const [materials, setMaterials] = useState<MaterialUsageData[]>([]);
-  const [catalog, setCatalog] = useState<MaterialCatalog[]>([]);
   const [showAddMaterial, setShowAddMaterial] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [selectedMaterial, setSelectedMaterial] = useState("");
   const [matQty, setMatQty] = useState("1");
   const [matNotes, setMatNotes] = useState("");
   const [savingMaterial, setSavingMaterial] = useState(false);
 
-  // Load task data
   const loadTask = useCallback(async () => {
     if (!taskId) return;
     try {
       const res = await apiFetch(`/api/tasks/${taskId}`, { cache: "no-store" });
       if (!res.ok) throw new Error((await res.text()) || "Failed to load task");
-      const json = await res.json();
-      setTask(json.data);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to load task");
-    }
+      setTask((await res.json()).data);
+    } catch (e: any) { setErr(e?.message ?? "Failed to load task"); }
   }, [taskId]);
 
-  // Load active timer
   const loadTimer = useCallback(async () => {
     try {
       const res = await apiFetch("/api/tech/timer", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load timer");
-      const json = await res.json();
-      setTimer(json.data);
-      if (json.data) {
-        setDisplaySeconds(json.data.currentSeconds);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+      if (!res.ok) return;
+      const data = (await res.json()).data;
+      setTimer(data);
+      if (data) setDisplaySeconds(data.currentSeconds);
+    } catch (e) { console.error(e); }
   }, []);
 
-  // Load evidence (notes, photos, files)
   const loadEvidence = useCallback(async () => {
     if (!taskId) return;
     try {
       const res = await apiFetch(`/api/tasks/${taskId}/evidence`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load evidence");
-      const json = await res.json();
-      setEvidence(json.data ?? []);
-    } catch (e) {
-      console.error(e);
-    }
+      if (res.ok) setEvidence((await res.json()).data ?? []);
+    } catch (e) { console.error(e); }
   }, [taskId]);
 
-  // Load measurements
   const loadMeasurements = useCallback(async () => {
     if (!taskId) return;
     try {
       const res = await apiFetch(`/api/tasks/${taskId}/measurements`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load measurements");
-      const json = await res.json();
-      setMeasurements(json.data ?? []);
-    } catch (e) {
-      console.error(e);
-    }
+      if (res.ok) setMeasurements((await res.json()).data ?? []);
+    } catch (e) { console.error(e); }
   }, [taskId]);
 
   const loadMaterials = useCallback(async () => {
     if (!taskId) return;
     try {
       const res = await apiFetch(`/api/tasks/${taskId}/materials`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load materials");
-      const json = await res.json();
-      setMaterials(json.data ?? []);
-    } catch (e) {
-      console.error(e);
-    }
+      if (res.ok) setMaterials((await res.json()).data ?? []);
+    } catch (e) { console.error(e); }
   }, [taskId]);
 
   const loadCatalog = useCallback(async () => {
     try {
       const res = await apiFetch("/api/materials?active=true", { cache: "no-store" });
-      if (!res.ok) return;
-      const json = await res.json();
-      setCatalog(json.data ?? []);
-    } catch (e) {
-      console.error(e);
-    }
+      if (res.ok) setCatalog((await res.json()).data ?? []);
+    } catch (e) { console.error(e); }
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements(), loadMaterials(), loadCatalog()]).finally(() => setLoading(false));
+    Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements(), loadMaterials(), loadCatalog()])
+      .finally(() => setLoading(false));
   }, [loadTask, loadTimer, loadEvidence, loadMeasurements, loadMaterials, loadCatalog]);
 
-  // Live timer tick
   useEffect(() => {
     if (!timer || timer.status !== "RUNNING") return;
-    const interval = setInterval(() => {
-      setDisplaySeconds((prev) => prev + 1);
-    }, 1000);
+    const interval = setInterval(() => setDisplaySeconds((p) => p + 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Check if this task's timer is active
   const isTimerForThisTask = timer && timer.taskInstanceId === taskId && timer.status !== "STOPPED";
   const isRunning = timer?.status === "RUNNING" && isTimerForThisTask;
   const isPaused = timer?.status === "PAUSED" && isTimerForThisTask;
 
-  // Timer actions
   const startTimer = async () => {
     if (!task) return;
     const res = await apiFetch("/api/tech/timer/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ workOrderId: task.workOrderId, taskInstanceId: task.id }),
     });
     if (!res.ok) throw new Error((await res.text()) || "Failed to start timer");
@@ -226,147 +187,105 @@ export default function TechTaskPage() {
 
   const pauseTimer = async () => {
     const res = await apiFetch("/api/tech/timer/pause", { method: "POST" });
-    if (!res.ok) throw new Error((await res.text()) || "Failed to pause timer");
+    if (!res.ok) throw new Error("Failed to pause");
     await loadTimer();
   };
 
   const resumeTimer = async () => {
     const res = await apiFetch("/api/tech/timer/resume", { method: "POST" });
-    if (!res.ok) throw new Error((await res.text()) || "Failed to resume timer");
+    if (!res.ok) throw new Error("Failed to resume");
     await loadTimer();
   };
 
   const stopTimer = async () => {
     const res = await apiFetch("/api/tech/timer/stop", { method: "POST" });
-    if (!res.ok) throw new Error((await res.text()) || "Failed to stop timer");
+    if (!res.ok) throw new Error("Failed to stop");
     await loadTimer();
   };
 
-  // Combined Task Status + Timer Actions
   const startTask = async () => {
     if (!taskId || !task) return;
-    setActionLoading(true);
-    setErr(null);
+    setActionLoading(true); setErr(null);
     try {
       await startTimer();
       const res = await apiFetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "IN_PROGRESS" }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to start task");
+      if (!res.ok) throw new Error("Failed to start");
       await loadTask();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to start task");
-    } finally {
-      setActionLoading(false);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setActionLoading(false); }
   };
 
   const pauseTask = async () => {
     if (!taskId) return;
-    setActionLoading(true);
-    setErr(null);
+    setActionLoading(true); setErr(null);
     try {
       if (isRunning) await pauseTimer();
       const res = await apiFetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "BLOCKED" }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to pause task");
+      if (!res.ok) throw new Error("Failed to pause");
       await loadTask();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to pause task");
-    } finally {
-      setActionLoading(false);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setActionLoading(false); }
   };
 
   const resumeTask = async () => {
     if (!taskId || !task) return;
-    setActionLoading(true);
-    setErr(null);
+    setActionLoading(true); setErr(null);
     try {
       if (isPaused) await resumeTimer();
       else if (!isTimerForThisTask) await startTimer();
       const res = await apiFetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "IN_PROGRESS" }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to resume task");
+      if (!res.ok) throw new Error("Failed to resume");
       await loadTask();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to resume task");
-    } finally {
-      setActionLoading(false);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setActionLoading(false); }
   };
 
   const completeTask = async () => {
     if (!taskId) return;
-    setActionLoading(true);
-    setErr(null);
+    setActionLoading(true); setErr(null);
     try {
       if (isTimerForThisTask) await stopTimer();
       const res = await apiFetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "DONE" }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to complete task");
+      if (!res.ok) throw new Error("Failed to complete");
       await loadTask();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to complete task");
-    } finally {
-      setActionLoading(false);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setActionLoading(false); }
   };
 
-  // Add note
   const addNote = async () => {
     if (!taskId || !noteText.trim()) return;
-    setNoteSaving(true);
-    setNoteSuccess(false);
+    setNoteSaving(true); setNoteSuccess(false);
     try {
       const res = await apiFetch(`/api/tasks/${taskId}/evidence`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "NOTE", noteText: noteText.trim() }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to add note");
-      setNoteText("");
-      setNoteSuccess(true);
+      if (!res.ok) throw new Error("Failed to add note");
+      setNoteText(""); setNoteSuccess(true);
       setTimeout(() => setNoteSuccess(false), 2000);
       await loadEvidence();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to add note");
-    } finally {
-      setNoteSaving(false);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setNoteSaving(false); }
   };
 
-  // Save measurement value
-  const saveMeasurement = async (
-    measurement: MeasurementData,
-    value: { numericValue?: number | null; textValue?: string | null; passFail?: boolean | null }
-  ) => {
+  const saveMeasurement = async (m: MeasurementData, value: any) => {
     if (!taskId) return;
-    setSavingMeasurement(measurement.id);
+    setSavingMeasurement(m.id);
     try {
       const res = await apiFetch(`/api/tasks/${taskId}/measurements`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ measurementId: measurement.id, ...value }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ measurementId: m.id, ...value }),
       });
-      if (!res.ok) throw new Error("Failed to save measurement");
+      if (!res.ok) throw new Error("Failed to save");
       await loadMeasurements();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to save measurement");
-    } finally {
-      setSavingMeasurement(null);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setSavingMeasurement(null); }
   };
 
   const addMaterial = async () => {
@@ -376,53 +295,34 @@ export default function TechTaskPage() {
     setSavingMaterial(true);
     try {
       const res = await apiFetch(`/api/tasks/${taskId}/materials`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          materialId: mat.id,
-          name: mat.name,
-          partNumber: mat.partNumber,
-          quantity: parseFloat(matQty) || 1,
-          unitCost: mat.unitCost,
-          unit: mat.unit,
+          materialId: mat.id, name: mat.name, partNumber: mat.partNumber,
+          quantity: parseFloat(matQty) || 1, unitCost: mat.unitCost, unit: mat.unit,
           notes: matNotes.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error("Failed to add material");
-      setShowAddMaterial(false);
-      setSelectedMaterial("");
-      setMatQty("1");
-      setMatNotes("");
+      if (!res.ok) throw new Error("Failed to add");
+      setShowAddMaterial(false); setSelectedMaterial(""); setMatQty("1"); setMatNotes("");
       await loadMaterials();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to add material");
-    } finally {
-      setSavingMaterial(false);
-    }
+    } catch (e: any) { setErr(e?.message); } finally { setSavingMaterial(false); }
   };
 
-  const deleteMaterial = async (usageId: string) => {
+  const deleteMaterial = async (id: string) => {
     if (!taskId || !confirm("Remove this material?")) return;
     try {
-      const res = await apiFetch(`/api/tasks/${taskId}/materials/${usageId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      await apiFetch(`/api/tasks/${taskId}/materials/${id}`, { method: "DELETE" });
       await loadMaterials();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to delete");
-    }
+    } catch (e: any) { setErr(e?.message); }
   };
 
-  // Separate evidence by type
   const notes = evidence.filter((e) => e.type === "NOTE");
   const photos = evidence.filter((e) => e.type === "PHOTO");
 
-  if (!taskId) {
-    return <div className="tech-container"><p>Missing task ID.</p></div>;
-  }
+  if (!taskId) return <div className="tech-container"><p>Missing task ID.</p></div>;
 
   return (
     <div className="tech-container">
-      {/* Header */}
       <div className="tech-header">
         <Link href="/tech" className="tech-back">← Back</Link>
         <h1>Task</h1>
@@ -433,7 +333,6 @@ export default function TechTaskPage() {
 
       {task && (
         <>
-          {/* Task Info Card */}
           <div className="tech-card">
             <div className="tech-card-header">
               <h2>{task.title}</h2>
@@ -441,9 +340,7 @@ export default function TechTaskPage() {
             </div>
             {task.description && <p className="tech-description">{task.description}</p>}
             <div className="tech-meta">
-              <span className={`tech-status ${task.status.toLowerCase()}`}>
-                {task.status.replace("_", " ")}
-              </span>
+              <span className={`tech-status ${task.status.toLowerCase()}`}>{task.status.replace("_", " ")}</span>
               {task.workOrder && (
                 <Link href={`/tech/work-orders/${task.workOrderId}`} className="tech-wo-link">
                   WO: {task.workOrder.workOrderNumber || task.workOrder.title}
@@ -452,7 +349,6 @@ export default function TechTaskPage() {
             </div>
           </div>
 
-          {/* Timer Display */}
           {isTimerForThisTask && (
             <div className="tech-card timer-card">
               <div className="timer-display">
@@ -462,72 +358,10 @@ export default function TechTaskPage() {
             </div>
           )}
 
-          {/* Materials Section */}
-          <div className="tech-card">
-            <div className="tech-card-header">
-              <h3>Materials Used</h3>
-              <button className="tech-btn small" onClick={() => setShowAddMaterial(true)}>+ Add</button>
-            </div>
-            {materials.length === 0 ? (
-              <p className="muted">No materials recorded yet.</p>
-            ) : (
-              <div className="materials-list">
-                {materials.map((m) => (
-                  <div key={m.id} className="material-item">
-                    <div className="material-info">
-                      <strong>{m.name}</strong>
-                      {m.partNumber && <span className="material-part">#{m.partNumber}</span>}
-                      <span className="material-qty">{m.quantity} {m.unit || "ea"}</span>
-                      {m.totalCost && <span className="material-cost">${m.totalCost.toFixed(2)}</span>}
-                    </div>
-                    <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Add Material Modal */}
-          {showAddMaterial && (
-            <div className="modal-overlay" onClick={() => setShowAddMaterial(false)}>
-              <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <h2>Add Material</h2>
-                <div className="form-field">
-                  <label>Select Material</label>
-                  <select value={selectedMaterial} onChange={(e) => setSelectedMaterial(e.target.value)}>
-                    <option value="">-- Select --</option>
-                    {catalog.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} {c.partNumber ? `(#${c.partNumber})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-field">
-                  <label>Quantity</label>
-                  <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} min="1" />
-                </div>
-                <div className="form-field">
-                  <label>Notes (optional)</label>
-                  <input type="text" value={matNotes} onChange={(e) => setMatNotes(e.target.value)} placeholder="S/N, condition, etc." />
-                </div>
-                <div className="modal-actions">
-                  <button className="btn btn-secondary" onClick={() => setShowAddMaterial(false)}>Cancel</button>
-                  <button className="btn btn-primary" onClick={addMaterial} disabled={!selectedMaterial || savingMaterial}>
-                    {savingMaterial ? "Adding..." : "Add Material"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Task Actions */}
           <div className="tech-card">
             <h3>Actions</h3>
             <div className="status-grid">
-              {task.status === "TODO" && (
-                <button className="tech-btn primary large" onClick={startTask} disabled={actionLoading}>▶ Start Task</button>
-              )}
+              {task.status === "TODO" && <button className="tech-btn primary large" onClick={startTask} disabled={actionLoading}>▶ Start Task</button>}
               {task.status === "IN_PROGRESS" && (
                 <>
                   <button className="tech-btn success large" onClick={completeTask} disabled={actionLoading}>✓ Complete Task</button>
@@ -544,17 +378,11 @@ export default function TechTaskPage() {
                 <div className="tech-complete">
                   <span style={{ fontSize: "24px" }}>✓</span>
                   <span>Task Completed</span>
-                  {timer && timer.taskInstanceId === taskId && (
-                    <span style={{ fontSize: "14px", color: "var(--muted)" }}>
-                      Time logged: {formatTime(timer.accumulatedSeconds || displaySeconds)}
-                    </span>
-                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Measurements Section */}
           {measurements.length > 0 && (
             <div className="tech-card measurements-section">
               <h3>Measurements ({measurements.length})</h3>
@@ -564,28 +392,14 @@ export default function TechTaskPage() {
                     <span className="measurement-capture-name">{m.name}</span>
                     {m.unit && <span className="measurement-capture-unit">{m.unit}</span>}
                   </div>
-                  
                   {m.measurementType === "NUMERIC" && (m.minValue !== null || m.maxValue !== null) && (
-                    <div className="measurement-capture-range">
-                      Acceptable range: {m.minValue ?? "—"} to {m.maxValue ?? "—"} {m.unit || ""}
-                    </div>
+                    <div className="measurement-capture-range">Range: {m.minValue ?? "—"} to {m.maxValue ?? "—"}</div>
                   )}
-
-                  {/* NUMERIC input */}
                   {m.measurementType === "NUMERIC" && (
                     <>
-                      <input
-                        type="number"
-                        placeholder="Enter value..."
-                        defaultValue={m.numericValue ?? ""}
-                        onBlur={(e) => {
-                          const val = e.target.value ? parseFloat(e.target.value) : null;
-                          if (val !== m.numericValue) {
-                            saveMeasurement(m, { numericValue: val });
-                          }
-                        }}
-                        disabled={savingMeasurement === m.id}
-                      />
+                      <input type="number" placeholder="Enter value..." defaultValue={m.numericValue ?? ""}
+                        onBlur={(e) => { const v = e.target.value ? parseFloat(e.target.value) : null; if (v !== m.numericValue) saveMeasurement(m, { numericValue: v }); }}
+                        disabled={savingMeasurement === m.id} />
                       {m.numericValue !== null && m.isWithinSpec !== null && (
                         <div className={`measurement-status ${m.isWithinSpec ? "in-spec" : "out-of-spec"}`}>
                           {m.isWithinSpec ? "✓ Within spec" : "⚠ Out of spec"}
@@ -593,104 +407,105 @@ export default function TechTaskPage() {
                       )}
                     </>
                   )}
-
-                  {/* PASS_FAIL toggle */}
                   {m.measurementType === "PASS_FAIL" && (
                     <div className="measurement-capture-toggle">
-                      <button
-                        className={`pass ${m.passFail === true ? "selected" : ""}`}
-                        onClick={() => saveMeasurement(m, { passFail: true })}
-                        disabled={savingMeasurement === m.id}
-                      >
-                        ✓ Pass
-                      </button>
-                      <button
-                        className={`fail ${m.passFail === false ? "selected" : ""}`}
-                        onClick={() => saveMeasurement(m, { passFail: false })}
-                        disabled={savingMeasurement === m.id}
-                      >
-                        ✗ Fail
-                      </button>
+                      <button className={`pass ${m.passFail === true ? "selected" : ""}`} onClick={() => saveMeasurement(m, { passFail: true })} disabled={savingMeasurement === m.id}>✓ Pass</button>
+                      <button className={`fail ${m.passFail === false ? "selected" : ""}`} onClick={() => saveMeasurement(m, { passFail: false })} disabled={savingMeasurement === m.id}>✗ Fail</button>
                     </div>
                   )}
-
-                  {/* TEXT input */}
                   {m.measurementType === "TEXT" && (
-                    <input
-                      type="text"
-                      placeholder="Enter value..."
-                      defaultValue={m.textValue ?? ""}
-                      onBlur={(e) => {
-                        const val = e.target.value || null;
-                        if (val !== m.textValue) {
-                          saveMeasurement(m, { textValue: val });
-                        }
-                      }}
-                      disabled={savingMeasurement === m.id}
-                    />
-                  )}
-
-                  {m.capturedAt && m.capturedByUser && (
-                    <div className="measurement-captured-by">
-                      Recorded by {m.capturedByUser.name || m.capturedByUser.email} • {formatDateTime(m.capturedAt)}
-                    </div>
+                    <input type="text" placeholder="Enter value..." defaultValue={m.textValue ?? ""}
+                      onBlur={(e) => { const v = e.target.value || null; if (v !== m.textValue) saveMeasurement(m, { textValue: v }); }}
+                      disabled={savingMeasurement === m.id} />
                   )}
                 </div>
               ))}
             </div>
           )}
 
-          {/* Add Note */}
+          <div className="tech-card">
+            <div className="tech-card-header">
+              <h3>Materials Used</h3>
+              <button className="tech-btn small" onClick={() => setShowAddMaterial(true)}>+ Add</button>
+            </div>
+            {materials.length === 0 ? <p className="muted">No materials recorded yet.</p> : (
+              <div className="materials-list">
+                {materials.map((m) => (
+                  <div key={m.id} className="material-item">
+                    <div className="material-info">
+                      <strong>{m.name}</strong>
+                      {m.partNumber && <span className="material-part">#{m.partNumber}</span>}
+                      <span className="material-qty">{m.quantity} {m.unit || "ea"}</span>
+                      {m.totalCost && <span className="material-cost">${m.totalCost.toFixed(2)}</span>}
+                    </div>
+                    <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {showAddMaterial && (
+            <div className="modal-overlay" onClick={() => setShowAddMaterial(false)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <h2>Add Material</h2>
+                <div className="form-field">
+                  <label>Select Material</label>
+                  <select value={selectedMaterial} onChange={(e) => setSelectedMaterial(e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {catalog.map((c) => <option key={c.id} value={c.id}>{c.name} {c.partNumber ? `(#${c.partNumber})` : ""}</option>)}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Quantity</label>
+                  <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} min="1" />
+                </div>
+                <div className="form-field">
+                  <label>Notes (optional)</label>
+                  <input type="text" value={matNotes} onChange={(e) => setMatNotes(e.target.value)} placeholder="S/N, condition, etc." />
+                </div>
+                <div className="modal-actions">
+                  <button className="btn btn-secondary" onClick={() => setShowAddMaterial(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={addMaterial} disabled={!selectedMaterial || savingMaterial}>{savingMaterial ? "Adding..." : "Add Material"}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="tech-card">
             <h3>Add Note</h3>
-            <textarea
-              className="tech-textarea"
-              placeholder="Add a note about this task..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              rows={3}
-            />
-            <button className="tech-btn primary" onClick={addNote} disabled={noteSaving || !noteText.trim()}>
-              {noteSaving ? "Saving…" : "Save Note"}
-            </button>
+            <textarea className="tech-textarea" placeholder="Add a note..." value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={3} />
+            <button className="tech-btn primary" onClick={addNote} disabled={noteSaving || !noteText.trim()}>{noteSaving ? "Saving…" : "Save Note"}</button>
             {noteSuccess && <span className="note-success">✓ Saved</span>}
           </div>
 
-          {/* Display Notes */}
           {notes.length > 0 && (
             <div className="tech-card">
               <h3>Notes ({notes.length})</h3>
               <div className="evidence-list">
-                {notes.map((note) => (
-                  <div key={note.id} className="evidence-item note-item">
-                    <div className="evidence-content">{note.noteText}</div>
-                    <div className="evidence-meta">
-                      {note.createdByUser.name || note.createdByUser.email} • {formatDateTime(note.createdAt)}
-                    </div>
+                {notes.map((n) => (
+                  <div key={n.id} className="evidence-item note-item">
+                    <div className="evidence-content">{n.noteText}</div>
+                    <div className="evidence-meta">{n.createdByUser.name || n.createdByUser.email} • {formatDateTime(n.createdAt)}</div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Display Photos */}
           {photos.length > 0 && (
             <div className="tech-card">
               <h3>Photos ({photos.length})</h3>
               <div className="photo-grid">
-                {photos.map((photo) => (
-                  <div key={photo.id} className="photo-item">
-                    <a href={photo.url || "#"} target="_blank" rel="noopener noreferrer">
-                      <img src={photo.url || ""} alt="Task photo" />
-                    </a>
-                    <div className="evidence-meta">{formatDateTime(photo.createdAt)}</div>
+                {photos.map((p) => (
+                  <div key={p.id} className="photo-item">
+                    <a href={p.url || "#"} target="_blank" rel="noopener noreferrer"><img src={p.url || ""} alt="Photo" /></a>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Attachments Panel */}
           <div className="tech-card">
             <h3>Add Photos & Files</h3>
             <AttachmentsPanel entityType="task" entityId={task.id} />

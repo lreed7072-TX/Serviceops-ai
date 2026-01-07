@@ -11,6 +11,7 @@ import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 type TaskWithPackage = TaskInstance & { workPackage: WorkPackage };
 type MaterialUsage = { id: string; name: string; partNumber: string | null; quantity: number; unitCost: number | null; unit: string | null; totalCost: number | null; taskInstanceId: string; };
+type SignatureData = { id: string; signatureType: "CUSTOMER" | "TECH" | "WITNESS"; signerName: string; signerTitle: string | null; signatureData: string; signedAt: string; };
 
 type TaskFormState = { title: string; description: string; assignedToId: string; isCritical: boolean; };
 
@@ -34,6 +35,7 @@ export default function WorkOrderDetailPage() {
   const [taskFormLoading, setTaskFormLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [taskMaterials, setTaskMaterials] = useState<MaterialUsage[]>([]);
+  const [signatures, setSignatures] = useState<SignatureData[]>([]);
 
   useEffect(() => {
     if (!workOrderId) return;
@@ -78,6 +80,18 @@ export default function WorkOrderDetailPage() {
     };
     loadMaterials();
   }, [tasks]);
+
+  // Load signatures
+  useEffect(() => {
+    if (!workOrderId) return;
+    const loadSignatures = async () => {
+      try {
+        const res = await apiFetch(`/api/work-orders/${workOrderId}/signatures`, { cache: "no-store" });
+        if (res.ok) setSignatures((await res.json()).data ?? []);
+      } catch (e) { /* ignore */ }
+    };
+    loadSignatures();
+  }, [workOrderId]);
 
   const userLookup = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
 
@@ -314,6 +328,26 @@ export default function WorkOrderDetailPage() {
           })
         )}
       </div>
+
+      {/* Signatures */}
+      {signatures.length > 0 && (
+        <div className="card">
+          <h2>Signatures</h2>
+          <div className="signatures-list">
+            {signatures.map((sig) => (
+              <div key={sig.id} className="signature-item">
+                <img src={sig.signatureData} alt={`${sig.signerName} signature`} className="signature-image" />
+                <div className="signature-info">
+                  <span className={`signature-type ${sig.signatureType.toLowerCase()}`}>{sig.signatureType}</span>
+                  <strong>{sig.signerName}</strong>
+                  {sig.signerTitle && <span className="muted">{sig.signerTitle}</span>}
+                  <div className="signature-meta">{new Date(sig.signedAt).toLocaleString()}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

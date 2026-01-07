@@ -170,6 +170,29 @@ export default function TechTaskPage() {
     }
   }, [taskId]);
 
+  const loadMaterials = useCallback(async () => {
+    if (!taskId) return;
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}/materials`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load materials");
+      const json = await res.json();
+      setMaterials(json.data ?? []);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [taskId]);
+
+  const loadCatalog = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/materials?active=true", { cache: "no-store" });
+      if (!res.ok) return;
+      const json = await res.json();
+      setCatalog(json.data ?? []);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements()]).finally(() => setLoading(false));

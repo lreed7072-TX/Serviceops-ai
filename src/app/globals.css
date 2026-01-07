@@ -2393,3 +2393,75 @@ a {
   background: #fef3c7;
   color: #92400e;
 }
+
+
+/* =========================================
+   QUOTES MODULE
+   ========================================= */
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.large {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.status-badge.gray { background: #e5e7eb; color: #374151; }
+.status-badge.blue { background: #dbeafe; color: #1d4ed8; }
+.status-badge.green { background: #d1fae5; color: #065f46; }
+.status-badge.red { background: #fee2e2; color: #b91c1c; }
+.status-badge.orange { background: #fef3c7; color: #92400e; }
+.status-badge.purple { background: #ede9fe; color: #6d28d9; }
+
+.item-type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.item-type-badge.labor { background: #dbeafe; color: #1d4ed8; }
+.item-type-badge.material { background: #d1fae5; color: #065f46; }
+.item-type-badge.service { background: #fef3c7; color: #92400e; }
+.item-type-badge.other { background: #e5e7eb; color: #374151; }
+
+.btn-success {
+  background: #059669;
+  color: white;
+}
+.btn-success:hover {
+  background: #047857;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.page-header-row {
+  margin-bottom: 16px;
+}
+
+.back-link {
+  color: var(--primary);
+  text-decoration: none;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.page-container {
+  max-width: 1000px;
+}

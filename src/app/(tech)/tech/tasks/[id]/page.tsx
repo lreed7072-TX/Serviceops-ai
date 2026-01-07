@@ -108,6 +108,13 @@ export default function TechTaskPage() {
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSuccess, setNoteSuccess] = useState(false);
   const [savingMeasurement, setSavingMeasurement] = useState<string | null>(null);
+  const [materials, setMaterials] = useState<MaterialUsageData[]>([]);
+  const [catalog, setCatalog] = useState<MaterialCatalog[]>([]);
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [matQty, setMatQty] = useState("1");
+  const [matNotes, setMatNotes] = useState("");
+  const [savingMaterial, setSavingMaterial] = useState(false);
 
   // Load task data
   const loadTask = useCallback(async () => {

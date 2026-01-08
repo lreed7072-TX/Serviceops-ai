@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 
 type Customer = { id: string; name: string };
 type Site = { id: string; name: string; customerId: string };
-type Material = { id: string; name: string; partNumber: string; unitPrice: number };
+type Material = { id: string; name: string; partNumber: string; unitCost: number }; // FIX: unitCost not unitPrice
 type Quote = {
   id: string;
   quoteNumber: string;
@@ -132,7 +132,16 @@ export default function QuotesPage() {
       return;
     }
     setFormError(null);
-    setLineItems([...lineItems, { ...newItem, id: crypto.randomUUID() }]);
+    
+    // Apply material markup if it's a MATERIAL type and user hasn't selected from catalog
+    let finalUnitPrice = newItem.unitPrice;
+    if (newItem.itemType === "MATERIAL" && !newItem.materialId && newItem.unitPrice > 0) {
+      const markup = parseFloat(formData.materialMarkupPercent) || 0;
+      finalUnitPrice = newItem.unitPrice * (1 + markup / 100);
+      finalUnitPrice = Math.round(finalUnitPrice * 100) / 100;
+    }
+    
+    setLineItems([...lineItems, { ...newItem, unitPrice: finalUnitPrice, id: crypto.randomUUID() }]);
     // Reset to LABOR with current labor rate
     const rate = parseFloat(formData.laborRate) || 0;
     setNewItem({
@@ -161,8 +170,9 @@ export default function QuotesPage() {
   const handleMaterialSelect = (materialId: string) => {
     const material = materials.find((m) => m.id === materialId);
     if (material) {
+      const baseCost = parseFloat(String(material.unitCost)) || 0; // FIX: parse unitCost properly
       const markup = parseFloat(formData.materialMarkupPercent) || 0;
-      const markedUpPrice = material.unitPrice * (1 + markup / 100);
+      const markedUpPrice = baseCost * (1 + markup / 100);
       setNewItem({
         ...newItem,
         itemType: "MATERIAL",
@@ -371,15 +381,16 @@ export default function QuotesPage() {
               {newItem.itemType === "MATERIAL" && materials.length > 0 && (
                 <div style={{ marginTop: 12 }}>
                   <label className="form-field">
-                    <span>Or select from catalog (with {formData.materialMarkupPercent}% markup applied):</span>
+                    <span>Or select from catalog ({formData.materialMarkupPercent}% markup will be applied):</span>
                     <select onChange={(e) => e.target.value && handleMaterialSelect(e.target.value)} value="">
                       <option value="">Choose material...</option>
                       {materials.map((m) => {
+                        const baseCost = parseFloat(String(m.unitCost)) || 0; // FIX: parse unitCost properly
                         const markup = parseFloat(formData.materialMarkupPercent) || 0;
-                        const markedUpPrice = m.unitPrice * (1 + markup / 100);
+                        const markedUpPrice = baseCost * (1 + markup / 100);
                         return (
                           <option key={m.id} value={m.id}>
-                            {m.name} ({m.partNumber}) - Base: {formatCurrency(m.unitPrice)} → With Markup: {formatCurrency(markedUpPrice)}
+                            {m.name} ({m.partNumber}) - Base: {formatCurrency(baseCost)} → With Markup: {formatCurrency(markedUpPrice)}
                           </option>
                         );
                       })}

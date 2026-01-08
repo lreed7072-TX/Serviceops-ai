@@ -46,7 +46,14 @@ type Quote = {
 type Material = { id: string; name: string; partNumber: string | null; unitCost: number | null };
 
 const ITEM_TYPES = ["LABOR", "MATERIAL", "SERVICE", "OTHER"];
-const statusColors: Record<string, string> = { DRAFT: "gray", SENT: "blue", APPROVED: "green", REJECTED: "red", EXPIRED: "orange", CONVERTED: "purple" };
+const statusColors: Record<string, string> = { 
+  DRAFT: "gray", 
+  SENT: "blue", 
+  APPROVED: "green", 
+  REJECTED: "red", 
+  EXPIRED: "orange", 
+  CONVERTED: "purple" 
+};
 
 export default function QuoteDetailPage() {
   const params = useParams();
@@ -61,7 +68,14 @@ export default function QuoteDetailPage() {
 
   // Line item form
   const [showAddItem, setShowAddItem] = useState(false);
-  const [itemForm, setItemForm] = useState({ itemType: "LABOR", description: "", quantity: "1", unitPrice: "", materialId: "" });
+  const [materialSearch, setMaterialSearch] = useState("");
+  const [itemForm, setItemForm] = useState({ 
+    itemType: "LABOR", 
+    description: "", 
+    quantity: "1", 
+    unitPrice: "", 
+    materialId: "" 
+  });
   const [itemSaving, setItemSaving] = useState(false);
 
   // Action modals
@@ -91,6 +105,14 @@ export default function QuoteDetailPage() {
 
   useEffect(() => { if (quoteId) loadQuote(); }, [quoteId]);
 
+  // Filter materials based on search
+  const filteredMaterials = materialSearch.trim()
+    ? materials.filter(m => 
+        m.name.toLowerCase().includes(materialSearch.toLowerCase()) ||
+        (m.partNumber && m.partNumber.toLowerCase().includes(materialSearch.toLowerCase()))
+      )
+    : [];
+
   const formatCurrency = (val: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 
@@ -113,6 +135,7 @@ export default function QuoteDetailPage() {
       if (!res.ok) throw new Error((await res.json()).error);
       setShowAddItem(false);
       setItemForm({ itemType: "LABOR", description: "", quantity: "1", unitPrice: "", materialId: "" });
+      setMaterialSearch("");
       await loadQuote();
     } catch (e: any) {
       setError(e?.message);
@@ -153,22 +176,27 @@ export default function QuoteDetailPage() {
       setShowApproveModal(false);
       setShowRejectModal(false);
       setShowConvertModal(false);
+      setApproverName("");
+      setRejectReason("");
     }
   };
 
-  // Auto-fill from material
+  // Auto-fill from material with markup
   const handleMaterialSelect = (materialId: string) => {
     const mat = materials.find((m) => m.id === materialId);
     if (mat) {
+      const baseCost = parseFloat(String(mat.unitCost)) || 0;
+      const markup = quote?.materialMarkupPercent ? parseFloat(String(quote.materialMarkupPercent)) : 0;
+      const markedUpPrice = baseCost * (1 + markup / 100);
+      
       setItemForm({
         ...itemForm,
         materialId,
         description: mat.name + (mat.partNumber ? ` (${mat.partNumber})` : ""),
-        unitPrice: mat.unitCost?.toString() || itemForm.unitPrice,
+        unitPrice: (Math.round(markedUpPrice * 100) / 100).toString(),
         itemType: "MATERIAL",
       });
-    } else {
-      setItemForm({ ...itemForm, materialId: "" });
+      setMaterialSearch("");
     }
   };
 
@@ -197,23 +225,76 @@ export default function QuoteDetailPage() {
           </div>
           <span className={`status-badge ${statusColors[quote.status]} large`}>{quote.status}</span>
         </div>
-        {quote.description && <p>{quote.description}</p>}
-        <div className="quote-meta" style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 12 }}>
-          <span><strong>Created:</strong> {formatDate(quote.createdAt)}</span>
+        
+        {quote.description && <p style={{ marginTop: 12 }}>{quote.description}</p>}
+        
+        <div className="quote-meta" style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+          <span><strong>Created:</strong> {formatDate(quote.createdAt)} by {quote.createdBy.name || quote.createdBy.email}</span>
           {quote.validUntil && <span><strong>Valid Until:</strong> {formatDate(quote.validUntil)}</span>}
-          {quote.sentAt && <span><strong>Sent:</strong> {formatDate(quote.sentAt)}</span>}
-          {quote.approvedAt && <span><strong>Approved:</strong> {formatDate(quote.approvedAt)} {quote.approvedByName && `by ${quote.approvedByName}`}</span>}
-          {quote.rejectedAt && <span><strong>Rejected:</strong> {formatDate(quote.rejectedAt)}</span>}
+          {quote.laborRate && <span><strong>Labor Rate:</strong> {formatCurrency(Number(quote.laborRate))}/hr</span>}
+          {quote.materialMarkupPercent && <span><strong>Material Markup:</strong> {Number(quote.materialMarkupPercent)}%</span>}
         </div>
+
+        {quote.sentAt && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            <strong>Sent:</strong> {formatDate(quote.sentAt)}
+            {quote.customer.primaryEmail && ` to ${quote.customer.primaryEmail}`}
+          </div>
+        )}
+
+        {quote.approvedAt && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            <strong>Approved:</strong> {formatDate(quote.approvedAt)}
+            {quote.approvedByName && ` by ${quote.approvedByName}`}
+          </div>
+        )}
+
+        {quote.rejectedAt && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            <strong>Rejected:</strong> {formatDate(quote.rejectedAt)}
+            {quote.rejectionReason && (
+              <div style={{ marginTop: 8, padding: 12, background: "var(--card-muted)", borderRadius: 4 }}>
+                <em>{quote.rejectionReason}</em>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="quote-actions" style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {isDraft && <button className="btn btn-primary" onClick={() => handleAction("send")} disabled={actionLoading || quote.lineItems.length === 0}>Send to Customer</button>}
-          {isSent && <button className="btn btn-success" onClick={() => setShowApproveModal(true)} disabled={actionLoading}>Mark Approved</button>}
-          {isSent && <button className="btn btn-danger" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>Mark Rejected</button>}
-          {isSent && <button className="btn btn-secondary" onClick={() => handleAction("revert_to_draft")} disabled={actionLoading}>Revert to Draft</button>}
-          {isApproved && <button className="btn btn-primary" onClick={() => setShowConvertModal(true)} disabled={actionLoading}>Convert to Order</button>}
-          {quote.convertedToOrderId && <Link href={`/work-orders/${quote.convertedToOrderId}`} className="btn btn-outline">View {quote.convertedToOrderType?.replace("_", " ")}</Link>}
+          {isDraft && (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => handleAction("send")} 
+              disabled={actionLoading || quote.lineItems.length === 0}
+              title={quote.lineItems.length === 0 ? "Add line items before sending" : ""}
+            >
+              Send to Customer
+            </button>
+          )}
+          {isSent && (
+            <>
+              <button className="btn btn-success" onClick={() => setShowApproveModal(true)} disabled={actionLoading}>
+                Mark Approved
+              </button>
+              <button className="btn btn-danger" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>
+                Mark Rejected
+              </button>
+              <button className="btn btn-secondary" onClick={() => handleAction("revert_to_draft")} disabled={actionLoading}>
+                Revert to Draft
+              </button>
+            </>
+          )}
+          {isApproved && !quote.convertedToOrderId && (
+            <button className="btn btn-primary" onClick={() => setShowConvertModal(true)} disabled={actionLoading}>
+              Convert to Order
+            </button>
+          )}
+          {quote.convertedToOrderId && (
+            <Link href={`/work-orders/${quote.convertedToOrderId}`} className="btn btn-outline">
+              View {quote.convertedToOrderType?.replace("_", " ")}
+            </Link>
+          )}
         </div>
       </div>
 
@@ -221,12 +302,16 @@ export default function QuoteDetailPage() {
       <div className="card">
         <div className="card-header">
           <h3>Line Items</h3>
-          {isDraft && <button className="btn btn-outline" onClick={() => setShowAddItem(!showAddItem)}>{showAddItem ? "Cancel" : "+ Add Item"}</button>}
+          {isDraft && (
+            <button className="btn btn-outline" onClick={() => setShowAddItem(!showAddItem)}>
+              {showAddItem ? "Cancel" : "+ Add Item"}
+            </button>
+          )}
         </div>
 
         {showAddItem && (
           <form onSubmit={handleAddLineItem} style={{ marginBottom: 16, padding: 16, background: "var(--card-muted)", borderRadius: 8 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginBottom: 12 }}>
               <label className="form-field">
                 <span>Type</span>
                 <select value={itemForm.itemType} onChange={(e) => setItemForm({ ...itemForm, itemType: e.target.value })}>
@@ -234,66 +319,152 @@ export default function QuoteDetailPage() {
                 </select>
               </label>
               <label className="form-field">
-                <span>From Catalog (optional)</span>
-                <select value={itemForm.materialId} onChange={(e) => handleMaterialSelect(e.target.value)}>
-                  <option value="">Manual entry</option>
-                  {materials.map((m) => <option key={m.id} value={m.id}>{m.name}{m.partNumber ? ` (${m.partNumber})` : ""}</option>)}
-                </select>
+                <span>Description *</span>
+                <input 
+                  type="text" 
+                  value={itemForm.description} 
+                  onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} 
+                  placeholder={itemForm.itemType === "LABOR" ? "e.g., Field technician time" : "Item description"}
+                  required 
+                />
               </label>
             </div>
-            <label className="form-field">
-              <span>Description *</span>
-              <input type="text" value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} required />
-            </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+
+            {/* Material catalog search */}
+            {itemForm.itemType === "MATERIAL" && materials.length > 0 && (
+              <label className="form-field" style={{ marginBottom: 12 }}>
+                <span>Or search catalog ({quote.materialMarkupPercent || 0}% markup will be applied):</span>
+                <input 
+                  type="text" 
+                  placeholder="Type to search materials..." 
+                  value={materialSearch}
+                  onChange={(e) => setMaterialSearch(e.target.value)}
+                />
+                {materialSearch.trim() && filteredMaterials.length > 0 && (
+                  <div style={{ maxHeight: 150, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", marginTop: 8 }}>
+                    {filteredMaterials.map((m) => {
+                      const baseCost = parseFloat(String(m.unitCost)) || 0;
+                      const markup = quote.materialMarkupPercent ? parseFloat(String(quote.materialMarkupPercent)) : 0;
+                      const markedUpPrice = baseCost * (1 + markup / 100);
+                      return (
+                        <div 
+                          key={m.id} 
+                          onClick={() => handleMaterialSelect(m.id)}
+                          style={{ 
+                            padding: "8px 12px", 
+                            cursor: "pointer",
+                            borderBottom: "1px solid var(--border)"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--card-muted)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "var(--bg)"}
+                        >
+                          <div style={{ fontWeight: 500 }}>{m.name} {m.partNumber ? `(${m.partNumber})` : ''}</div>
+                          <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                            Base: {formatCurrency(baseCost)} → With {quote.materialMarkupPercent || 0}% Markup: {formatCurrency(markedUpPrice)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {materialSearch.trim() && filteredMaterials.length === 0 && (
+                  <div style={{ padding: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 8 }}>
+                    No materials found matching "{materialSearch}"
+                  </div>
+                )}
+              </label>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <label className="form-field">
                 <span>Quantity</span>
-                <input type="number" step="0.01" min="0" value={itemForm.quantity} onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })} />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  value={itemForm.quantity} 
+                  onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })} 
+                />
               </label>
               <label className="form-field">
                 <span>Unit Price *</span>
-                <input type="number" step="0.01" min="0" value={itemForm.unitPrice} onChange={(e) => setItemForm({ ...itemForm, unitPrice: e.target.value })} required />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  value={itemForm.unitPrice} 
+                  onChange={(e) => setItemForm({ ...itemForm, unitPrice: e.target.value })} 
+                  required 
+                />
               </label>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={itemSaving}>{itemSaving ? "Adding..." : "Add Line Item"}</button>
+            <button type="submit" className="btn btn-primary" disabled={itemSaving}>
+              {itemSaving ? "Adding..." : "Add Line Item"}
+            </button>
           </form>
         )}
 
         {quote.lineItems.length === 0 ? (
-          <p className="muted">No line items yet. Add items to build the quote.</p>
+          <p className="muted" style={{ textAlign: "center", padding: 20 }}>No line items yet. Add items to build the quote.</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Type</th>
+                <th style={{ width: 100 }}>Type</th>
                 <th>Description</th>
-                <th style={{ textAlign: "right" }}>Qty</th>
-                <th style={{ textAlign: "right" }}>Unit Price</th>
-                <th style={{ textAlign: "right" }}>Total</th>
-                {isDraft && <th></th>}
+                <th style={{ width: 80, textAlign: "right" }}>Qty</th>
+                <th style={{ width: 120, textAlign: "right" }}>Unit Price</th>
+                <th style={{ width: 120, textAlign: "right" }}>Total</th>
+                {isDraft && <th style={{ width: 60 }}></th>}
               </tr>
             </thead>
             <tbody>
               {quote.lineItems.map((item) => (
                 <tr key={item.id}>
-                  <td><span className={`item-type-badge ${item.itemType.toLowerCase()}`}>{item.itemType}</span></td>
+                  <td>
+                    <span className={`status-badge ${
+                      item.itemType === "LABOR" ? "blue" : 
+                      item.itemType === "MATERIAL" ? "green" : 
+                      "gray"
+                    }`}>
+                      {item.itemType}
+                    </span>
+                  </td>
                   <td>{item.description}</td>
                   <td style={{ textAlign: "right" }}>{Number(item.quantity)}</td>
                   <td style={{ textAlign: "right" }}>{formatCurrency(Number(item.unitPrice))}</td>
-                  <td style={{ textAlign: "right" }}>{formatCurrency(Number(item.totalPrice))}</td>
-                  {isDraft && <td><button className="btn-icon danger" onClick={() => handleDeleteLineItem(item.id)}>🗑️</button></td>}
+                  <td style={{ textAlign: "right", fontWeight: 500 }}>{formatCurrency(Number(item.totalPrice))}</td>
+                  {isDraft && (
+                    <td>
+                      <button 
+                        className="btn btn-danger btn-sm" 
+                        onClick={() => handleDeleteLineItem(item.id)}
+                        style={{ padding: "4px 8px", fontSize: 12 }}
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={isDraft ? 4 : 4} style={{ textAlign: "right" }}><strong>Subtotal:</strong></td>
-                <td style={{ textAlign: "right" }}><strong>{formatCurrency(Number(quote.subtotal))}</strong></td>
-                {isDraft && <td></td>}
+                <td colSpan={isDraft ? 4 : 4} style={{ textAlign: "right", borderTop: "2px solid var(--border)" }}>
+                  <strong>Subtotal:</strong>
+                </td>
+                <td style={{ textAlign: "right", fontWeight: 500, borderTop: "2px solid var(--border)" }}>
+                  {formatCurrency(Number(quote.subtotal))}
+                </td>
+                {isDraft && <td style={{ borderTop: "2px solid var(--border)" }}></td>}
               </tr>
               <tr>
-                <td colSpan={isDraft ? 4 : 4} style={{ textAlign: "right" }}><strong>Total:</strong></td>
-                <td style={{ textAlign: "right" }}><strong style={{ fontSize: "1.2em" }}>{formatCurrency(Number(quote.total))}</strong></td>
+                <td colSpan={isDraft ? 4 : 4} style={{ textAlign: "right" }}>
+                  <strong>Total:</strong>
+                </td>
+                <td style={{ textAlign: "right", fontSize: "1.2em", fontWeight: 600, color: "var(--primary)" }}>
+                  {formatCurrency(Number(quote.total))}
+                </td>
                 {isDraft && <td></td>}
               </tr>
             </tfoot>
@@ -301,43 +472,95 @@ export default function QuoteDetailPage() {
         )}
       </div>
 
+      {/* Notes & Terms */}
+      {(quote.notes || quote.terms) && (
+        <div className="card">
+          <div className="card-header">
+            <h3>Additional Information</h3>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: quote.notes && quote.terms ? "1fr 1fr" : "1fr", gap: 20 }}>
+            {quote.notes && (
+              <div>
+                <h4 style={{ marginBottom: 8, fontSize: 14, color: "var(--text-muted)" }}>Internal Notes</h4>
+                <p style={{ whiteSpace: "pre-wrap" }}>{quote.notes}</p>
+              </div>
+            )}
+            {quote.terms && (
+              <div>
+                <h4 style={{ marginBottom: 8, fontSize: 14, color: "var(--text-muted)" }}>Terms & Conditions</h4>
+                <p style={{ whiteSpace: "pre-wrap" }}>{quote.terms}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Modals */}
       {showApproveModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
+        <div className="modal-backdrop" onClick={() => setShowApproveModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Mark Quote Approved</h3>
             <label className="form-field">
               <span>Approved By (optional)</span>
-              <input type="text" value={approverName} onChange={(e) => setApproverName(e.target.value)} placeholder="Customer name" />
+              <input 
+                type="text" 
+                value={approverName} 
+                onChange={(e) => setApproverName(e.target.value)} 
+                placeholder="Customer name" 
+              />
             </label>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowApproveModal(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={() => handleAction("approve", { approvedByName: approverName })} disabled={actionLoading}>Confirm Approval</button>
+              <button className="btn btn-secondary" onClick={() => setShowApproveModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-success" 
+                onClick={() => handleAction("approve", { approvedByName: approverName })} 
+                disabled={actionLoading}
+              >
+                Confirm Approval
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showRejectModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
+        <div className="modal-backdrop" onClick={() => setShowRejectModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Mark Quote Rejected</h3>
             <label className="form-field">
               <span>Reason (optional)</span>
-              <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Why was the quote rejected?" rows={3} />
+              <textarea 
+                value={rejectReason} 
+                onChange={(e) => setRejectReason(e.target.value)} 
+                placeholder="Why was the quote rejected?" 
+                rows={3} 
+              />
             </label>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowRejectModal(false)}>Cancel</button>
-              <button className="btn btn-danger" onClick={() => handleAction("reject", { rejectionReason: rejectReason })} disabled={actionLoading}>Confirm Rejection</button>
+              <button className="btn btn-secondary" onClick={() => setShowRejectModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-danger" 
+                onClick={() => handleAction("reject", { rejectionReason: rejectReason })} 
+                disabled={actionLoading}
+              >
+                Confirm Rejection
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showConvertModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
+        <div className="modal-backdrop" onClick={() => setShowConvertModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Convert to Order</h3>
+            <p style={{ marginBottom: 16, color: "var(--text-muted)" }}>
+              This will create a new {convertOrderType.replace("_", " ").toLowerCase()} based on this quote.
+            </p>
             <label className="form-field">
               <span>Order Type</span>
               <select value={convertOrderType} onChange={(e) => setConvertOrderType(e.target.value)}>
@@ -347,8 +570,16 @@ export default function QuoteDetailPage() {
               </select>
             </label>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowConvertModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={() => handleAction("convert", { orderType: convertOrderType })} disabled={actionLoading}>Create Order</button>
+              <button className="btn btn-secondary" onClick={() => setShowConvertModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleAction("convert", { orderType: convertOrderType })} 
+                disabled={actionLoading}
+              >
+                Create Order
+              </button>
             </div>
           </div>
         </div>

@@ -13,10 +13,41 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const quote = await prisma.quote.findFirst({
     where: { id, orgId: auth.orgId },
     include: {
-      customer: { select: { id: true, name: true } },
-      site: { select: { id: true, name: true } },
-      lineItems: { orderBy: { sortOrder: "asc" } },
-      createdBy: { select: { id: true, name: true } },
+      customer: { 
+        select: { 
+          id: true, 
+          name: true, 
+          primaryEmail: true 
+        } 
+      },
+      site: { 
+        select: { 
+          id: true, 
+          name: true, 
+          address: true, 
+          city: true, 
+          state: true 
+        } 
+      },
+      lineItems: { 
+        orderBy: { sortOrder: "asc" },
+        include: {
+          material: {
+            select: {
+              id: true,
+              name: true,
+              partNumber: true
+            }
+          }
+        }
+      },
+      createdBy: { 
+        select: { 
+          id: true, 
+          name: true,
+          email: true 
+        } 
+      },
     },
   });
 

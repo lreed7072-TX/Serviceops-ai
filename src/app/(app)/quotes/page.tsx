@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 
 type Customer = { id: string; name: string };
 type Site = { id: string; name: string; customerId: string };
-type Material = { id: string; name: string; partNumber: string; unitCost: number }; // FIX: unitCost not unitPrice
+type Material = { id: string; name: string; partNumber: string; unitCost: number };
 type Quote = {
   id: string;
   quoteNumber: string;
@@ -18,7 +18,8 @@ type Quote = {
   createdAt: string;
   customer: { id: string; name: string };
   site: { id: string; name: string } | null;
-  _count: { lineItems: number };
+  _count?: { lineItems: number };
+  lineItems?: any[];
 };
 
 type LineItem = {
@@ -53,6 +54,9 @@ export default function QuotesPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Material search state
+  const [materialSearch, setMaterialSearch] = useState("");
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -115,9 +119,17 @@ export default function QuotesPage() {
     ? sites.filter((s) => s.customerId === formData.customerId)
     : sites;
 
+  // Filter materials based on search
+  const filteredMaterials = materialSearch.trim()
+    ? materials.filter(m => 
+        m.name.toLowerCase().includes(materialSearch.toLowerCase()) ||
+        (m.partNumber && m.partNumber.toLowerCase().includes(materialSearch.toLowerCase()))
+      )
+    : materials;
+
   // Calculate totals
   const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const taxRate = 0; // Can be made configurable
+  const taxRate = 0;
   const tax = subtotal * taxRate;
   const total = subtotal + tax;
 
@@ -142,6 +154,7 @@ export default function QuotesPage() {
     }
     
     setLineItems([...lineItems, { ...newItem, unitPrice: finalUnitPrice, id: crypto.randomUUID() }]);
+    
     // Reset to LABOR with current labor rate
     const rate = parseFloat(formData.laborRate) || 0;
     setNewItem({
@@ -152,6 +165,7 @@ export default function QuotesPage() {
       unitPrice: rate,
       materialId: undefined,
     });
+    setMaterialSearch(""); // Clear search
   };
 
   // Remove line item
@@ -170,16 +184,17 @@ export default function QuotesPage() {
   const handleMaterialSelect = (materialId: string) => {
     const material = materials.find((m) => m.id === materialId);
     if (material) {
-      const baseCost = parseFloat(String(material.unitCost)) || 0; // FIX: parse unitCost properly
+      const baseCost = parseFloat(String(material.unitCost)) || 0;
       const markup = parseFloat(formData.materialMarkupPercent) || 0;
       const markedUpPrice = baseCost * (1 + markup / 100);
       setNewItem({
         ...newItem,
         itemType: "MATERIAL",
-        description: `${material.name} (${material.partNumber})`,
+        description: `${material.name}${material.partNumber ? ` (${material.partNumber})` : ''}`,
         unitPrice: Math.round(markedUpPrice * 100) / 100,
         materialId: material.id,
       });
+      setMaterialSearch(""); // Clear search after selection
     }
   };
 
@@ -189,12 +204,12 @@ export default function QuotesPage() {
     if (itemType === "LABOR") {
       unitPrice = parseFloat(formData.laborRate) || 0;
     } else if (itemType === "MATERIAL") {
-      // For manual material entry, default to 0 so user enters their price
       unitPrice = 0;
     } else {
       unitPrice = 0;
     }
     setNewItem({ ...newItem, itemType, unitPrice, materialId: undefined });
+    setMaterialSearch(""); // Clear search
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -262,6 +277,7 @@ export default function QuotesPage() {
         terms: "",
       });
       setLineItems([]);
+      setMaterialSearch("");
       await loadData();
     } catch (e: any) {
       setFormError(e?.message);
@@ -287,6 +303,7 @@ export default function QuotesPage() {
       terms: "",
     });
     setLineItems([]);
+    setMaterialSearch("");
     setFormError(null);
   };
 
@@ -377,24 +394,49 @@ export default function QuotesPage() {
                 <button type="button" className="btn btn-primary" onClick={addLineItem} style={{ marginBottom: 0 }}>Add</button>
               </div>
               
-              {/* Material catalog selector */}
+              {/* Material catalog selector with SEARCH */}
               {newItem.itemType === "MATERIAL" && materials.length > 0 && (
                 <div style={{ marginTop: 12 }}>
                   <label className="form-field">
-                    <span>Or select from catalog ({formData.materialMarkupPercent}% markup will be applied):</span>
-                    <select onChange={(e) => e.target.value && handleMaterialSelect(e.target.value)} value="">
-                      <option value="">Choose material...</option>
-                      {materials.map((m) => {
-                        const baseCost = parseFloat(String(m.unitCost)) || 0; // FIX: parse unitCost properly
-                        const markup = parseFloat(formData.materialMarkupPercent) || 0;
-                        const markedUpPrice = baseCost * (1 + markup / 100);
-                        return (
-                          <option key={m.id} value={m.id}>
-                            {m.name} ({m.partNumber}) - Base: {formatCurrency(baseCost)} → With Markup: {formatCurrency(markedUpPrice)}
-                          </option>
-                        );
-                      })}
-                    </select>
+                    <span>Or search and select from catalog ({formData.materialMarkupPercent}% markup will be applied):</span>
+                    <input 
+                      type="text" 
+                      placeholder="Type to search materials..." 
+                      value={materialSearch}
+                      onChange={(e) => setMaterialSearch(e.target.value)}
+                      style={{ marginBottom: 8 }}
+                    />
+                    {materialSearch.trim() && filteredMaterials.length > 0 && (
+                      <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)" }}>
+                        {filteredMaterials.map((m) => {
+                          const baseCost = parseFloat(String(m.unitCost)) || 0;
+                          const markup = parseFloat(formData.materialMarkupPercent) || 0;
+                          const markedUpPrice = baseCost * (1 + markup / 100);
+                          return (
+                            <div 
+                              key={m.id} 
+                              onClick={() => handleMaterialSelect(m.id)}
+                              style={{ 
+                                padding: "8px 12px", 
+                                cursor: "pointer",
+                                borderBottom: "1px solid var(--border)",
+                                transition: "background 0.15s"
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--card-muted)"}
+                              onMouseLeave={(e) => e.currentTarget.style.background = "var(--bg)"}
+                            >
+                              <div style={{ fontWeight: 500 }}>{m.name} {m.partNumber ? `(${m.partNumber})` : ''}</div>
+                              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                                Base: {formatCurrency(baseCost)} → With {formData.materialMarkupPercent}% Markup: {formatCurrency(markedUpPrice)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {materialSearch.trim() && filteredMaterials.length === 0 && (
+                      <div style={{ padding: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No materials found matching "{materialSearch}"</div>
+                    )}
                   </label>
                 </div>
               )}
@@ -524,7 +566,7 @@ export default function QuotesPage() {
                   <td>{q.title}</td>
                   <td>{q.customer.name}</td>
                   <td><span className={`status-badge ${statusColors[q.status]}`}>{q.status}</span></td>
-                  <td>{q._count.lineItems} items</td>
+                  <td>{q._count?.lineItems ?? q.lineItems?.length ?? 0} items</td>
                   <td style={{ textAlign: "right", fontWeight: 500 }}>{formatCurrency(Number(q.total))}</td>
                   <td>{formatDate(q.createdAt)}</td>
                   <td><Link href={`/quotes/${q.id}`} className="link-button">View →</Link></td>

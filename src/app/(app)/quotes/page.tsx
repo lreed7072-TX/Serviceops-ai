@@ -77,7 +77,7 @@ export default function QuotesPage() {
     itemType: "LABOR",
     description: "",
     quantity: 1,
-    unitPrice: 0,
+    unitPrice: 85.00,
     materialId: undefined,
   });
 
@@ -103,6 +103,14 @@ export default function QuotesPage() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Sync newItem.unitPrice with laborRate when itemType is LABOR
+  useEffect(() => {
+    if (newItem.itemType === "LABOR") {
+      const rate = parseFloat(formData.laborRate) || 0;
+      setNewItem(prev => ({ ...prev, unitPrice: rate }));
+    }
+  }, [formData.laborRate, newItem.itemType]);
+
   const filteredSites = formData.customerId
     ? sites.filter((s) => s.customerId === formData.customerId)
     : sites;
@@ -125,12 +133,14 @@ export default function QuotesPage() {
     }
     setFormError(null);
     setLineItems([...lineItems, { ...newItem, id: crypto.randomUUID() }]);
+    // Reset to LABOR with current labor rate
+    const rate = parseFloat(formData.laborRate) || 0;
     setNewItem({
       id: "",
       itemType: "LABOR",
       description: "",
       quantity: 1,
-      unitPrice: parseFloat(formData.laborRate) || 0,
+      unitPrice: rate,
       materialId: undefined,
     });
   };
@@ -140,7 +150,14 @@ export default function QuotesPage() {
     setLineItems(lineItems.filter((item) => item.id !== id));
   };
 
-  // Handle material selection
+  // Update existing line item
+  const updateLineItem = (id: string, updates: Partial<LineItem>) => {
+    setLineItems(lineItems.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    ));
+  };
+
+  // Handle material selection from catalog
   const handleMaterialSelect = (materialId: string) => {
     const material = materials.find((m) => m.id === materialId);
     if (material) {
@@ -161,6 +178,11 @@ export default function QuotesPage() {
     let unitPrice = newItem.unitPrice;
     if (itemType === "LABOR") {
       unitPrice = parseFloat(formData.laborRate) || 0;
+    } else if (itemType === "MATERIAL") {
+      // For manual material entry, default to 0 so user enters their price
+      unitPrice = 0;
+    } else {
+      unitPrice = 0;
     }
     setNewItem({ ...newItem, itemType, unitPrice, materialId: undefined });
   };
@@ -349,21 +371,25 @@ export default function QuotesPage() {
               {newItem.itemType === "MATERIAL" && materials.length > 0 && (
                 <div style={{ marginTop: 12 }}>
                   <label className="form-field">
-                    <span>Or select from catalog:</span>
+                    <span>Or select from catalog (with {formData.materialMarkupPercent}% markup applied):</span>
                     <select onChange={(e) => e.target.value && handleMaterialSelect(e.target.value)} value="">
                       <option value="">Choose material...</option>
-                      {materials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.partNumber}) - {formatCurrency(m.unitPrice)}
-                        </option>
-                      ))}
+                      {materials.map((m) => {
+                        const markup = parseFloat(formData.materialMarkupPercent) || 0;
+                        const markedUpPrice = m.unitPrice * (1 + markup / 100);
+                        return (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.partNumber}) - Base: {formatCurrency(m.unitPrice)} → With Markup: {formatCurrency(markedUpPrice)}
+                          </option>
+                        );
+                      })}
                     </select>
                   </label>
                 </div>
               )}
             </div>
 
-            {/* Line items table */}
+            {/* Line items table - EDITABLE */}
             {lineItems.length > 0 ? (
               <table className="table" style={{ marginBottom: 16 }}>
                 <thead>
@@ -371,7 +397,7 @@ export default function QuotesPage() {
                     <th style={{ width: 100 }}>Type</th>
                     <th>Description</th>
                     <th style={{ width: 80, textAlign: "right" }}>Qty</th>
-                    <th style={{ width: 100, textAlign: "right" }}>Unit Price</th>
+                    <th style={{ width: 120, textAlign: "right" }}>Unit Price</th>
                     <th style={{ width: 100, textAlign: "right" }}>Total</th>
                     <th style={{ width: 60 }}></th>
                   </tr>
@@ -380,9 +406,34 @@ export default function QuotesPage() {
                   {lineItems.map((item) => (
                     <tr key={item.id}>
                       <td><span className={`status-badge ${item.itemType === "LABOR" ? "blue" : item.itemType === "MATERIAL" ? "green" : "gray"}`}>{itemTypeLabels[item.itemType]}</span></td>
-                      <td>{item.description}</td>
-                      <td style={{ textAlign: "right" }}>{item.quantity}</td>
-                      <td style={{ textAlign: "right" }}>{formatCurrency(item.unitPrice)}</td>
+                      <td>
+                        <input 
+                          type="text" 
+                          value={item.description} 
+                          onChange={(e) => updateLineItem(item.id, { description: e.target.value })}
+                          style={{ width: "100%", padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)" }}
+                        />
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <input 
+                          type="number" 
+                          step="0.5"
+                          min="0.5"
+                          value={item.quantity} 
+                          onChange={(e) => updateLineItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                          style={{ width: "70px", padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", textAlign: "right" }}
+                        />
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          min="0"
+                          value={item.unitPrice} 
+                          onChange={(e) => updateLineItem(item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                          style={{ width: "100px", padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", textAlign: "right" }}
+                        />
+                      </td>
                       <td style={{ textAlign: "right", fontWeight: 500 }}>{formatCurrency(item.quantity * item.unitPrice)}</td>
                       <td>
                         <button type="button" className="btn btn-danger btn-sm" onClick={() => removeLineItem(item.id)} style={{ padding: "4px 8px", fontSize: 12 }}>✕</button>

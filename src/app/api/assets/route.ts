@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z, type ZodError, type ZodTypeAny } from "zod";
-import { AssetCriticality, AssetStatus, Prisma, Role } from "@prisma/client";
+import { AssetCriticality, AssetStatus, AssetCategory, AssetFamily, AssetSubFamily, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
@@ -58,6 +58,9 @@ const assetOptionalFields = {
   notes: optionalTrimmedString(5000),
   status: z.nativeEnum(AssetStatus).optional(),
   criticality: z.union([z.nativeEnum(AssetCriticality), z.null()]).optional(),
+  assetCategory: z.union([z.nativeEnum(AssetCategory), z.null()]).optional(),
+  assetFamily: z.union([z.nativeEnum(AssetFamily), z.null()]).optional(),
+  assetSubFamily: z.union([z.nativeEnum(AssetSubFamily), z.null()]).optional(),
   nameplateSchemaVersion: z.number().int().min(1, { message: "Nameplate schema version must be at least 1." }).optional(),
   nameplate: z.union([nameplateSchema, z.null()]).optional(),
 };
@@ -104,6 +107,9 @@ const buildAssetCreateData = (
   notes: nullableString(payload.notes),
   status: payload.status ?? AssetStatus.ACTIVE,
   criticality: payload.criticality ?? null,
+  assetCategory: payload.assetCategory ?? null,
+  assetFamily: payload.assetFamily ?? null,
+  assetSubFamily: payload.assetSubFamily ?? null,
   nameplateSchemaVersion: payload.nameplateSchemaVersion ?? 1,
   nameplate: serializeNameplate(payload.nameplate),
 });
@@ -134,6 +140,18 @@ export const buildAssetUpdateData = (payload: AssetUpdateInput) => {
 
   if (payload.criticality !== undefined) {
     data.criticality = payload.criticality ?? null;
+  }
+
+  if (payload.assetCategory !== undefined) {
+    data.assetCategory = payload.assetCategory ?? null;
+  }
+
+  if (payload.assetFamily !== undefined) {
+    data.assetFamily = payload.assetFamily ?? null;
+  }
+
+  if (payload.assetSubFamily !== undefined) {
+    data.assetSubFamily = payload.assetSubFamily ?? null;
   }
 
   if (payload.nameplateSchemaVersion !== undefined) {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { Asset, Customer, Site } from "@prisma/client";
-import { AssetCriticality, AssetStatus } from "@prisma/client";
+import { AssetCriticality, AssetStatus, AssetCategory, AssetFamily, AssetSubFamily } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -24,6 +24,9 @@ type AssetFormState = {
   notes: string;
   status: AssetStatus;
   criticality: AssetCriticality | "";
+  assetCategory: AssetCategory | "";
+  assetFamily: AssetFamily | "";
+  assetSubFamily: AssetSubFamily | "";
 };
 
 const createInitialState = (): AssetFormState => ({
@@ -38,11 +41,71 @@ const createInitialState = (): AssetFormState => ({
   notes: "",
   status: AssetStatus.ACTIVE,
   criticality: "",
+  assetCategory: "",
+  assetFamily: "",
+  assetSubFamily: "",
 });
 
 const toNullable = (value: string) => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+// Category → Family mapping
+const FAMILY_BY_CATEGORY: Record<AssetCategory, AssetFamily[]> = {
+  [AssetCategory.ROTATING_EQUIPMENT]: [AssetFamily.PUMP, AssetFamily.MOTOR, AssetFamily.GEARBOX],
+  [AssetCategory.CONTROLS_AND_ELECTRICAL]: [AssetFamily.CONTROL_PANEL, AssetFamily.ELECTRICAL_FEED_SYSTEM],
+  [AssetCategory.INSTRUMENTATION]: [AssetFamily.SENSOR],
+  [AssetCategory.OTHER]: [AssetFamily.OTHER],
+};
+
+// Family → SubFamily mapping
+const SUBFAMILY_BY_FAMILY: Record<AssetFamily, AssetSubFamily[]> = {
+  [AssetFamily.PUMP]: [
+    AssetSubFamily.SUBMERSIBLE_WASTEWATER,
+    AssetSubFamily.VERTICAL_TURBINE,
+    AssetSubFamily.HORIZONTAL_SPLIT_CASE,
+    AssetSubFamily.END_SUCTION,
+    AssetSubFamily.ANSI_API_PROCESS_PUMP,
+  ],
+  [AssetFamily.MOTOR]: [
+    AssetSubFamily.LOW_VOLTAGE_TEFC_ODP,
+    AssetSubFamily.MEDIUM_VOLTAGE,
+    AssetSubFamily.EXPLOSION_PROOF,
+  ],
+  [AssetFamily.GEARBOX]: [
+    AssetSubFamily.WORM,
+    AssetSubFamily.HELICAL,
+    AssetSubFamily.PLANETARY,
+  ],
+  [AssetFamily.CONTROL_PANEL]: [
+    AssetSubFamily.UL508A_INDUSTRIAL_PANEL,
+    AssetSubFamily.PUMP_CONTROL_PANEL,
+    AssetSubFamily.MCC_BUCKET,
+    AssetSubFamily.STARTER_VFD,
+    AssetSubFamily.STARTER_SOFT_STARTER,
+    AssetSubFamily.STARTER_ACROSS_THE_LINE,
+  ],
+  [AssetFamily.ELECTRICAL_FEED_SYSTEM]: [
+    AssetSubFamily.TRANSFORMER,
+    AssetSubFamily.BREAKER,
+    AssetSubFamily.DISCONNECT,
+    AssetSubFamily.FEEDER_SYSTEM,
+  ],
+  [AssetFamily.SENSOR]: [
+    AssetSubFamily.LEVEL,
+    AssetSubFamily.PRESSURE,
+    AssetSubFamily.FLOW,
+    AssetSubFamily.TEMPERATURE,
+  ],
+  [AssetFamily.OTHER]: [AssetSubFamily.OTHER],
+};
+
+// Helper to format enum values for display
+const formatEnumValue = (value: string): string => {
+  return value.split('_').map(word => 
+    word.charAt(0) + word.slice(1).toLowerCase()
+  ).join(' ');
 };
 
 async function fetchList<T>(path: string): Promise<T[]> {
@@ -92,6 +155,16 @@ export default function AssetsPage() {
     return sites.filter((s) => s.customerId === form.customerId);
   }, [sites, form.customerId]);
 
+  const availableFamilies = useMemo(() => {
+    if (!form.assetCategory) return [];
+    return FAMILY_BY_CATEGORY[form.assetCategory as AssetCategory] || [];
+  }, [form.assetCategory]);
+
+  const availableSubFamilies = useMemo(() => {
+    if (!form.assetFamily) return [];
+    return SUBFAMILY_BY_FAMILY[form.assetFamily as AssetFamily] || [];
+  }, [form.assetFamily]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -117,7 +190,14 @@ export default function AssetsPage() {
   }, []);
 
   const handleFieldChange = (field: keyof AssetFormState, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    // Reset dependent fields when category or family changes
+    if (field === 'assetCategory') {
+      setForm((prev) => ({ ...prev, [field]: value, assetFamily: "", assetSubFamily: "" }));
+    } else if (field === 'assetFamily') {
+      setForm((prev) => ({ ...prev, [field]: value, assetSubFamily: "" }));
+    } else {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const refreshAssets = async () => {
@@ -158,6 +238,9 @@ export default function AssetsPage() {
         notes: toNullable(form.notes),
         status: form.status,
         criticality: form.criticality || null,
+        assetCategory: form.assetCategory || null,
+        assetFamily: form.assetFamily || null,
+        assetSubFamily: form.assetSubFamily || null,
       };
 
       const response = await apiFetch("/api/assets", {
@@ -197,9 +280,9 @@ export default function AssetsPage() {
       )}
       {!loadError && loading && <div className="page-alert info">Loading asset data…</div>}
 
-            <PageHeader
+      <PageHeader
         title="Assets"
-        subtitle="Equipment registry with serials, condition, and history."
+        subtitle="Equipment registry with taxonomy, serials, condition, and history."
         right={
           <>
             <Badge>Org scoped</Badge>
@@ -261,6 +344,55 @@ export default function AssetsPage() {
               disabled={loading || submitting}
               required
             />
+          </label>
+
+          {/* Asset Taxonomy */}
+          <label className="form-field">
+            <span>Asset Category</span>
+            <select
+              value={form.assetCategory}
+              onChange={(e) => handleFieldChange("assetCategory", e.target.value)}
+              disabled={loading || submitting}
+            >
+              <option value="">—</option>
+              {Object.values(AssetCategory).map((v) => (
+                <option key={v} value={v}>
+                  {formatEnumValue(v)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Asset Family</span>
+            <select
+              value={form.assetFamily}
+              onChange={(e) => handleFieldChange("assetFamily", e.target.value)}
+              disabled={loading || submitting || !form.assetCategory}
+            >
+              <option value="">—</option>
+              {availableFamilies.map((v) => (
+                <option key={v} value={v}>
+                  {formatEnumValue(v)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Asset Sub-Family</span>
+            <select
+              value={form.assetSubFamily}
+              onChange={(e) => handleFieldChange("assetSubFamily", e.target.value)}
+              disabled={loading || submitting || !form.assetFamily}
+            >
+              <option value="">—</option>
+              {availableSubFamilies.map((v) => (
+                <option key={v} value={v}>
+                  {formatEnumValue(v)}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="form-field">
@@ -383,6 +515,8 @@ export default function AssetsPage() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Category</th>
+                <th>Family</th>
                 <th>Customer</th>
                 <th>Site</th>
                 <th>Status</th>
@@ -396,6 +530,8 @@ export default function AssetsPage() {
                   <td>
                     <Link href={`/assets/${a.id}`}>{a.name}</Link>
                   </td>
+                  <td>{a.assetCategory ? formatEnumValue(a.assetCategory) : "—"}</td>
+                  <td>{a.assetFamily ? formatEnumValue(a.assetFamily) : "—"}</td>
                   <td>{customerLookup.get(a.customerId)?.name ?? "—"}</td>
                   <td>{siteLookup.get(a.siteId)?.name ?? "—"}</td>
                   <td>{a.status}</td>

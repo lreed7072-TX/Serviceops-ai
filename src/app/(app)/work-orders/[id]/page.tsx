@@ -42,6 +42,8 @@ export default function WorkOrderDetailPage() {
   const [aiSuccess, setAiSuccess] = useState<string | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiModalData, setAiModalData] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  const [editTaskForm, setEditTaskForm] = useState<{ assignedToId: string }>({ assignedToId: "" });
 
   useEffect(() => {
     if (!workOrderId) return;
@@ -205,6 +207,26 @@ export default function WorkOrderDetailPage() {
     }, 2000);
   };
 
+  const handleEditTask = (task: TaskWithPackage) => {
+    setEditingTask(task.id);
+    setEditTaskForm({ assignedToId: task.assignedToId || "" });
+  };
+
+  const handleSaveTaskEdit = async (taskId: string) => {
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignedToId: editTaskForm.assignedToId || null }),
+      });
+      if (!res.ok) throw new Error("Failed to update task");
+      setEditingTask(null);
+      await refreshTasks();
+    } catch (e: any) {
+      setTaskError(e?.message);
+    }
+  };
+
   const totalMaterialsCost = materials.reduce((sum, m) => sum + (m.totalCost ?? 0), 0);
 
   if (!workOrderId) return <div className="card"><p>Missing work order ID.</p></div>;
@@ -318,6 +340,7 @@ export default function WorkOrderDetailPage() {
                     pkgTasks.map((task) => {
                       const user = task.assignedToId ? userLookup.get(task.assignedToId) : null;
                       const isSelected = selectedTask === task.id;
+                      const isEditing = editingTask === task.id;
                       const taskMats = materials.filter((m) => m.taskInstanceId === task.id);
                       
                       return (
@@ -332,7 +355,27 @@ export default function WorkOrderDetailPage() {
                               <span className={`task-status status-${task.status.toLowerCase()}`}>
                                 {taskStatusLabels[task.status]}
                               </span>
-                              <span className="muted">{user?.name || user?.email || "Unassigned"}</span>
+                              {!isEditing && (
+                                <span className="muted">{user?.name || user?.email || "Unassigned"}</span>
+                              )}
+                              {isEditing && (
+                                <select
+                                  value={editTaskForm.assignedToId}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setEditTaskForm({ assignedToId: e.target.value });
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ padding: "4px 8px", fontSize: 13 }}
+                                >
+                                  <option value="">Unassigned</option>
+                                  {users.map((u) => (
+                                    <option key={u.id} value={u.id}>
+                                      {u.name || u.email}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
                             </div>
                           </div>
                           
@@ -354,7 +397,17 @@ export default function WorkOrderDetailPage() {
                                 )}
                               </div>
                               <div className="task-card-actions">
-                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                                {!isEditing ? (
+                                  <>
+                                    <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}>Edit Assignment</button>
+                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleSaveTaskEdit(task.id); }}>Save</button>
+                                    <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); setEditingTask(null); }}>Cancel</button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           )}
@@ -429,6 +482,7 @@ export default function WorkOrderDetailPage() {
           estimatedTotalDuration={aiModalData.estimatedTotalDuration}
           onClose={() => setShowAIModal(false)}
           onApproved={handleAITasksApproved}
+          availableTechs={users}
         />
       )}
     </div>

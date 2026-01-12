@@ -35,6 +35,7 @@ interface AITaskReviewModalProps {
   estimatedTotalDuration: number;
   onClose: () => void;
   onApproved: () => void;
+  availableTechs: Array<{ id: string; name: string; email: string }>;
 }
 
 export function AITaskReviewModal({
@@ -43,10 +44,12 @@ export function AITaskReviewModal({
   estimatedTotalDuration,
   onClose,
   onApproved,
+  availableTechs,
 }: AITaskReviewModalProps) {
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assignedToId, setAssignedToId] = useState<string>("");
 
   const tasks = aiTaskPlan.parsedTasksSnapshotJson || [];
 
@@ -60,7 +63,9 @@ export function AITaskReviewModal({
       const res = await apiFetch(`/api/ai-task-plans/${aiTaskPlan.id}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          assignedToId: assignedToId || null,
+        }),
       });
 
       if (!res.ok) {
@@ -146,6 +151,35 @@ export function AITaskReviewModal({
               <div>Model: {aiTaskPlan.llmModel}</div>
               {aiTaskPlan.tokensUsed && <div>Tokens: {aiTaskPlan.tokensUsed.toLocaleString()}</div>}
               {aiTaskPlan.durationMs && <div>Generated in: {(aiTaskPlan.durationMs / 1000).toFixed(1)}s</div>}
+            </div>
+
+            {/* Tech Assignment */}
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 8 }}>
+                Assign all tasks to (optional):
+              </label>
+              <select
+                value={assignedToId}
+                onChange={(e) => setAssignedToId(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  color: "#111827",
+                }}
+              >
+                <option value="">Unassigned (assign later)</option>
+                {availableTechs.map((tech) => (
+                  <option key={tech.id} value={tech.id}>
+                    {tech.name} ({tech.email})
+                  </option>
+                ))}
+              </select>
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#6b7280" }}>
+                You can edit individual task assignments after approval
+              </p>
             </div>
           </div>
 

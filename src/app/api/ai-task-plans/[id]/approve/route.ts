@@ -19,6 +19,10 @@ export async function POST(
   if (roleError) return roleError;
 
   try {
+    // Parse request body for assignment info
+    const body = await req.json();
+    const { assignedToId } = body;
+
     // Fetch the AI task plan
     const aiTaskPlan = await prisma.aITaskPlan.findFirst({
       where: { id: aiTaskPlanId, orgId },
@@ -82,7 +86,7 @@ export async function POST(
           sequenceNumber: aiTask.sequenceNumber || 0,
           status: "TODO",
           isCritical: aiTask.isCritical || false,
-          assignedToId: null, // Can be assigned later
+          assignedToId: assignedToId || null,
         },
       });
 

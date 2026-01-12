@@ -8,6 +8,7 @@ import { TaskStatus } from "@prisma/client";
 import type { TaskInstance, WorkOrder, WorkPackage, User } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { AITaskReviewModal } from "@/components/AITaskReviewModal";
 
 type TaskWithPackage = TaskInstance & { workPackage: WorkPackage };
 type MaterialUsage = { id: string; name: string; partNumber: string | null; quantity: number; unitCost: number | null; unit: string | null; totalCost: number | null; taskInstanceId: string; };
@@ -39,6 +40,8 @@ export default function WorkOrderDetailPage() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuccess, setAiSuccess] = useState<string | null>(null);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiModalData, setAiModalData] = useState<any>(null);
 
   useEffect(() => {
     if (!workOrderId) return;
@@ -163,7 +166,6 @@ export default function WorkOrderDetailPage() {
 
   const handleGenerateAITasks = async () => {
     if (!workOrderId) return;
-    if (!confirm("Generate AI task plan? This will use Claude AI to create a detailed task list based on the work order context.")) return;
     
     setAiGenerating(true);
     setAiError(null);
@@ -182,20 +184,25 @@ export default function WorkOrderDetailPage() {
       }
       
       const data = await res.json();
-      setAiSuccess(`AI generated ${data.data.tasks.length} tasks in ${(data.data.estimatedTotalDuration / 60).toFixed(1)} hours!`);
       
-      // TODO: Show modal with tasks for review/approval
-      // For now, just refresh after 2 seconds
-      setTimeout(() => {
-        setAiSuccess(null);
-        refreshTasks();
-      }, 3000);
+      // Show modal with AI-generated tasks
+      setAiModalData(data.data);
+      setShowAIModal(true);
       
     } catch (e: any) {
       setAiError(e?.message ?? "Failed to generate AI tasks");
     } finally {
       setAiGenerating(false);
     }
+  };
+
+  const handleAITasksApproved = () => {
+    setShowAIModal(false);
+    setAiSuccess("Tasks created successfully!");
+    setTimeout(() => {
+      setAiSuccess(null);
+      refreshTasks();
+    }, 2000);
   };
 
   const totalMaterialsCost = materials.reduce((sum, m) => sum + (m.totalCost ?? 0), 0);
@@ -412,6 +419,17 @@ export default function WorkOrderDetailPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* AI Task Review Modal */}
+      {showAIModal && aiModalData && (
+        <AITaskReviewModal
+          aiTaskPlan={aiModalData.aiTaskPlan}
+          summary={aiModalData.summary}
+          estimatedTotalDuration={aiModalData.estimatedTotalDuration}
+          onClose={() => setShowAIModal(false)}
+          onApproved={handleAITasksApproved}
+        />
       )}
     </div>
   );

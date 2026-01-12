@@ -85,37 +85,59 @@ export async function GET(req: NextRequest) {
 
     // Technician Stats
     const technicianCount = await prisma.user.count({
-      where: { orgId, role: 'TECHNICIAN' },
+      where: { orgId, role: 'TECH' },
     });
 
-    // Active today (have any tasks with timer entries today)
+    // Active today (techs with running or stopped timers today)
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     
-    const activeToday = await prisma.task.findMany({
+    const activeTodayTimers = await prisma.timeEntry.findMany({
       where: {
-        workOrder: { orgId },
-        status: 'IN_PROGRESS',
+        orgId,
         startedAt: { gte: startOfDay },
       },
-      distinct: ['assignedToId'],
-      select: { assignedToId: true },
+      distinct: ['userId'],
+      select: { userId: true },
     });
 
-    // Hours this week (sum of timer durations)
+    // Hours this week (sum of time entry durations)
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
-    const timersThisWeek = await prisma.taskTimer.findMany({
+    const timersThisWeek = await prisma.timeEntry.findMany({
       where: {
-        task: { workOrder: { orgId } },
+        orgId,
         startedAt: { gte: startOfWeek },
       },
-      select: { durationMinutes: true },
+      select: { 
+        accumulatedSeconds: true,
+        startedAt: true,
+        stoppedAt: true,
+        pausedAt: true,
+        status: true,
+      },
     });
 
-    const totalHoursThisWeek = timersThisWeek.reduce((sum, t) => sum + (t.durationMinutes || 0), 0) / 60;
+    // Calculate total hours including running timers
+    const now = new Date();
+    let totalSecondsThisWeek = 0;
+    
+    for (const timer of timersThisWeek) {
+      let seconds = timer.accumulatedSeconds || 0;
+      
+      // If timer is still running, add time since startedAt
+      if (timer.status === 'RUNNING' && timer.startedAt) {
+        const runningSince = timer.pausedAt || timer.startedAt;
+        const runningSeconds = Math.floor((now.getTime() - runningSince.getTime()) / 1000);
+        seconds += runningSeconds;
+      }
+      
+      totalSecondsThisWeek += seconds;
+    }
+    
+    const totalHoursThisWeek = totalSecondsThisWeek / 3600;
 
     // Recent Activity (last 10 items)
     const recentWOs = await prisma.workOrder.findMany({
@@ -187,7 +209,7 @@ export async function GET(req: NextRequest) {
       },
       technicians: {
         total: technicianCount,
-        activeToday: activeToday.length,
+        activeToday: activeTodayTimers.length,
         totalHoursThisWeek,
       },
       recentActivity,

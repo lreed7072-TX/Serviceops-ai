@@ -93,6 +93,7 @@ export async function POST(
             data: {
               orgId,
               taskInstanceId: task.id,
+              standardsPackTaskId: null,
               name: measurement.name,
               unit: measurement.unit || null,
               measurementType: measurement.measurementType || "NUMERIC",

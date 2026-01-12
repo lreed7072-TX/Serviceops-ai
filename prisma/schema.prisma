@@ -403,6 +403,7 @@ model TaskInstance {
   measurements TaskMeasurement[]
   materialUsages TaskMaterialUsage[]
   invoiceLineItems InvoiceLineItem[]
+  measurementDefinitions MeasurementDefinition[]
 
   @@index([orgId])
   @@index([orgId, workOrderId])
@@ -737,7 +738,8 @@ enum MeasurementType {
 model MeasurementDefinition {
   id                  String          @id @default(uuid()) @db.Uuid
   orgId               String          @db.Uuid
-  standardsPackTaskId String          @db.Uuid
+  standardsPackTaskId String?         @db.Uuid  // Link to template task (nullable)
+  taskInstanceId      String?         @db.Uuid  // Link to actual task instance (nullable)
   name                String          // e.g., "Bearing Temperature"
   unit                String?         // e.g., "°F", "mils", "psi"
   measurementType     MeasurementType @default(NUMERIC)
@@ -748,12 +750,14 @@ model MeasurementDefinition {
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
-  org               Org               @relation(fields: [orgId], references: [id])
-  standardsPackTask StandardsPackTask @relation(fields: [standardsPackTaskId], references: [id], onDelete: Cascade)
+  org               Org                @relation(fields: [orgId], references: [id])
+  standardsPackTask StandardsPackTask? @relation(fields: [standardsPackTaskId], references: [id], onDelete: Cascade)
+  taskInstance      TaskInstance?      @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
   taskMeasurements  TaskMeasurement[]
 
   @@index([orgId])
   @@index([orgId, standardsPackTaskId])
+  @@index([orgId, taskInstanceId])
 }
 
 model TaskMeasurement {

@@ -42,7 +42,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     },
   });
 
-  if (!existing || existing.standardsPackTask.standardsPackId !== packId) {
+  if (!existing || !existing.standardsPackTask || existing.standardsPackTask.standardsPackId !== packId) {
     return jsonError("Measurement definition not found.", 404);
   }
 
@@ -90,7 +90,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     },
   });
 
-  if (!existing || existing.standardsPackTask.standardsPackId !== packId) {
+  if (!existing || !existing.standardsPackTask || existing.standardsPackTask.standardsPackId !== packId) {
     return jsonError("Measurement definition not found.", 404);
   }
 

@@ -111,8 +111,8 @@ export function AITaskReviewModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 900 }}>
+    <div className="modal-overlay" onClick={onClose} style={{ background: "rgba(0, 0, 0, 0.75)" }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 900, background: "#ffffff" }}>
         <div className="modal-header">
           <h2>🤖 AI-Generated Task Plan</h2>
           <button onClick={onClose} className="modal-close">×</button>
@@ -121,16 +121,16 @@ export function AITaskReviewModal({
         <div className="modal-body">
           {/* Summary */}
           <div className="ai-summary-box" style={{
-            background: "linear-gradient(135deg, #667eea15 0%, #764ba215 100%)",
-            border: "1px solid #667eea30",
+            background: "#f8f4ff",
+            border: "1px solid #c4b5fd",
             borderRadius: 8,
             padding: 16,
             marginBottom: 24
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12 }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Summary</h3>
-                <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--text-muted)" }}>{summary}</p>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#111827" }}>Summary</h3>
+                <p style={{ margin: "8px 0 0", fontSize: 14, color: "#6b7280" }}>{summary}</p>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 24, fontWeight: 700, color: "#667eea" }}>
@@ -142,7 +142,7 @@ export function AITaskReviewModal({
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
+            <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#6b7280", marginTop: 12 }}>
               <div>Model: {aiTaskPlan.llmModel}</div>
               {aiTaskPlan.tokensUsed && <div>Tokens: {aiTaskPlan.tokensUsed.toLocaleString()}</div>}
               {aiTaskPlan.durationMs && <div>Generated in: {(aiTaskPlan.durationMs / 1000).toFixed(1)}s</div>}
@@ -151,7 +151,7 @@ export function AITaskReviewModal({
 
           {/* Tasks List */}
           <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "#111827" }}>
               Generated Tasks ({tasks.length})
             </h3>
             <div style={{ maxHeight: 400, overflowY: "auto" }}>
@@ -159,11 +159,11 @@ export function AITaskReviewModal({
                 <div
                   key={idx}
                   style={{
-                    border: "1px solid var(--border)",
+                    border: "1px solid #e5e7eb",
                     borderRadius: 6,
                     padding: 12,
                     marginBottom: 8,
-                    background: "var(--card-bg)",
+                    background: "#ffffff",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "start", gap: 12 }}>
@@ -212,21 +212,21 @@ export function AITaskReviewModal({
                           {task.domain}
                         </span>
                         {task.estimatedMinutes && (
-                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                          <span style={{ fontSize: 12, color: "#6b7280" }}>
                             ~{task.estimatedMinutes} min
                           </span>
                         )}
                       </div>
-                      <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
+                      <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>
                         {task.description}
                       </p>
 
                       {task.measurements && task.measurements.length > 0 && (
                         <div style={{ marginTop: 8, fontSize: 12 }}>
-                          <strong style={{ color: "var(--text-muted)" }}>Measurements:</strong>
+                          <strong style={{ color: "#6b7280" }}>Measurements:</strong>
                           <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
                             {task.measurements.map((m, i) => (
-                              <li key={i} style={{ color: "var(--text-muted)" }}>
+                              <li key={i} style={{ color: "#374151" }}>
                                 {m.name}
                                 {m.unit && ` (${m.unit})`}
                                 {m.minValue !== undefined && ` min: ${m.minValue}`}

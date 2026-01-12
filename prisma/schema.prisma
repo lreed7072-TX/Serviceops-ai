@@ -59,6 +59,63 @@ enum AssetCriticality {
   HIGH
 }
 
+enum AssetCategory {
+  ROTATING_EQUIPMENT
+  CONTROLS_AND_ELECTRICAL
+  INSTRUMENTATION
+  OTHER
+}
+
+enum AssetFamily {
+  // Rotating Equipment Families
+  PUMP
+  MOTOR
+  GEARBOX
+  // Controls & Electrical Families
+  CONTROL_PANEL
+  ELECTRICAL_FEED_SYSTEM
+  // Instrumentation Family
+  SENSOR
+  // Other
+  OTHER
+}
+
+enum AssetSubFamily {
+  // Pump Sub-Families
+  SUBMERSIBLE_WASTEWATER
+  VERTICAL_TURBINE
+  HORIZONTAL_SPLIT_CASE
+  END_SUCTION
+  ANSI_API_PROCESS_PUMP
+  // Motor Sub-Families
+  LOW_VOLTAGE_TEFC_ODP
+  MEDIUM_VOLTAGE
+  EXPLOSION_PROOF
+  // Gearbox Sub-Families
+  WORM
+  HELICAL
+  PLANETARY
+  // Control Panel Sub-Families
+  UL508A_INDUSTRIAL_PANEL
+  PUMP_CONTROL_PANEL
+  MCC_BUCKET
+  STARTER_VFD
+  STARTER_SOFT_STARTER
+  STARTER_ACROSS_THE_LINE
+  // Instrumentation Sub-Families
+  LEVEL
+  PRESSURE
+  FLOW
+  TEMPERATURE
+  // Electrical Feed System Sub-Families
+  TRANSFORMER
+  BREAKER
+  DISCONNECT
+  FEEDER_SYSTEM
+  // Other
+  OTHER
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -241,6 +298,9 @@ model Asset {
   model                  String?
   serialNumber           String?
   assetTag               String?
+  assetCategory          AssetCategory?
+  assetFamily            AssetFamily?
+  assetSubFamily         AssetSubFamily?
   location               String?
   notes                  String?
   status                 AssetStatus       @default(ACTIVE)

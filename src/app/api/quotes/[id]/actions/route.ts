@@ -76,6 +76,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Can only convert APPROVED quotes" }, { status: 400 });
       }
 
+      // Validate required fields for work order
+      if (!quote.siteId) {
+        return NextResponse.json({ error: "Cannot convert quote without a site" }, { status: 400 });
+      }
+
       const targetOrderType = orderType || OrderType.WORK_ORDER;
       const prefix = targetOrderType === OrderType.SALES_ORDER ? "SO" : targetOrderType === OrderType.PROJECT ? "PJ" : "WO";
 
@@ -98,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               workOrderNumber,
               orderType: targetOrderType,
               customerId: quote.customerId,
-              siteId: quote.siteId || null,
+              siteId: quote.siteId,
               title: quote.title,
               description: quote.description || null,
               status: WorkOrderStatus.OPEN,

@@ -187,6 +187,10 @@ model Org {
   quoteLineItems QuoteLineItem[]
   invoices Invoice[]
   invoiceLineItems InvoiceLineItem[]
+  procedureTemplates ProcedureTemplate[]
+  procedureStepTemplates ProcedureStepTemplate[]
+  workflowDefinitions WorkflowDefinition[]
+  aiTaskPlans AITaskPlan[]
 }
 
 model User {
@@ -212,6 +216,9 @@ model User {
   capturedSignatures Signature[] @relation("SignatureCapturedBy")
   createdQuotes Quote[] @relation("QuoteCreatedBy")
   createdInvoices Invoice[] @relation("InvoiceCreatedBy")
+  createdProcedureTemplates ProcedureTemplate[] @relation("ProcedureTemplateCreatedBy")
+  createdWorkflowDefinitions WorkflowDefinition[] @relation("WorkflowDefinitionCreatedBy")
+  approvedAITaskPlans AITaskPlan[] @relation("AITaskPlanApprovedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -345,6 +352,7 @@ model WorkOrder {
   timeEntries TimeEntry[]
   signatures Signature[]
   invoices Invoice[]
+  aiTaskPlans AITaskPlan[]
 
   @@index([orgId])
   @@index([orgId, customerId])
@@ -685,6 +693,7 @@ model StandardsPack {
 
   org   Org                  @relation(fields: [orgId], references: [id])
   tasks StandardsPackTask[]
+  procedureTemplates ProcedureTemplate[]
 
   @@index([orgId])
   @@index([orgId, status])
@@ -1038,4 +1047,142 @@ model InvoiceLineItem {
 
   @@index([orgId])
   @@index([invoiceId])
+}
+
+
+
+// ============================================
+// AI ORCHESTRATOR - Procedure Templates & Task Generation
+// ============================================
+
+enum ProcedureTemplateStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WorkflowDefinitionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum AITaskPlanStatus {
+  GENERATING
+  GENERATED
+  APPROVED
+  REJECTED
+  ERROR
+}
+
+model ProcedureTemplate {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  orgId               String                    @db.Uuid
+  name                String
+  description         String?                   @db.Text
+  assetCategory       AssetCategory?
+  assetFamily         AssetFamily?
+  assetSubFamily      AssetSubFamily?
+  context             String?                   // REPAIR, STARTUP, PM, INSTALL, INSPECTION, TROUBLE
+  standardsPackId     String?                   @db.Uuid
+  version             Int                       @default(1)
+  status              ProcedureTemplateStatus   @default(DRAFT)
+  aiSummary           String?                   @db.Text
+  estimatedDuration   Int?                      // Minutes
+  createdByUserId     String                    @db.Uuid
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  org           Org                     @relation(fields: [orgId], references: [id])
+  standardsPack StandardsPack?          @relation(fields: [standardsPackId], references: [id])
+  createdBy     User                    @relation("ProcedureTemplateCreatedBy", fields: [createdByUserId], references: [id])
+  steps         ProcedureStepTemplate[]
+  aiTaskPlans   AITaskPlan[]
+
+  @@index([orgId])
+  @@index([orgId, status])
+  @@index([orgId, assetCategory])
+  @@index([orgId, assetFamily])
+}
+
+model ProcedureStepTemplate {
+  id                       String            @id @default(uuid()) @db.Uuid
+  orgId                    String            @db.Uuid
+  procedureTemplateId      String            @db.Uuid
+  sequenceNumber           Int
+  title                    String
+  description              String?           @db.Text
+  domain                   String?           // MECHANICAL, ELECTRICAL, CONTROLS, INSTRUMENTATION
+  isCritical               Boolean           @default(false)
+  requiresEvidence         Boolean           @default(false)
+  appliesWhenJson          Json?             // Conditions for when this step applies
+  measurementSchemaJson    Json?             // Expected measurements
+  evidenceRequirementsJson Json?             // Photo/file requirements
+  estimatedMinutes         Int?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  org               Org               @relation(fields: [orgId], references: [id])
+  procedureTemplate ProcedureTemplate @relation(fields: [procedureTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, procedureTemplateId])
+  @@index([procedureTemplateId, sequenceNumber])
+}
+
+model WorkflowDefinition {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  orgId               String                    @db.Uuid
+  name                String
+  description         String?                   @db.Text
+  workOrderContext    String?                   // REPAIR, STARTUP, PM, etc.
+  version             Int                       @default(1)
+  status              WorkflowDefinitionStatus  @default(DRAFT)
+  baseStructureJson   Json?                     // Base workflow structure
+  aiPromptTemplate    String?                   @db.Text
+  createdByUserId     String                    @db.Uuid
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  org         Org          @relation(fields: [orgId], references: [id])
+  createdBy   User         @relation("WorkflowDefinitionCreatedBy", fields: [createdByUserId], references: [id])
+  aiTaskPlans AITaskPlan[]
+
+  @@index([orgId])
+  @@index([orgId, status])
+}
+
+model AITaskPlan {
+  id                      String            @id @default(uuid()) @db.Uuid
+  orgId                   String            @db.Uuid
+  workOrderId             String            @db.Uuid
+  procedureTemplateId     String?           @db.Uuid
+  workflowDefinitionId    String?           @db.Uuid
+  status                  AITaskPlanStatus  @default(GENERATING)
+  llmModel                String            // e.g., "claude-sonnet-4-20250514"
+  llmProvider             String            @default("anthropic")
+  promptPayloadJson       Json              // Full prompt sent to LLM
+  llmRawResponseJson      Json?             // Raw LLM response
+  parsedTasksSnapshotJson Json?             // Structured task data
+  generatedAt             DateTime          @default(now())
+  approvedAt              DateTime?
+  approvedByUserId        String?           @db.Uuid
+  rejectedAt              DateTime?
+  rejectionReason         String?           @db.Text
+  errorMessage            String?           @db.Text
+  tokensUsed              Int?
+  durationMs              Int?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  org                  Org                 @relation(fields: [orgId], references: [id])
+  workOrder            WorkOrder           @relation(fields: [workOrderId], references: [id])
+  procedureTemplate    ProcedureTemplate?  @relation(fields: [procedureTemplateId], references: [id])
+  workflowDefinition   WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id])
+  approvedBy           User?               @relation("AITaskPlanApprovedBy", fields: [approvedByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, workOrderId])
+  @@index([workOrderId])
+  @@index([status])
 }

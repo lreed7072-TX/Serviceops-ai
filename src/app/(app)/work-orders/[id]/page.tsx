@@ -36,6 +36,9 @@ export default function WorkOrderDetailPage() {
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [taskMaterials, setTaskMaterials] = useState<MaterialUsage[]>([]);
   const [signatures, setSignatures] = useState<SignatureData[]>([]);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccess, setAiSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workOrderId) return;
@@ -158,6 +161,43 @@ export default function WorkOrderDetailPage() {
     }
   };
 
+  const handleGenerateAITasks = async () => {
+    if (!workOrderId) return;
+    if (!confirm("Generate AI task plan? This will use Claude AI to create a detailed task list based on the work order context.")) return;
+    
+    setAiGenerating(true);
+    setAiError(null);
+    setAiSuccess(null);
+    
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/ai-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to generate AI tasks");
+      }
+      
+      const data = await res.json();
+      setAiSuccess(`AI generated ${data.data.tasks.length} tasks in ${(data.data.estimatedTotalDuration / 60).toFixed(1)} hours!`);
+      
+      // TODO: Show modal with tasks for review/approval
+      // For now, just refresh after 2 seconds
+      setTimeout(() => {
+        setAiSuccess(null);
+        refreshTasks();
+      }, 3000);
+      
+    } catch (e: any) {
+      setAiError(e?.message ?? "Failed to generate AI tasks");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const totalMaterialsCost = materials.reduce((sum, m) => sum + (m.totalCost ?? 0), 0);
 
   if (!workOrderId) return <div className="card"><p>Missing work order ID.</p></div>;
@@ -182,6 +222,31 @@ export default function WorkOrderDetailPage() {
             <div><span className="label">Status</span><span className="value">{workOrder.status}</span></div>
             <div><span className="label">Mode</span><span className="value">{executionModeLabels[workOrder.executionMode]}</span></div>
             <div><span className="label">Updated</span><span className="value">{new Date(workOrder.updatedAt).toLocaleString()}</span></div>
+          </div>
+          
+          {/* AI Task Generation */}
+          <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                onClick={handleGenerateAITasks}
+                disabled={aiGenerating || loading}
+                className="btn-primary"
+                style={{ 
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8
+                }}
+              >
+                {aiGenerating ? "🤖 Generating..." : "✨ Generate AI Tasks"}
+              </button>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                Let Claude AI create a standards-driven task list
+              </span>
+            </div>
+            {aiError && <div className="alert alert-error" style={{ marginTop: 12 }}>{aiError}</div>}
+            {aiSuccess && <div className="alert alert-success" style={{ marginTop: 12 }}>{aiSuccess}</div>}
           </div>
         </div>
       )}

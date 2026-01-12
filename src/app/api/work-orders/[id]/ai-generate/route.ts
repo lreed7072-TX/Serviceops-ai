@@ -99,7 +99,7 @@ export async function POST(
         status: AITaskPlanStatus.GENERATING,
         llmModel: DEFAULT_MODEL,
         llmProvider: "anthropic",
-        promptPayloadJson: aiRequest,
+        promptPayloadJson: aiRequest as any,
       },
     });
 
@@ -115,8 +115,8 @@ export async function POST(
           llmRawResponseJson: {
             summary: result.summary,
             tasks: result.tasks,
-          },
-          parsedTasksSnapshotJson: result.tasks,
+          } as any,
+          parsedTasksSnapshotJson: result.tasks as any,
           tokensUsed: result.tokensUsed,
           durationMs: result.durationMs,
         },

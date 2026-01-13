@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
-import { Role } from "@prisma/client";
+import { Role, AssetCategory, AssetFamily, AssetSubFamily } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -92,14 +92,14 @@ export async function POST(request: Request) {
       orgId: authResult.auth.orgId,
       name: body.name.trim(),
       description: body.description?.trim() || null,
-      assetCategory: body.assetCategory.trim(),
-      assetFamily: body.assetFamily?.trim() || null,
-      assetSubfamily: body.assetSubfamily?.trim() || null,
+      assetCategory: body.assetCategory.trim() as AssetCategory,
+      assetFamily: body.assetFamily?.trim() as AssetFamily | null,
+      assetSubFamily: body.assetSubfamily?.trim() as AssetSubFamily | null,
       context: body.context,
-      estimatedDurationMinutes: body.estimatedDurationMinutes || null,
+      estimatedDuration: body.estimatedDurationMinutes || null,
       version: 1,
       status: "ACTIVE",
-      createdById: authResult.auth.userId,
+      createdByUserId: authResult.auth.userId,
     },
     include: {
       createdBy: {

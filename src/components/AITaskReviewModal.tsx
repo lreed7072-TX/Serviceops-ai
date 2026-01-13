@@ -35,7 +35,7 @@ interface AITaskReviewModalProps {
   estimatedTotalDuration: number;
   onClose: () => void;
   onApproved: () => void;
-  availableTechs: Array<{ id: string; name: string; email: string }>;
+  availableTechs: Array<{ id: string; name: string | null; email: string }>;
 }
 
 export function AITaskReviewModal({
@@ -173,7 +173,7 @@ export function AITaskReviewModal({
                 <option value="">Unassigned (assign later)</option>
                 {availableTechs.map((tech) => (
                   <option key={tech.id} value={tech.id}>
-                    {tech.name} ({tech.email})
+                    {tech.name || tech.email}
                   </option>
                 ))}
               </select>

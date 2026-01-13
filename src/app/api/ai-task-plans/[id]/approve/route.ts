@@ -55,61 +55,105 @@ export async function POST(
       );
     }
 
-    // Determine target work package (create if needed)
-    let targetPackage = aiTaskPlan.workOrder.packages.find(
-      (pkg) => pkg.packageType === WorkPackageType.MECH_ELEC_UNIFIED
-    );
+    // Group tasks by domain for multi-lane routing
+    const tasksByDomain: Record<string, typeof parsedTasks> = {
+      MECHANICAL: [],
+      ELECTRICAL: [],
+      CONTROLS: [],
+      INSTRUMENTATION: [],
+      UNIFIED: [],
+    };
 
-    if (!targetPackage) {
-      // Create a unified package for AI-generated tasks
-      targetPackage = await prisma.workPackage.create({
-        data: {
-          orgId,
-          workOrderId: aiTaskPlan.workOrderId,
-          packageType: WorkPackageType.MECH_ELEC_UNIFIED,
-          name: "AI Generated Tasks",
-          status: "PLANNED",
-        },
-      });
+    for (const task of parsedTasks) {
+      const domain = task.domain || "UNIFIED";
+      if (domain in tasksByDomain) {
+        tasksByDomain[domain].push(task);
+      } else {
+        tasksByDomain.UNIFIED.push(task);
+      }
     }
 
-    // Create TaskInstance records from AI tasks
+    // Create packages as needed and assign tasks
     const createdTasks = [];
-    for (const aiTask of parsedTasks) {
-      const task = await prisma.taskInstance.create({
-        data: {
-          orgId,
+    const packageNames: Record<string, string> = {
+      MECHANICAL: "Mechanical Tasks",
+      ELECTRICAL: "Electrical Tasks",
+      CONTROLS: "Controls Tasks",
+      INSTRUMENTATION: "Instrumentation Tasks",
+      UNIFIED: "Multi-Domain Tasks",
+    };
+
+    const packageTypeMap: Record<string, WorkPackageType> = {
+      MECHANICAL: WorkPackageType.MECHANICAL,
+      ELECTRICAL: WorkPackageType.ELECTRICAL,
+      CONTROLS: WorkPackageType.CONTROLS,
+      INSTRUMENTATION: WorkPackageType.INSTRUMENTATION,
+      UNIFIED: WorkPackageType.MECH_ELEC_UNIFIED,
+    };
+
+    for (const [domain, domainTasks] of Object.entries(tasksByDomain)) {
+      if (domainTasks.length === 0) continue;
+
+      const packageType = packageTypeMap[domain] || WorkPackageType.MECH_ELEC_UNIFIED;
+
+      // Find or create package for this domain
+      let domainPackage = await prisma.workPackage.findFirst({
+        where: {
           workOrderId: aiTaskPlan.workOrderId,
-          workPackageId: targetPackage.id,
-          title: aiTask.title,
-          description: aiTask.description || null,
-          sequenceNumber: aiTask.sequenceNumber || 0,
-          status: "TODO",
-          isCritical: aiTask.isCritical || false,
-          assignedToId: assignedToId || null,
+          orgId,
+          packageType,
         },
       });
 
-      // Create measurements if defined
-      if (aiTask.measurements && Array.isArray(aiTask.measurements)) {
-        for (const measurement of aiTask.measurements) {
-          await prisma.measurementDefinition.create({
-            data: {
-              orgId,
-              taskInstanceId: task.id,
-              standardsPackTaskId: null,
-              name: measurement.name,
-              unit: measurement.unit || null,
-              measurementType: measurement.measurementType || "NUMERIC",
-              minValue: measurement.minValue || null,
-              maxValue: measurement.maxValue || null,
-              isRequired: true,
-            },
-          });
-        }
+      if (!domainPackage) {
+        domainPackage = await prisma.workPackage.create({
+          data: {
+            orgId,
+            workOrderId: aiTaskPlan.workOrderId,
+            packageType,
+            name: packageNames[domain] || "AI Generated Tasks",
+            status: "PLANNED",
+          },
+        });
       }
 
-      createdTasks.push(task);
+      // Create tasks in this package
+      for (const aiTask of domainTasks) {
+        const task = await prisma.taskInstance.create({
+          data: {
+            orgId,
+            workOrderId: aiTaskPlan.workOrderId,
+            workPackageId: domainPackage.id,
+            title: aiTask.title,
+            description: aiTask.description || null,
+            sequenceNumber: aiTask.sequenceNumber || 0,
+            status: "TODO",
+            isCritical: aiTask.isCritical || false,
+            assignedToId: assignedToId || null,
+          },
+        });
+
+        // Create measurements if defined
+        if (aiTask.measurements && Array.isArray(aiTask.measurements)) {
+          for (const measurement of aiTask.measurements) {
+            await prisma.measurementDefinition.create({
+              data: {
+                orgId,
+                taskInstanceId: task.id,
+                standardsPackTaskId: null,
+                name: measurement.name,
+                unit: measurement.unit || null,
+                measurementType: measurement.measurementType || "NUMERIC",
+                minValue: measurement.minValue || null,
+                maxValue: measurement.maxValue || null,
+                isRequired: true,
+              },
+            });
+          }
+        }
+
+        createdTasks.push(task);
+      }
     }
 
     // Update AI task plan status to APPROVED
@@ -126,7 +170,7 @@ export async function POST(
       data: {
         aiTaskPlan: updatedPlan,
         createdTasks,
-        workPackage: targetPackage,
+        packagesCreated: Object.keys(tasksByDomain).filter(d => tasksByDomain[d].length > 0).length,
       },
     });
   } catch (error: any) {

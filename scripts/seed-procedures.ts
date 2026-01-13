@@ -3,9 +3,11 @@
  * Run with: npx tsx scripts/seed-procedures.ts
  */
 
-import { PrismaClient, ProcedureContext } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+type ProcedureContext = "REPAIR" | "STARTUP" | "PM" | "INSTALL" | "INSPECTION" | "TROUBLESHOOTING";
 
 type ProcedureTemplate = {
   name: string;

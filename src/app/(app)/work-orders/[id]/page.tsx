@@ -248,38 +248,67 @@ export default function WorkOrderDetailPage() {
       {loading && <div className="alert alert-info">Loading...</div>}
 
       {workOrder && (
-        <div className="card">
-          <p>{workOrder.description ?? "No description"}</p>
-          <div className="wo-meta-grid">
-            <div><span className="label">WO #</span><span className="value">{(workOrder as any).workOrderNumber ?? "—"}</span></div>
-            <div><span className="label">Status</span><span className="value">{workOrder.status}</span></div>
-            <div><span className="label">Mode</span><span className="value">{executionModeLabels[workOrder.executionMode]}</span></div>
-            <div><span className="label">Updated</span><span className="value">{new Date(workOrder.updatedAt).toLocaleString()}</span></div>
-          </div>
-          
-          {/* AI Task Generation */}
-          <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button
-                onClick={handleGenerateAITasks}
-                disabled={aiGenerating || loading}
-                className="btn-primary"
-                style={{ 
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  border: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8
-                }}
-              >
-                {aiGenerating ? "🤖 Generating..." : "✨ Generate AI Tasks"}
-              </button>
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                Let Claude AI create a standards-driven task list
-              </span>
+        <>
+          <div className="card">
+            <p>{workOrder.description ?? "No description"}</p>
+            <div className="wo-meta-grid">
+              <div><span className="label">WO #</span><span className="value">{(workOrder as any).workOrderNumber ?? "—"}</span></div>
+              <div><span className="label">Status</span><span className="value">{workOrder.status}</span></div>
+              <div><span className="label">Mode</span><span className="value">{executionModeLabels[workOrder.executionMode]}</span></div>
+              <div><span className="label">Updated</span><span className="value">{new Date(workOrder.updatedAt).toLocaleString()}</span></div>
             </div>
+            
+            {/* AI Task Generation */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button
+                  onClick={handleGenerateAITasks}
+                  disabled={aiGenerating || loading}
+                  className="btn-primary"
+                  style={{ 
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8
+                  }}
+                >
+                  {aiGenerating ? "🤖 Generating..." : "✨ Generate AI Tasks"}
+                </button>
+                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  Let Claude AI create a standards-driven task list
+                </span>
+              </div>
             {aiError && <div className="alert alert-error" style={{ marginTop: 12 }}>{aiError}</div>}
             {aiSuccess && <div className="alert alert-success" style={{ marginTop: 12 }}>{aiSuccess}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Stats Summary */}
+      {workOrder && tasks.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Tasks</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{tasks.length}</div>
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completed</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#10b981" }}>
+              {tasks.filter(t => t.status === "DONE").length}
+            </div>
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completion Rate</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#3b82f6" }}>
+              {Math.round((tasks.filter(t => t.status === "DONE").length / tasks.length) * 100)}%
+            </div>
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Materials Cost</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#f59e0b" }}>
+              ${materials.reduce((sum, m) => sum + (m.totalCost || 0), 0).toFixed(2)}
+            </div>
           </div>
         </div>
       )}

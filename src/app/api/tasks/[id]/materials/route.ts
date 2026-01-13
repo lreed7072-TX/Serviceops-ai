@@ -1,77 +1,64 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst } from "@/lib/auth";
+import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
+import { Role } from "@prisma/client";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
-
-type AddMaterialPayload = {
-  materialId?: string | null;
-  name: string;
-  partNumber?: string | null;
-  quantity: number;
-  unitCost?: number | null;
-  unit?: string | null;
-  notes?: string | null;
+type RouteParams = {
+  params: Promise<{ id: string }>;
 };
 
-export async function GET(request: Request, { params }: RouteParams) {
-  const { id: taskId } = await params;
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
+type AddMaterialPayload = {
+  name: string;
+  partNumber?: string;
+  quantity: number;
+  unit?: string;
+  unitCost?: number;
+};
 
-  const task = await prisma.taskInstance.findFirst({
-    where: { id: taskId, orgId: authResult.auth.orgId },
-    select: { id: true },
-  });
-  if (!task) return jsonError("Task not found.", 404);
-
-  const usages = await prisma.taskMaterialUsage.findMany({
-    where: { taskInstanceId: taskId, orgId: authResult.auth.orgId },
-    include: { addedByUser: { select: { id: true, name: true, email: true } } },
-    orderBy: { addedAt: "desc" },
-  });
-
-  return NextResponse.json({ data: usages });
-}
-
+/**
+ * POST /api/tasks/:id/materials
+ * Add material usage to a task
+ */
 export async function POST(request: Request, { params }: RouteParams) {
   const { id: taskId } = await params;
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const task = await prisma.taskInstance.findFirst({
-    where: { id: taskId, orgId: authResult.auth.orgId },
-    select: { id: true },
-  });
-  if (!task) return jsonError("Task not found.", 404);
+  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER, Role.TECH]);
+  if (roleError) return roleError;
 
   const body = await parseJson<AddMaterialPayload>(request);
-  if (!body?.name?.trim()) return jsonError("Material name is required.", 400);
-  if (!body.quantity || body.quantity <= 0) return jsonError("Quantity must be greater than 0.", 400);
+  if (!body) return jsonError("Invalid JSON body.", 400);
 
-  const totalCost = body.unitCost ? body.unitCost * body.quantity : null;
+  if (!body.name?.trim()) return jsonError("Material name is required.", 400);
+  if (!body.quantity || body.quantity <= 0) return jsonError("Valid quantity is required.", 400);
 
-  const usage = await prisma.taskMaterialUsage.create({
+  // Verify task exists and belongs to org
+  const task = await prisma.taskInstance.findFirst({
+    where: { id: taskId, orgId: authResult.auth.orgId },
+  });
+
+  if (!task) return jsonError("Task not found.", 404);
+
+  const totalCost = body.unitCost && body.quantity 
+    ? Number(body.unitCost) * Number(body.quantity) 
+    : null;
+
+  const material = await prisma.taskMaterialUsage.create({
     data: {
       orgId: authResult.auth.orgId,
       taskInstanceId: taskId,
-      materialId: body.materialId ?? null,
       name: body.name.trim(),
-      partNumber: body.partNumber?.trim() ?? null,
+      partNumber: body.partNumber?.trim() || null,
       quantity: body.quantity,
-      unitCost: body.unitCost ?? null,
-      unit: body.unit?.trim() ?? null,
+      unit: body.unit?.trim() || null,
+      unitCost: body.unitCost || null,
       totalCost,
-      notes: body.notes?.trim() ?? null,
-      addedByUserId: authResult.auth.userId,
-      addedAt: new Date(),
     },
-    include: { addedByUser: { select: { id: true, name: true, email: true } } },
   });
 
-  return NextResponse.json({ data: usage }, { status: 201 });
+  return NextResponse.json({ data: material });
 }

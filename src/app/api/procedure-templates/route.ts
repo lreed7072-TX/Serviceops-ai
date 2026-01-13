@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
-import { Role, ProcedureContext } from "@prisma/client";
+import { Role } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       createdBy: {
         select: { id: true, name: true, email: true },
       },
-      linkedStandardsPacks: {
+      standardsPack: {
         select: { id: true, name: true },
       },
       _count: {
@@ -55,7 +55,7 @@ type CreateTemplatePayload = {
   assetCategory: string;
   assetFamily?: string;
   assetSubfamily?: string;
-  context: ProcedureContext;
+  context: string;
   estimatedDurationMinutes?: number;
 };
 

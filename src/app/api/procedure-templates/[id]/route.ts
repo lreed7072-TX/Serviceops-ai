@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       steps: {
         orderBy: { sequenceNumber: "asc" },
       },
-      linkedStandardsPacks: {
+      standardsPack: {
         select: { id: true, name: true },
       },
     },

@@ -338,6 +338,21 @@ export default function WorkOrderDetailPage() {
                         {completedCount}/{totalCount} Complete ({completionPercent}%)
                       </span>
                     </div>
+                    {/* Progress Bar */}
+                    <div style={{
+                      marginTop: 8,
+                      height: 6,
+                      background: "#e5e7eb",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                    }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${completionPercent}%`,
+                        background: completionPercent === 100 ? "#10b981" : "#f59e0b",
+                        transition: "width 0.3s ease",
+                      }} />
+                    </div>
                   </div>
                   <div className="package-meta">
                     <span>Status: {pkg.status}</span>

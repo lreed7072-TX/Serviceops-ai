@@ -429,16 +429,14 @@ async function seedProcedures(orgId: string, userId: string) {
       // Create template
       const template = await prisma.procedureTemplate.create({
         data: {
-          orgId,
           name: proc.name,
           description: proc.description,
-          assetCategory: proc.assetCategory,
-          assetFamily: proc.assetFamily || null,
           context: proc.context,
-          estimatedDurationMinutes: proc.estimatedDurationMinutes,
+          estimatedDuration: proc.estimatedDurationMinutes,
           version: 1,
           status: "ACTIVE",
-          createdById: userId,
+          org: { connect: { id: orgId } },
+          createdBy: { connect: { id: userId } },
         },
       });
 
@@ -447,8 +445,6 @@ async function seedProcedures(orgId: string, userId: string) {
         const step = proc.steps[i];
         await prisma.procedureStepTemplate.create({
           data: {
-            orgId,
-            procedureTemplateId: template.id,
             title: step.title,
             description: step.description || null,
             domain: step.domain || null,
@@ -456,6 +452,8 @@ async function seedProcedures(orgId: string, userId: string) {
             requiresEvidence: step.requiresEvidence,
             estimatedMinutes: step.estimatedMinutes,
             sequenceNumber: i + 1,
+            org: { connect: { id: orgId } },
+            procedureTemplate: { connect: { id: template.id } },
           },
         });
       }

@@ -45,24 +45,41 @@ export async function POST(
 
     // Parse request body for additional context
     const body = await req.json();
-    const { userInstructions, procedureTemplateId } = body;
+    const { userInstructions } = body;
 
-    // Fetch procedure template if provided
-    let procedureContext = undefined;
-    if (procedureTemplateId) {
-      const template = await prisma.procedureTemplate.findFirst({
-        where: { id: procedureTemplateId, orgId },
-        include: {
-          standardsPack: { select: { name: true } },
+    // Auto-find matching procedure templates
+    const matchingTemplates = await prisma.procedureTemplate.findMany({
+      where: {
+        orgId,
+        status: "ACTIVE",
+        assetCategory: workOrder.asset?.assetCategory || undefined,
+        // TODO: Could also match assetFamily/assetSubfamily if provided
+      },
+      include: {
+        steps: {
+          orderBy: { sequenceNumber: "asc" },
         },
-      });
-      if (template) {
-        procedureContext = {
-          templateName: template.name,
-          templateDescription: template.description || undefined,
-          standardsPackName: template.standardsPack?.name,
-        };
-      }
+      },
+      take: 3, // Limit to top 3 most relevant templates
+    });
+
+    // Build procedure context from templates
+    let procedureContext = undefined;
+    if (matchingTemplates.length > 0) {
+      procedureContext = {
+        templates: matchingTemplates.map((template) => ({
+          name: template.name,
+          description: template.description || undefined,
+          context: template.context,
+          steps: template.steps.map((step) => ({
+            title: step.title,
+            description: step.description || undefined,
+            domain: step.domain || undefined,
+            isCritical: step.isCritical,
+            estimatedMinutes: step.estimatedMinutes || undefined,
+          })),
+        })),
+      };
     }
 
     // Build AI generation request
@@ -95,7 +112,6 @@ export async function POST(
       data: {
         orgId,
         workOrderId,
-        procedureTemplateId: procedureTemplateId || null,
         status: AITaskPlanStatus.GENERATING,
         llmModel: DEFAULT_MODEL,
         llmProvider: "anthropic",

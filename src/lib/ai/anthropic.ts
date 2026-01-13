@@ -65,9 +65,18 @@ export interface AITaskGenerationRequest {
     };
   };
   procedureContext?: {
-    templateName: string;
-    templateDescription?: string;
-    standardsPackName?: string;
+    templates: Array<{
+      name: string;
+      description?: string;
+      context: string;
+      steps: Array<{
+        title: string;
+        description?: string;
+        domain?: string;
+        isCritical: boolean;
+        estimatedMinutes?: number;
+      }>;
+    }>;
   };
   userInstructions?: string;
 }
@@ -211,16 +220,32 @@ function buildTaskGenerationPrompt(request: AITaskGenerationRequest): string {
   }
 
   // Procedure template context
-  if (request.procedureContext) {
-    prompt += `**Procedure Template:**\n`;
-    prompt += `- Template: ${request.procedureContext.templateName}\n`;
-    if (request.procedureContext.templateDescription) {
-      prompt += `- Description: ${request.procedureContext.templateDescription}\n`;
+  if (request.procedureContext?.templates && request.procedureContext.templates.length > 0) {
+    prompt += `**Available Procedure Templates (use as reference):**\n\n`;
+    
+    for (const template of request.procedureContext.templates) {
+      prompt += `Template: "${template.name}"\n`;
+      if (template.description) {
+        prompt += `Description: ${template.description}\n`;
+      }
+      prompt += `Context: ${template.context}\n`;
+      prompt += `Steps:\n`;
+      
+      for (let i = 0; i < template.steps.length; i++) {
+        const step = template.steps[i];
+        prompt += `  ${i + 1}. ${step.title}`;
+        if (step.domain) prompt += ` [${step.domain}]`;
+        if (step.isCritical) prompt += ` [CRITICAL]`;
+        if (step.estimatedMinutes) prompt += ` (~${step.estimatedMinutes} min)`;
+        prompt += `\n`;
+        if (step.description) {
+          prompt += `     ${step.description}\n`;
+        }
+      }
+      prompt += `\n`;
     }
-    if (request.procedureContext.standardsPackName) {
-      prompt += `- Standards Pack: ${request.procedureContext.standardsPackName}\n`;
-    }
-    prompt += `\n`;
+    
+    prompt += `Use these templates as a starting point, but adapt the tasks to match the specific work order requirements. You may add, remove, or modify steps as needed.\n\n`;
   }
 
   // User instructions

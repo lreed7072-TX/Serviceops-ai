@@ -200,6 +200,7 @@ export default function WorkOrdersPage() {
   );
   const [assetModalError, setAssetModalError] = useState<string | null>(null);
   const [assetModalSaving, setAssetModalSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const NEW_CUSTOMER_VALUE = "__workorder_add_customer__";
   const NEW_SITE_VALUE = "__workorder_add_site__";
@@ -260,6 +261,16 @@ export default function WorkOrdersPage() {
     }
     return assets;
   }, [assets, form.customerId, form.siteId]);
+
+  const filteredWorkOrders = useMemo(() => {
+    if (!searchQuery.trim()) return workOrders;
+    const query = searchQuery.toLowerCase();
+    return workOrders.filter(wo => 
+      wo.title.toLowerCase().includes(query) ||
+      wo.status.toLowerCase().includes(query) ||
+      (wo as any).workOrderNumber?.toLowerCase().includes(query)
+    );
+  }, [workOrders, searchQuery]);
 
   const canSubmit =
     form.title.trim().length > 0 && form.customerId.length > 0 && form.siteId.length > 0;
@@ -803,10 +814,32 @@ export default function WorkOrdersPage() {
             Refresh
           </button>
         </div>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+          <input
+            type="text"
+            placeholder="Search work orders by title, status, or number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ 
+              width: "100%", 
+              padding: "8px 12px", 
+              borderRadius: 6, 
+              border: "1px solid var(--border)",
+              fontSize: 14
+            }}
+          />
+          {searchQuery && (
+            <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-muted)" }}>
+              Found {filteredWorkOrders.length} of {workOrders.length} work orders
+            </div>
+          )}
+        </div>
         {loading ? (
-          <p>Loading work orders…</p>
-        ) : workOrders.length === 0 ? (
-          <p>No work orders yet. Create the first one above.</p>
+          <p style={{ padding: 20 }}>Loading work orders…</p>
+        ) : filteredWorkOrders.length === 0 ? (
+          <p style={{ padding: 20 }}>
+            {searchQuery ? "No work orders match your search." : "No work orders yet. Create the first one above."}
+          </p>
         ) : (
           <table className="table">
             <thead>
@@ -821,7 +854,7 @@ export default function WorkOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {workOrders.map((workOrder) => (
+              {filteredWorkOrders.map((workOrder) => (
                 <tr key={workOrder.id}>
                     <td>{(workOrder as any).workOrderNumber ?? "—"}</td>
                     <td><span className={`order-type-badge ${((workOrder as any).orderType ?? "WORK_ORDER").toLowerCase().replace("_", "-")}`}>{((workOrder as any).orderType ?? "WORK_ORDER").replace("_", " ")}</span></td>

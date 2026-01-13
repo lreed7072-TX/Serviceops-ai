@@ -294,6 +294,7 @@ export default function WorkOrderDetailPage() {
             {aiSuccess && <div className="alert alert-success" style={{ marginTop: 12 }}>{aiSuccess}</div>}
           </div>
         </div>
+        </>
       )}
 
       {/* Quick Stats Summary */}

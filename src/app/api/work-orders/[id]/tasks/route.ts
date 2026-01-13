@@ -48,7 +48,11 @@ export async function GET(request: Request, { params }: RouteParams) {
   const tasks = await prisma.taskInstance.findMany({
     where: whereTasks,
     orderBy: [{ sequenceNumber: "asc" }, { createdAt: "asc" }],
-    include: { workPackage: true },
+    include: { 
+      workPackage: true,
+      assignedTo: { select: { id: true, name: true, email: true } },
+      blockedBy: { select: { id: true, title: true, status: true } },
+    },
   });
 
   return NextResponse.json({ data: tasks });

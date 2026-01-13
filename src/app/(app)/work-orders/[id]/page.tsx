@@ -10,7 +10,11 @@ import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { AITaskReviewModal } from "@/components/AITaskReviewModal";
 
-type TaskWithPackage = TaskInstance & { workPackage: WorkPackage };
+type TaskWithPackage = TaskInstance & { 
+  workPackage: WorkPackage;
+  assignedTo?: { id: string; name: string | null; email: string } | null;
+  blockedBy?: { id: string; title: string; status: string } | null;
+};
 type MaterialUsage = { id: string; name: string; partNumber: string | null; quantity: number; unitCost: number | null; unit: string | null; totalCost: number | null; taskInstanceId: string; };
 type SignatureData = { id: string; signatureType: "CUSTOMER" | "TECH" | "WITNESS"; signerName: string; signerTitle: string | null; signatureData: string; signedAt: string; };
 
@@ -376,6 +380,11 @@ export default function WorkOrderDetailPage() {
                             <div className="task-card-info">
                               <strong>{task.title}</strong>
                               {task.isCritical && <span className="badge critical">Critical</span>}
+                              {task.blockedBy && task.blockedBy.status !== "DONE" && (
+                                <span className="badge" style={{ background: "#ef4444", color: "white" }}>
+                                  🔒 Blocked by: {task.blockedBy.title}
+                                </span>
+                              )}
                               {task.description && <p className="task-desc">{task.description}</p>}
                             </div>
                             <div className="task-card-meta">

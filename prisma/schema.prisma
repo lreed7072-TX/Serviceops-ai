@@ -391,6 +391,7 @@ model TaskInstance {
   assignedToId  String?     @db.Uuid
   isCritical    Boolean     @default(false)
   requiresEvidence Boolean  @default(false)
+  blockedById   String?     @db.Uuid  // Task that must complete before this one
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -398,6 +399,8 @@ model TaskInstance {
   workOrder  WorkOrder   @relation(fields: [workOrderId], references: [id])
   workPackage WorkPackage @relation(fields: [workPackageId], references: [id])
   assignedTo User?       @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  blockedBy  TaskInstance? @relation("TaskDependency", fields: [blockedById], references: [id], onDelete: SetNull)
+  blockingTasks TaskInstance[] @relation("TaskDependency")
   evidence   TaskEvidence[]
   timeEntries TimeEntry[]
   measurements TaskMeasurement[]
@@ -408,6 +411,7 @@ model TaskInstance {
   @@index([orgId])
   @@index([orgId, workOrderId])
   @@index([orgId, workPackageId])
+  @@index([blockedById])
 }
 
 model TaskEvidence {

@@ -320,12 +320,24 @@ export default function WorkOrderDetailPage() {
         ) : (
           packages.map((pkg) => {
             const pkgTasks = groupedTasks[pkg.id] ?? [];
+            const completedCount = pkgTasks.filter(t => t.status === "DONE").length;
+            const totalCount = pkgTasks.length;
+            const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+            
             return (
               <div key={pkg.id} className="package-section">
                 <div className="package-header">
                   <div>
                     <h3>{pkg.name}</h3>
-                    <span className="badge">{pkg.packageType}</span>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
+                      <span className="badge">{pkg.packageType}</span>
+                      <span className="badge" style={{ 
+                        background: completionPercent === 100 ? "#10b981" : completionPercent > 0 ? "#f59e0b" : "#6b7280",
+                        color: "white"
+                      }}>
+                        {completedCount}/{totalCount} Complete ({completionPercent}%)
+                      </span>
+                    </div>
                   </div>
                   <div className="package-meta">
                     <span>Status: {pkg.status}</span>

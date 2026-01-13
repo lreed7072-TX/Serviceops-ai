@@ -31,6 +31,23 @@ type DashboardStats = {
     activeToday: number;
     totalHoursThisWeek: number;
   };
+  ai: {
+    generated: number;
+    approved: number;
+    rejected: number;
+  };
+  tasks: {
+    total: number;
+    todo: number;
+    inProgress: number;
+    done: number;
+    blocked: number;
+    completionRate: number;
+  };
+  packages: {
+    total: number;
+    byType: { type: string; count: number }[];
+  };
   recentActivity: {
     id: string;
     type: "WORK_ORDER" | "QUOTE" | "TASK" | "SIGNATURE";
@@ -192,6 +209,71 @@ export default function DashboardPage() {
               <span className="stat-value">{stats.technicians.totalHoursThisWeek.toFixed(1)}</span>
             </div>
           </div>
+        </div>
+
+        {/* AI Stats */}
+        <div className="stat-card" style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", border: "none", color: "white" }}>
+          <div className="stat-header" style={{ borderBottomColor: "rgba(255,255,255,0.2)" }}>
+            <h3>✨ AI Generation</h3>
+            <span className="stat-total" style={{ color: "white" }}>{stats.ai.approved}</span>
+          </div>
+          <div className="stat-breakdown">
+            <div className="stat-row">
+              <span className="stat-label">Generated</span>
+              <span className="stat-value">{stats.ai.generated}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Approved</span>
+              <span className="stat-value">{stats.ai.approved}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Rejected</span>
+              <span className="stat-value">{stats.ai.rejected}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Task Stats */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <h3>Tasks</h3>
+            <span className="stat-total">{stats.tasks.total}</span>
+          </div>
+          <div className="stat-breakdown">
+            <div className="stat-row">
+              <span className="stat-label">Done</span>
+              <span className="stat-value status-green">{stats.tasks.done}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">In Progress</span>
+              <span className="stat-value status-blue">{stats.tasks.inProgress}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Blocked</span>
+              <span className="stat-value status-red">{stats.tasks.blocked}</span>
+            </div>
+          </div>
+          <div className="stat-footer" style={{ marginTop: 12, fontSize: 14, fontWeight: 600 }}>
+            Completion Rate: {stats.tasks.completionRate}%
+          </div>
+        </div>
+
+        {/* Package Stats */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <h3>Work Packages</h3>
+            <span className="stat-total">{stats.packages.total}</span>
+          </div>
+          {stats.packages.byType.length > 0 && (
+            <div className="stat-breakdown">
+              {stats.packages.byType.map((p) => (
+                <div key={p.type} className="stat-row">
+                  <span className="stat-label">{p.type.replace(/_/g, ' ')}</span>
+                  <span className="stat-value">{p.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

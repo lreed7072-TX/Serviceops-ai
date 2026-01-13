@@ -183,6 +183,40 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 10);
 
+    // AI & Task Stats
+    const aiTaskPlans = await prisma.aITaskPlan.groupBy({
+      by: ['status'],
+      where: { orgId },
+      _count: { id: true },
+    });
+
+    const aiGenerated = aiTaskPlans.find(g => g.status === 'GENERATED')?._count.id || 0;
+    const aiApproved = aiTaskPlans.find(g => g.status === 'APPROVED')?._count.id || 0;
+    const aiRejected = aiTaskPlans.find(g => g.status === 'REJECTED')?._count.id || 0;
+
+    const allTasks = await prisma.taskInstance.groupBy({
+      by: ['status'],
+      where: { orgId },
+      _count: { id: true },
+    });
+
+    const totalTasks = allTasks.reduce((sum, g) => sum + g._count.id, 0);
+    const tasksTodo = allTasks.find(g => g.status === 'TODO')?._count.id || 0;
+    const tasksInProgress = allTasks.find(g => g.status === 'IN_PROGRESS')?._count.id || 0;
+    const tasksDone = allTasks.find(g => g.status === 'DONE')?._count.id || 0;
+    const tasksBlocked = allTasks.find(g => g.status === 'BLOCKED')?._count.id || 0;
+
+    const completionRate = totalTasks > 0 ? Math.round((tasksDone / totalTasks) * 100) : 0;
+
+    // Package Stats
+    const packages = await prisma.workPackage.groupBy({
+      by: ['packageType'],
+      where: { orgId },
+      _count: { id: true },
+    });
+
+    const totalPackages = packages.reduce((sum, g) => sum + g._count.id, 0);
+
     const stats = {
       workOrders: {
         total: woTotal,
@@ -211,6 +245,26 @@ export async function GET(req: NextRequest) {
         total: technicianCount,
         activeToday: activeTodayTimers.length,
         totalHoursThisWeek,
+      },
+      ai: {
+        generated: aiGenerated,
+        approved: aiApproved,
+        rejected: aiRejected,
+      },
+      tasks: {
+        total: totalTasks,
+        todo: tasksTodo,
+        inProgress: tasksInProgress,
+        done: tasksDone,
+        blocked: tasksBlocked,
+        completionRate,
+      },
+      packages: {
+        total: totalPackages,
+        byType: packages.map(g => ({
+          type: g.packageType,
+          count: g._count.id,
+        })),
       },
       recentActivity,
     };

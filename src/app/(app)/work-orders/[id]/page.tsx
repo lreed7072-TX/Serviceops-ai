@@ -242,6 +242,17 @@ export default function WorkOrderDetailPage() {
           <Link href="/work-orders" className="back-link">← Work Orders</Link>
           <h1>{workOrder?.title ?? "Work Order"}</h1>
         </div>
+        {workOrder && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => window.open(`/api/work-orders/${workOrderId}/report`, '_blank')}
+              className="btn btn-outline"
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              📄 Download Report
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}

@@ -76,10 +76,11 @@ export async function POST(request: Request, { params }: RouteParams) {
   const invoiceNumber = `INV-${String(nextNumber).padStart(6, "0")}`;
 
   // Fetch labor rate for this org (TECH role)
-  const laborRateConfig = await prisma.laborRate.findFirst({
+  const laborRateConfig = await prisma.laborRateConfig.findFirst({
     where: {
       orgId: auth.orgId,
       role: "TECH",
+      isActive: true,
     },
   });
 

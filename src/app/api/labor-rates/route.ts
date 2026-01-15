@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const rates = await prisma.laborRate.findMany({
+  const rates = await prisma.laborRateConfig.findMany({
     where: { orgId: authResult.auth.orgId },
     orderBy: { role: "asc" },
   });
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   // Check if rate already exists for this role
-  const existing = await prisma.laborRate.findUnique({
+  const existing = await prisma.laborRateConfig.findUnique({
     where: {
       orgId_role: {
         orgId: authResult.auth.orgId,
@@ -54,24 +54,22 @@ export async function POST(request: Request) {
 
   if (existing) {
     // Update existing rate
-    const updated = await prisma.laborRate.update({
+    const updated = await prisma.laborRateConfig.update({
       where: { id: existing.id },
       data: {
         hourlyRate: new Decimal(body.hourlyRate),
-        description: body.description || null,
-        isDefault: body.isDefault || false,
+        isActive: body.isActive !== undefined ? body.isActive : true,
       },
     });
     return NextResponse.json({ data: updated });
   } else {
     // Create new rate
-    const rate = await prisma.laborRate.create({
+    const rate = await prisma.laborRateConfig.create({
       data: {
         orgId: authResult.auth.orgId,
         role: body.role,
         hourlyRate: new Decimal(body.hourlyRate),
-        description: body.description || null,
-        isDefault: body.isDefault || false,
+        isActive: body.isActive !== undefined ? body.isActive : true,
       },
     });
     return NextResponse.json({ data: rate }, { status: 201 });

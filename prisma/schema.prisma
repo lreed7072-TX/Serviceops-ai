@@ -1092,28 +1092,6 @@ model InvoiceLineItem {
   @@index([invoiceId])
 }
 
-// ============================================
-// LABOR RATE CONFIGURATION
-// ============================================
-
-model LaborRate {
-  id          String   @id @default(uuid()) @db.Uuid
-  orgId       String   @db.Uuid
-  role        Role     // TECH role for now, could expand to DISPATCHER, etc.
-  hourlyRate  Decimal  @db.Decimal(10, 2) // e.g., 85.00
-  description String?  // e.g., "Standard Technician Rate", "Senior Technician Rate"
-  isDefault   Boolean  @default(false) // If true, used when no specific rate found
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  org Org @relation(fields: [orgId], references: [id])
-
-  @@unique([orgId, role]) // One rate per role per org
-  @@index([orgId])
-  @@index([orgId, isDefault])
-}
-
-
 
 // ============================================
 // AI ORCHESTRATOR - Procedure Templates & Task Generation

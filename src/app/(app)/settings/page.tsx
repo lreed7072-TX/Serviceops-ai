@@ -8,8 +8,7 @@ type LaborRate = {
   id: string;
   role: string;
   hourlyRate: number;
-  description: string | null;
-  isDefault: boolean;
+  isActive: boolean;
 };
 
 export default function SettingsPage() {
@@ -20,7 +19,6 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   
   const [techRate, setTechRate] = useState<string>("");
-  const [techDescription, setTechDescription] = useState<string>("");
 
   useEffect(() => {
     loadRates();
@@ -39,10 +37,8 @@ export default function SettingsPage() {
       const techRateData = data.data.find((r: LaborRate) => r.role === "TECH");
       if (techRateData) {
         setTechRate(techRateData.hourlyRate.toString());
-        setTechDescription(techRateData.description || "");
       } else {
         setTechRate("85"); // Default
-        setTechDescription("Standard Technician Rate");
       }
     } catch (e: any) {
       setError(e?.message ?? "Failed to load labor rates");
@@ -69,8 +65,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           role: "TECH",
           hourlyRate: rateValue,
-          description: techDescription || "Standard Technician Rate",
-          isDefault: true,
+          isActive: true,
         }),
       });
 
@@ -135,24 +130,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 8 }}>
-              Description (Optional)
-            </label>
-            <input
-              type="text"
-              value={techDescription}
-              onChange={(e) => setTechDescription(e.target.value)}
-              placeholder="e.g., Standard Technician Rate"
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--border)",
-                borderRadius: 6,
-              }}
-            />
-          </div>
-
           <button
             onClick={saveTechRate}
             disabled={saving || loading}
@@ -172,23 +149,19 @@ export default function SettingsPage() {
             <thead>
               <tr style={{ borderBottom: "2px solid var(--border)" }}>
                 <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Role</th>
-                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Description</th>
                 <th style={{ textAlign: "right", padding: "12px 8px", fontWeight: 600 }}>Hourly Rate</th>
-                <th style={{ textAlign: "center", padding: "12px 8px", fontWeight: 600 }}>Default</th>
+                <th style={{ textAlign: "center", padding: "12px 8px", fontWeight: 600 }}>Active</th>
               </tr>
             </thead>
             <tbody>
               {rates.map(rate => (
                 <tr key={rate.id} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "12px 8px", fontWeight: 600 }}>{rate.role}</td>
-                  <td style={{ padding: "12px 8px", color: "var(--text-muted)" }}>
-                    {rate.description || "—"}
-                  </td>
                   <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: 600 }}>
                     ${parseFloat(rate.hourlyRate.toString()).toFixed(2)}
                   </td>
                   <td style={{ padding: "12px 8px", textAlign: "center" }}>
-                    {rate.isDefault && <span style={{ color: "var(--primary)" }}>✓</span>}
+                    {rate.isActive && <span style={{ color: "var(--primary)" }}>✓</span>}
                   </td>
                 </tr>
               ))}

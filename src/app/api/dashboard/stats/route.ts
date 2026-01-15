@@ -43,7 +43,38 @@ export async function GET(req: NextRequest) {
     const pendingValue = quotes.find(g => g.status === 'SENT')?._sum.total || 0;
     const approvedValue = quotes.find(g => g.status === 'APPROVED')?._sum.total || 0;
 
-    // Revenue Stats (completed work orders)
+    // Revenue Stats (invoicing)
+    const invoices = await prisma.invoice.groupBy({
+      by: ['status'],
+      where: { orgId },
+      _count: { id: true },
+      _sum: { total: true },
+    });
+
+    const invoicesTotal = invoices.reduce((sum, g) => sum + g._count.id, 0);
+    const invoicesDraft = invoices.find(g => g.status === 'DRAFT')?._count.id || 0;
+    const invoicesSent = invoices.find(g => g.status === 'SENT')?._count.id || 0;
+    const invoicesPaid = invoices.find(g => g.status === 'PAID')?._count.id || 0;
+    const invoicesOverdue = invoices.find(g => g.status === 'OVERDUE')?._count.id || 0;
+    
+    const totalBilled = invoices.reduce((sum, g) => sum + Number(g._sum.total || 0), 0);
+    const paidRevenue = invoices.find(g => g.status === 'PAID')?._sum.total || 0;
+    const pendingRevenue = invoices.filter(g => g.status === 'SENT' || g.status === 'OVERDUE')
+      .reduce((sum, g) => sum + Number(g._sum.total || 0), 0);
+
+    // This month invoiced (created this month)
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const invoicesThisMonth = await prisma.invoice.aggregate({
+      where: {
+        orgId,
+        createdAt: { gte: startOfMonth },
+      },
+      _sum: { total: true },
+    });
+
+    const thisMonthInvoiced = Number(invoicesThisMonth._sum.total || 0);
+
+    // Completed work orders (legacy stat)
     const completedWOs = await prisma.workOrder.findMany({
       where: { orgId, status: 'COMPLETED' },
       select: { id: true },
@@ -58,28 +89,6 @@ export async function GET(req: NextRequest) {
       });
       if (sourceQuote?.total) {
         completedWorkValue += Number(sourceQuote.total);
-      }
-    }
-
-    // This month revenue (completed this month)
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const completedThisMonth = await prisma.workOrder.findMany({
-      where: {
-        orgId,
-        status: 'COMPLETED',
-        updatedAt: { gte: startOfMonth },
-      },
-      select: { id: true },
-    });
-
-    let thisMonthRevenue = 0;
-    for (const wo of completedThisMonth) {
-      const sourceQuote = await prisma.quote.findFirst({
-        where: { convertedToOrderId: wo.id },
-        select: { total: true },
-      });
-      if (sourceQuote?.total) {
-        thisMonthRevenue += Number(sourceQuote.total);
       }
     }
 
@@ -238,8 +247,17 @@ export async function GET(req: NextRequest) {
       },
       revenue: {
         completedWorkValue,
-        pendingInvoices: 0, // TODO: implement when invoicing is built
-        thisMonthRevenue,
+        thisMonthInvoiced,
+        totalBilled,
+        paidRevenue: Number(paidRevenue),
+        pendingRevenue,
+      },
+      invoices: {
+        total: invoicesTotal,
+        draft: invoicesDraft,
+        sent: invoicesSent,
+        paid: invoicesPaid,
+        overdue: invoicesOverdue,
       },
       technicians: {
         total: technicianCount,

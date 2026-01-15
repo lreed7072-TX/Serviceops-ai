@@ -23,8 +23,17 @@ type DashboardStats = {
   };
   revenue: {
     completedWorkValue: number;
-    pendingInvoices: number;
-    thisMonthRevenue: number;
+    thisMonthInvoiced: number;
+    totalBilled: number;
+    paidRevenue: number;
+    pendingRevenue: number;
+  };
+  invoices: {
+    total: number;
+    draft: number;
+    sent: number;
+    paid: number;
+    overdue: number;
   };
   technicians: {
     total: number;
@@ -174,21 +183,47 @@ export default function DashboardPage() {
         {/* Revenue Stats */}
         <div className="stat-card highlight">
           <div className="stat-header">
-            <h3>Revenue</h3>
-            <span className="stat-total revenue">{formatCurrency(stats.revenue.thisMonthRevenue)}</span>
+            <h3>💰 Revenue</h3>
+            <span className="stat-total revenue">{formatCurrency(stats.revenue.totalBilled)}</span>
           </div>
           <div className="stat-breakdown">
             <div className="stat-row">
+              <span className="stat-label">Paid</span>
+              <span className="stat-value status-green">{formatCurrency(stats.revenue.paidRevenue)}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Pending</span>
+              <span className="stat-value status-orange">{formatCurrency(stats.revenue.pendingRevenue)}</span>
+            </div>
+            <div className="stat-row">
               <span className="stat-label">This Month</span>
-              <span className="stat-value">{formatCurrency(stats.revenue.thisMonthRevenue)}</span>
+              <span className="stat-value">{formatCurrency(stats.revenue.thisMonthInvoiced)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice Stats */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <h3>📄 Invoices</h3>
+            <span className="stat-total">{stats.invoices.total}</span>
+          </div>
+          <div className="stat-breakdown">
+            <div className="stat-row">
+              <span className="stat-label">Draft</span>
+              <span className="stat-value">{stats.invoices.draft}</span>
             </div>
             <div className="stat-row">
-              <span className="stat-label">Completed Work</span>
-              <span className="stat-value">{formatCurrency(stats.revenue.completedWorkValue)}</span>
+              <span className="stat-label">Sent</span>
+              <span className="stat-value status-blue">{stats.invoices.sent}</span>
             </div>
             <div className="stat-row">
-              <span className="stat-label">Pending Invoices</span>
-              <span className="stat-value status-orange">{stats.revenue.pendingInvoices}</span>
+              <span className="stat-label">Paid</span>
+              <span className="stat-value status-green">{stats.invoices.paid}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Overdue</span>
+              <span className="stat-value status-red">{stats.invoices.overdue}</span>
             </div>
           </div>
         </div>

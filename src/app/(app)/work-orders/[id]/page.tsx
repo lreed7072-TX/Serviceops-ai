@@ -303,11 +303,17 @@ export default function WorkOrderDetailPage() {
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Tasks</div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{tasks.length}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+              {tasks.filter(t => t.status === "NOT_STARTED").length} not started • {tasks.filter(t => t.status === "IN_PROGRESS").length} in progress
+            </div>
           </div>
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completed</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#10b981" }}>
               {tasks.filter(t => t.status === "DONE").length}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+              {tasks.filter(t => t.status === "DONE").length} of {tasks.length} tasks
             </div>
           </div>
           <div className="card" style={{ padding: 16 }}>
@@ -315,11 +321,17 @@ export default function WorkOrderDetailPage() {
             <div style={{ fontSize: 28, fontWeight: 700, color: "#3b82f6" }}>
               {Math.round((tasks.filter(t => t.status === "DONE").length / tasks.length) * 100)}%
             </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+              {packages.filter(p => (p as any)._count?.tasks === (p as any)._count?.completedTasks).length} of {packages.length} packages complete
+            </div>
           </div>
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Materials Cost</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#f59e0b" }}>
               ${materials.reduce((sum, m) => sum + (m.totalCost || 0), 0).toFixed(2)}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+              {materials.length} items used
             </div>
           </div>
         </div>

@@ -167,7 +167,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const tax = subtotal * (taxRate / 100);
   const total = subtotal + tax;
 
-  // Create invoice with line items
+  // Create invoice first
   const invoice = await prisma.invoice.create({
     data: {
       orgId: auth.orgId,
@@ -182,24 +182,32 @@ export async function POST(request: Request, { params }: RouteParams) {
       tax: new Decimal(tax.toFixed(2)),
       taxRate: new Decimal(taxRate.toFixed(2)),
       total: new Decimal(total.toFixed(2)),
-      dueDate: null, // Can be set later
+      dueDate: null,
       notes: null,
       terms: "Payment due within 30 days",
       createdByUserId: auth.userId,
-      lineItems: {
-        create: [...laborLineItems, ...materialLineItems].map(item => ({
-          orgId: auth.orgId,
-          itemType: item.itemType,
-          description: item.description,
-          quantity: new Decimal(item.quantity.toFixed(2)),
-          unitPrice: new Decimal(item.unitPrice.toFixed(2)),
-          totalPrice: new Decimal(item.totalPrice.toFixed(2)),
-          taskId: item.taskId || null,
-          materialUsageId: ("materialUsageId" in item ? item.materialUsageId : null) || null,
-          sortOrder: item.sortOrder,
-        })),
-      },
     },
+  });
+
+  // Create line items separately
+  await prisma.invoiceLineItem.createMany({
+    data: [...laborLineItems, ...materialLineItems].map(item => ({
+      orgId: auth.orgId,
+      invoiceId: invoice.id,
+      itemType: item.itemType,
+      description: item.description,
+      quantity: new Decimal(item.quantity.toFixed(2)),
+      unitPrice: new Decimal(item.unitPrice.toFixed(2)),
+      totalPrice: new Decimal(item.totalPrice.toFixed(2)),
+      taskId: item.taskId || null,
+      materialUsageId: ("materialUsageId" in item ? item.materialUsageId : null) || null,
+      sortOrder: item.sortOrder,
+    })),
+  });
+
+  // Fetch complete invoice with line items for response
+  const completeInvoice = await prisma.invoice.findUnique({
+    where: { id: invoice.id },
     include: {
       customer: true,
       site: true,
@@ -210,5 +218,5 @@ export async function POST(request: Request, { params }: RouteParams) {
     },
   });
 
-  return NextResponse.json({ data: invoice }, { status: 201 });
+  return NextResponse.json({ data: completeInvoice }, { status: 201 });
 }

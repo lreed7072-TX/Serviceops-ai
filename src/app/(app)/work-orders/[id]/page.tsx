@@ -299,7 +299,7 @@ export default function WorkOrderDetailPage() {
 
       {/* Quick Stats Summary */}
       {workOrder && tasks.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Tasks</div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{tasks.length}</div>
@@ -317,12 +317,21 @@ export default function WorkOrderDetailPage() {
             </div>
           </div>
           <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completion Rate</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completion</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#3b82f6" }}>
               {Math.round((tasks.filter(t => t.status === "DONE").length / tasks.length) * 100)}%
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-              {packages.filter(p => (p as any)._count?.tasks === (p as any)._count?.completedTasks).length} of {packages.length} packages complete
+              {packages.filter(p => (p as any)._count?.tasks === (p as any)._count?.completedTasks).length} of {packages.length} packages
+            </div>
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Time Logged</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#8b5cf6" }}>
+              {Math.round(tasks.reduce((sum, t) => sum + ((t as any).elapsedSeconds || 0), 0) / 60)}m
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+              {(Math.round(tasks.reduce((sum, t) => sum + ((t as any).elapsedSeconds || 0), 0) / 3600 * 10) / 10).toFixed(1)} hours total
             </div>
           </div>
           <div className="card" style={{ padding: 16 }}>

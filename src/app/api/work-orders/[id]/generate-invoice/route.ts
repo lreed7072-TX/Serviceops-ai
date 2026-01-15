@@ -204,7 +204,6 @@ export async function POST(request: Request, { params }: RouteParams) {
       sortOrder: item.sortOrder,
     })),
   });
-  });
 
   // Fetch complete invoice with line items for response
   const completeInvoice = await prisma.invoice.findUnique({

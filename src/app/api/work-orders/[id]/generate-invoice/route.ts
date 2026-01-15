@@ -75,6 +75,18 @@ export async function POST(request: Request, { params }: RouteParams) {
     : 1;
   const invoiceNumber = `INV-${String(nextNumber).padStart(6, "0")}`;
 
+  // Fetch labor rate for this org (TECH role)
+  const laborRateConfig = await prisma.laborRate.findFirst({
+    where: {
+      orgId: auth.orgId,
+      role: "TECH",
+    },
+  });
+
+  const LABOR_RATE = laborRateConfig 
+    ? parseFloat(laborRateConfig.hourlyRate.toString())
+    : 85; // Default fallback rate
+
   // Calculate labor line items
   const laborLineItems: Array<{
     itemType: InvoiceLineItemType;
@@ -85,9 +97,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     taskId: string | null;
     sortOrder: number;
   }> = [];
-
-  // Default labor rate: $85/hour (can be made configurable per org/role later)
-  const DEFAULT_LABOR_RATE = 85;
 
   const allTasks = workOrder.packages.flatMap(pkg => pkg.tasks);
   let laborSortOrder = 0;
@@ -106,8 +115,8 @@ export async function POST(request: Request, { params }: RouteParams) {
         itemType: InvoiceLineItemType.LABOR,
         description: `Labor: ${task.title} (${techNames})`,
         quantity: parseFloat(hours.toFixed(2)),
-        unitPrice: DEFAULT_LABOR_RATE,
-        totalPrice: parseFloat((hours * DEFAULT_LABOR_RATE).toFixed(2)),
+        unitPrice: LABOR_RATE,
+        totalPrice: parseFloat((hours * LABOR_RATE).toFixed(2)),
         taskId: task.id,
         sortOrder: laborSortOrder++,
       });

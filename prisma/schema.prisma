@@ -191,6 +191,8 @@ model Org {
   procedureStepTemplates ProcedureStepTemplate[]
   workflowDefinitions WorkflowDefinition[]
   aiTaskPlans AITaskPlan[]
+  billingConfig BillingConfig?
+  laborRates LaborRateConfig[]
 }
 
 model User {
@@ -979,6 +981,39 @@ model QuoteLineItem {
 // ============================================
 // INVOICING MODULE
 // ============================================
+
+// Billing Configuration for Organizations
+model BillingConfig {
+  id                    String   @id @default(uuid()) @db.Uuid
+  orgId                 String   @unique @db.Uuid
+  defaultTaxRate        Decimal  @default(0) @db.Decimal(5, 2) // e.g., 8.25 = 8.25%
+  materialMarkupPercent Decimal  @default(0) @db.Decimal(5, 2) // e.g., 15.00 = 15%
+  defaultPaymentTerms   String   @default("Payment due within 30 days")
+  invoicePrefix         String   @default("INV")
+  quotePrefix           String   @default("QTE")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+// Labor Rate Configuration per Role
+model LaborRateConfig {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @db.Uuid
+  role       Role     // TECH, ADMIN, DISPATCHER
+  hourlyRate Decimal  @db.Decimal(10, 2) // e.g., 85.00
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, role])
+  @@index([orgId])
+}
 
 enum InvoiceStatus {
   DRAFT

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
+import { TaskStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -76,7 +77,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   // Calculate summary statistics
   const allTasks = workOrder.packages.flatMap(pkg => pkg.tasks);
-  const completedTasks = allTasks.filter(t => t.status === "DONE");
+  const completedTasks = allTasks.filter(t => t.status === TaskStatus.DONE);
   const totalMaterialsCost = allTasks
     .flatMap(t => t.materialUsages)
     .reduce((sum, m) => sum + (m.totalCost || 0), 0);

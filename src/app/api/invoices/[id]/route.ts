@@ -45,7 +45,7 @@ export async function PATCH(
   const { auth } = authResult;
   const { orgId } = auth;
 
-  const body = await parseJson(req);
+  const body = await parseJson(req) as any;
   
   // Check invoice exists
   const existing = await prisma.invoice.findFirst({
@@ -59,7 +59,7 @@ export async function PATCH(
   const updateData: any = {};
 
   // Update status
-  if (body.status && Object.values(InvoiceStatus).includes(body.status)) {
+  if (body?.status && Object.values(InvoiceStatus).includes(body.status)) {
     updateData.status = body.status;
     
     // Set paidAt when status becomes PAID
@@ -74,13 +74,13 @@ export async function PATCH(
   }
 
   // Update other fields if provided
-  if (body.dueDate !== undefined) {
+  if (body?.dueDate !== undefined) {
     updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
   }
-  if (body.notes !== undefined) {
+  if (body?.notes !== undefined) {
     updateData.notes = body.notes;
   }
-  if (body.terms !== undefined) {
+  if (body?.terms !== undefined) {
     updateData.terms = body.terms;
   }
 

@@ -43,7 +43,7 @@ export async function GET(request: Request, { params }: RouteParams) {
                 include: {
                   measurementDefinition: true,
                 },
-                orderBy: { recordedAt: "asc" },
+                orderBy: { capturedAt: "asc" },
               },
               materialUsages: {
                 include: {
@@ -133,10 +133,10 @@ export async function GET(request: Request, { params }: RouteParams) {
           createdAt: e.createdAt,
         })),
         measurements: task.measurements.map(m => ({
-          name: m.definition?.name || "Unknown",
-          value: m.numericValue || m.textValue || (m.passFailValue ? "PASS" : "FAIL"),
-          unit: m.definition?.unit,
-          recordedAt: m.recordedAt,
+          name: m.measurementDefinition?.name || "Unknown",
+          value: m.numericValue || m.textValue || (m.passFail ? "PASS" : "FAIL"),
+          unit: m.measurementDefinition?.unit,
+          recordedAt: m.capturedAt,
         })),
         materials: task.materialUsages.map(m => ({
           name: m.name,

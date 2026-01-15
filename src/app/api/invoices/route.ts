@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  const body = await parseJson(request);
+  const body = await parseJson(request) as any;
   if (!body?.customerId || !body?.title) {
     return jsonError("customerId and title are required.", 400);
   }

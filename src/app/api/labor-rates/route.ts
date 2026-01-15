@@ -36,9 +36,9 @@ export async function POST(request: Request) {
     return jsonError("Only admins can manage labor rates.", 403);
   }
 
-  const body = await parseJson(request);
+  const body = await parseJson(request) as any;
   
-  if (!body?.role || body.hourlyRate === undefined) {
+  if (!body?.role || body?.hourlyRate === undefined) {
     return jsonError("role and hourlyRate are required.", 400);
   }
 

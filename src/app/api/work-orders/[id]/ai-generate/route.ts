@@ -70,7 +70,7 @@ export async function POST(
         templates: matchingTemplates.map((template) => ({
           name: template.name,
           description: template.description || undefined,
-          context: template.context,
+          context: template.context || "", // Convert null to empty string for AI API
           steps: template.steps.map((step) => ({
             title: step.title,
             description: step.description || undefined,

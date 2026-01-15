@@ -48,6 +48,8 @@ export default function WorkOrderDetailPage() {
   const [aiModalData, setAiModalData] = useState<any>(null);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [editTaskForm, setEditTaskForm] = useState<{ assignedToId: string }>({ assignedToId: "" });
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workOrderId) return;
@@ -211,6 +213,36 @@ export default function WorkOrderDetailPage() {
     }, 2000);
   };
 
+  const handleGenerateInvoice = async () => {
+    if (!workOrderId) return;
+    
+    setGeneratingInvoice(true);
+    setInvoiceError(null);
+    
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/generate-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to generate invoice");
+      }
+      
+      const data = await res.json();
+      const invoiceId = data.data.id;
+      
+      // Redirect to invoice page
+      window.location.href = `/invoices/${invoiceId}`;
+      
+    } catch (e: any) {
+      setInvoiceError(e?.message ?? "Failed to generate invoice");
+    } finally {
+      setGeneratingInvoice(false);
+    }
+  };
+
   const handleEditTask = (task: TaskWithPackage) => {
     setEditingTask(task.id);
     setEditTaskForm({ assignedToId: task.assignedToId || "" });
@@ -251,11 +283,20 @@ export default function WorkOrderDetailPage() {
             >
               📄 Download Report
             </button>
+            <button
+              onClick={handleGenerateInvoice}
+              disabled={generatingInvoice}
+              className="btn-primary"
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              {generatingInvoice ? "Generating..." : "💰 Generate Invoice"}
+            </button>
           </div>
         )}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
+      {invoiceError && <div className="alert alert-error">{invoiceError}</div>}
       {loading && <div className="alert alert-info">Loading...</div>}
 
       {workOrder && (

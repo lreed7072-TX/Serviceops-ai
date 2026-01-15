@@ -1,208 +1,180 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import { PageHeader } from "@/components/ui/PageHeader";
 
-type Customer = { id: string; name: string };
 type Invoice = {
   id: string;
   invoiceNumber: string;
-  title: string;
   status: string;
-  subtotal: number;
-  tax: number;
+  title: string;
   total: number;
   dueDate: string | null;
-  issuedAt: string | null;
-  paidAt: string | null;
   createdAt: string;
   customer: { id: string; name: string };
-  site: { id: string; name: string } | null;
-  workOrder: { id: string; workOrderNumber: string } | null;
+  workOrder: { id: string; title: string; workOrderNumber: string | null } | null;
   _count: { lineItems: number };
 };
 
 const statusColors: Record<string, string> = {
-  DRAFT: "gray",
-  ISSUED: "blue",
-  PAID: "green",
-  OVERDUE: "red",
-  VOID: "orange",
+  DRAFT: "#6b7280",
+  SENT: "#3b82f6",
+  PAID: "#10b981",
+  OVERDUE: "#ef4444",
+  CANCELED: "#9ca3af",
 };
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Filters
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [customerFilter, setCustomerFilter] = useState<string>("");
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter) params.append("status", statusFilter);
-      if (customerFilter) params.append("customerId", customerFilter);
-
-      const [iRes, cRes] = await Promise.all([
-        apiFetch(`/api/invoices?${params.toString()}`, { cache: "no-store" }),
-        apiFetch("/api/customers", { cache: "no-store" }),
-      ]);
-      
-      if (iRes.ok) setInvoices((await iRes.json()).data ?? []);
-      if (cRes.ok) setCustomers((await cRes.json()).data ?? []);
-    } catch (e: any) {
-      setError(e?.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { loadData(); }, [statusFilter, customerFilter]);
-
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
-  const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
-
-  // Calculate totals
-  const totalAmount = invoices.reduce((sum, inv) => sum + Number(inv.total), 0);
-  const paidAmount = invoices
-    .filter((inv) => inv.status === "PAID")
-    .reduce((sum, inv) => sum + Number(inv.total), 0);
-  const overdueAmount = invoices
-    .filter((inv) => inv.status === "OVERDUE")
-    .reduce((sum, inv) => sum + Number(inv.total), 0);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (statusFilter) params.append("status", statusFilter);
+        
+        const res = await apiFetch(`/api/invoices?${params.toString()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load invoices");
+        
+        const data = await res.json();
+        setInvoices(data.data ?? []);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load invoices");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [statusFilter]);
 
   return (
-    <div>
-      <PageHeader title="Invoices" subtitle="Manage customer invoices and payments" />
+    <div className="page-container">
+      <div className="page-header">
+        <h1>Invoices</h1>
+      </div>
 
-      {error && <div className="page-alert error">{error}</div>}
-
-      {/* Summary Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Outstanding</div>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "var(--primary)" }}>{formatCurrency(totalAmount - paidAmount)}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Paid</div>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "var(--success)" }}>{formatCurrency(paidAmount)}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Overdue</div>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "var(--danger)" }}>{formatCurrency(overdueAmount)}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Invoices</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{invoices.length}</div>
+      {/* Filters */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 600 }}>Filter by status:</span>
+          <button 
+            onClick={() => setStatusFilter("")}
+            className={`btn ${statusFilter === "" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "6px 12px", fontSize: 14 }}
+          >
+            All
+          </button>
+          {["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELED"].map(status => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`btn ${statusFilter === status ? "btn-primary" : "btn-outline"}`}
+              style={{ padding: "6px 12px", fontSize: 14 }}
+            >
+              {status}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h3>Invoices</h3>
-          <Link href="/invoices/new" className="btn btn-primary">
-            + New Invoice
-          </Link>
-        </div>
+      {error && <div className="alert alert-error">{error}</div>}
+      {loading && <div className="alert alert-info">Loading invoices...</div>}
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 16, padding: "0 20px" }}>
-          <label className="form-field" style={{ flex: 1 }}>
-            <span>Status</span>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All Statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="ISSUED">Issued</option>
-              <option value="PAID">Paid</option>
-              <option value="OVERDUE">Overdue</option>
-              <option value="VOID">Void</option>
-            </select>
-          </label>
-          <label className="form-field" style={{ flex: 1 }}>
-            <span>Customer</span>
-            <select value={customerFilter} onChange={(e) => setCustomerFilter(e.target.value)}>
-              <option value="">All Customers</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        {loading ? (
-          <p style={{ padding: 20 }}>Loading invoices...</p>
-        ) : invoices.length === 0 ? (
-          <p className="muted" style={{ textAlign: "center", padding: 40 }}>
-            {statusFilter || customerFilter ? "No invoices match the selected filters." : "No invoices yet. Create your first invoice to get started."}
+      {!loading && invoices.length === 0 && (
+        <div className="card">
+          <p style={{ textAlign: "center", color: "var(--text-muted)" }}>
+            No invoices found. Generate invoices from completed work orders.
           </p>
-        ) : (
-          <table className="table">
+        </div>
+      )}
+
+      {!loading && invoices.length > 0 && (
+        <div className="card">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr>
-                <th>Invoice #</th>
-                <th>Title</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Items</th>
-                <th style={{ textAlign: "right" }}>Amount</th>
-                <th>Due Date</th>
-                <th>Created</th>
-                <th></th>
+              <tr style={{ borderBottom: "2px solid var(--border)" }}>
+                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Invoice #</th>
+                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Customer</th>
+                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Work Order</th>
+                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Status</th>
+                <th style={{ textAlign: "right", padding: "12px 8px", fontWeight: 600 }}>Total</th>
+                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Due Date</th>
+                <th style={{ textAlign: "left", padding: "12px 8px", fontWeight: 600 }}>Created</th>
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id}>
-                  <td>
-                    <strong>{inv.invoiceNumber}</strong>
+              {invoices.map(invoice => (
+                <tr 
+                  key={invoice.id}
+                  style={{ 
+                    borderBottom: "1px solid var(--border)",
+                    cursor: "pointer",
+                    transition: "background 0.2s"
+                  }}
+                  onClick={() => window.location.href = `/invoices/${invoice.id}`}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                >
+                  <td style={{ padding: "12px 8px" }}>
+                    <Link 
+                      href={`/invoices/${invoice.id}`}
+                      style={{ color: "var(--primary)", fontWeight: 600, textDecoration: "none" }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {invoice.invoiceNumber}
+                    </Link>
                   </td>
-                  <td>{inv.title}</td>
-                  <td>{inv.customer.name}</td>
-                  <td>
-                    <span className={`status-badge ${statusColors[inv.status]}`}>
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td>{inv._count.lineItems} items</td>
-                  <td style={{ textAlign: "right", fontWeight: 500 }}>
-                    {formatCurrency(Number(inv.total))}
-                  </td>
-                  <td>
-                    {inv.dueDate ? (
-                      <span
-                        style={{
-                          color:
-                            inv.status === "OVERDUE"
-                              ? "var(--danger)"
-                              : "inherit",
-                        }}
+                  <td style={{ padding: "12px 8px" }}>{invoice.customer.name}</td>
+                  <td style={{ padding: "12px 8px" }}>
+                    {invoice.workOrder ? (
+                      <Link
+                        href={`/work-orders/${invoice.workOrder.id}`}
+                        style={{ color: "var(--primary)", textDecoration: "none" }}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {formatDate(inv.dueDate)}
-                      </span>
+                        {invoice.workOrder.workOrderNumber || invoice.workOrder.title}
+                      </Link>
                     ) : (
-                      <span className="muted">—</span>
+                      <span style={{ color: "var(--text-muted)" }}>—</span>
                     )}
                   </td>
-                  <td>{formatDate(inv.createdAt)}</td>
-                  <td>
-                    <Link href={`/invoices/${inv.id}`} className="link-button">
-                      View →
-                    </Link>
+                  <td style={{ padding: "12px 8px" }}>
+                    <span 
+                      style={{ 
+                        background: statusColors[invoice.status] || "#6b7280",
+                        color: "white",
+                        padding: "4px 8px",
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: 600
+                      }}
+                    >
+                      {invoice.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: 600 }}>
+                    ${parseFloat(invoice.total.toString()).toFixed(2)}
+                  </td>
+                  <td style={{ padding: "12px 8px" }}>
+                    {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "—"}
+                  </td>
+                  <td style={{ padding: "12px 8px", color: "var(--text-muted)", fontSize: 14 }}>
+                    {new Date(invoice.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
+        </div>
+      )}
+
+      <div style={{ marginTop: 20, padding: "12px 16px", background: "var(--bg-muted)", borderRadius: 8, fontSize: 14, color: "var(--text-muted)" }}>
+        <strong>💡 Tip:</strong> Generate invoices from completed work orders to automatically calculate labor and material costs.
       </div>
     </div>
   );

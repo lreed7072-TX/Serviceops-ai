@@ -23,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/assets", label: "Assets" },
     { href: "/work-orders", label: "Work Orders" },
     { href: "/quotes", label: "Quotes" },
+    { href: "/invoices", label: "Invoices" },
     { href: "/visits", label: "Visit Execution" },
     { href: "/reports", label: "Reports" },
     { href: "/knowledge-base", label: "Knowledge Base" },

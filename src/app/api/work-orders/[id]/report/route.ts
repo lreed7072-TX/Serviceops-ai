@@ -57,7 +57,7 @@ export async function GET(request: Request, { params }: RouteParams) {
                     select: { id: true, name: true, email: true },
                   },
                 },
-                orderBy: { startTime: "asc" },
+                orderBy: { startedAt: "asc" },
               },
             },
             orderBy: { sequenceNumber: "asc" },
@@ -83,7 +83,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     .reduce((sum, m) => sum + (m.totalCost || 0), 0);
   const totalLaborHours = allTasks
     .flatMap(t => t.timeEntries)
-    .reduce((sum, e) => sum + (e.durationMinutes || 0), 0) / 60;
+    .reduce((sum, e) => sum + (e.accumulatedSeconds || 0), 0) / 3600;
 
   // Compile report data
   const reportData = {
@@ -147,9 +147,9 @@ export async function GET(request: Request, { params }: RouteParams) {
         })),
         timeEntries: task.timeEntries.map(t => ({
           user: t.user,
-          startTime: t.startTime,
-          endTime: t.endTime,
-          durationMinutes: t.durationMinutes,
+          startedAt: t.startedAt,
+          stoppedAt: t.stoppedAt,
+          durationMinutes: t.accumulatedSeconds / 60,
         })),
       })),
     })),

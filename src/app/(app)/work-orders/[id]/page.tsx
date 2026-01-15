@@ -304,22 +304,22 @@ export default function WorkOrderDetailPage() {
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Total Tasks</div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{tasks.length}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-              {tasks.filter(t => t.status === "NOT_STARTED").length} not started • {tasks.filter(t => t.status === "IN_PROGRESS").length} in progress
+              {tasks.filter(t => t.status === TaskStatus.TODO).length} not started • {tasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length} in progress
             </div>
           </div>
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completed</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#10b981" }}>
-              {tasks.filter(t => t.status === "DONE").length}
+              {tasks.filter(t => t.status === TaskStatus.DONE).length}
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-              {tasks.filter(t => t.status === "DONE").length} of {tasks.length} tasks
+              {tasks.filter(t => t.status === TaskStatus.DONE).length} of {tasks.length} tasks
             </div>
           </div>
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>Completion</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#3b82f6" }}>
-              {Math.round((tasks.filter(t => t.status === "DONE").length / tasks.length) * 100)}%
+              {Math.round((tasks.filter(t => t.status === TaskStatus.DONE).length / tasks.length) * 100)}%
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
               {packages.filter(p => (p as any)._count?.tasks === (p as any)._count?.completedTasks).length} of {packages.length} packages
@@ -386,7 +386,7 @@ export default function WorkOrderDetailPage() {
         ) : (
           packages.map((pkg) => {
             const pkgTasks = groupedTasks[pkg.id] ?? [];
-            const completedCount = pkgTasks.filter(t => t.status === "DONE").length;
+            const completedCount = pkgTasks.filter(t => t.status === TaskStatus.DONE).length;
             const totalCount = pkgTasks.length;
             const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
             
@@ -442,7 +442,7 @@ export default function WorkOrderDetailPage() {
                             <div className="task-card-info">
                               <strong>{task.title}</strong>
                               {task.isCritical && <span className="badge critical">Critical</span>}
-                              {task.blockedBy && task.blockedBy.status !== "DONE" && (
+                              {task.blockedBy && task.blockedBy.status !== TaskStatus.DONE && (
                                 <span className="badge" style={{ background: "#ef4444", color: "white" }}>
                                   🔒 Blocked by: {task.blockedBy.title}
                                 </span>

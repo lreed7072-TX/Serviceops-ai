@@ -57,7 +57,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     data: {
       orgId: authResult.auth.orgId,
       taskInstanceId: taskId,
-      workOrderId: task.workOrderId,
       materialId: body.materialId || null,
       name: body.name.trim(),
       partNumber: body.partNumber?.trim() || null,

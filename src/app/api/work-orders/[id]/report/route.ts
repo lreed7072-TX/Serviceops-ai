@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: RouteParams) {
               },
               measurements: {
                 include: {
-                  definition: true,
+                  measurementDefinition: true,
                 },
                 orderBy: { recordedAt: "asc" },
               },

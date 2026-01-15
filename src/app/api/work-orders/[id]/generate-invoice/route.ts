@@ -200,9 +200,10 @@ export async function POST(request: Request, { params }: RouteParams) {
       unitPrice: new Decimal(item.unitPrice.toFixed(2)),
       totalPrice: new Decimal(item.totalPrice.toFixed(2)),
       taskId: item.taskId || null,
-      materialUsageId: ("materialUsageId" in item ? item.materialUsageId : null) || null,
+      materialUsageId: (item as any).materialUsageId || null,
       sortOrder: item.sortOrder,
     })),
+  });
   });
 
   // Fetch complete invoice with line items for response

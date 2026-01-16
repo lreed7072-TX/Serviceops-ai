@@ -27,7 +27,14 @@ export default function MaterialsPage() {
   const [showInactive, setShowInactive] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    partNumber: string;
+    manufacturer: string;
+    unitCost: string;
+    unit: string;
+    category: MaterialCategory;
+  }>({
     name: "",
     partNumber: "",
     manufacturer: "",

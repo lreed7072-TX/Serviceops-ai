@@ -53,18 +53,43 @@ export async function POST(request: Request, { params }: RouteParams) {
     return jsonError("Task not found.", 404);
   }
 
+  // If materialId provided, fetch from catalog to pre-populate
+  let catalogMaterial = null;
+  if (body.materialId) {
+    catalogMaterial = await prisma.material.findFirst({
+      where: {
+        id: body.materialId,
+        orgId: authResult.auth.orgId,
+        isActive: true,
+      },
+    });
+
+    if (!catalogMaterial) {
+      return jsonError("Material not found in catalog.", 404);
+    }
+  }
+
+  // Use catalog data as defaults, allow overrides
+  const materialData = {
+    orgId: authResult.auth.orgId,
+    taskInstanceId: taskId,
+    materialId: body.materialId || null,
+    name: body.name?.trim() || catalogMaterial?.name || "",
+    partNumber: body.partNumber?.trim() || catalogMaterial?.partNumber || null,
+    quantity: body.quantity,
+    unit: body.unit?.trim() || catalogMaterial?.unit || "ea",
+    unitCost: body.unitCost ?? catalogMaterial?.unitCost ?? null,
+    totalCost: body.totalCost ?? null,
+    addedByUserId: authResult.auth.userId,
+  };
+
+  // Calculate totalCost if not provided
+  if (!materialData.totalCost && materialData.unitCost) {
+    materialData.totalCost = materialData.unitCost * materialData.quantity;
+  }
+
   const materialUsage = await prisma.taskMaterialUsage.create({
-    data: {
-      orgId: authResult.auth.orgId,
-      taskInstanceId: taskId,
-      materialId: body.materialId || null,
-      name: body.name.trim(),
-      partNumber: body.partNumber?.trim() || null,
-      quantity: body.quantity,
-      unit: body.unit?.trim() || "ea",
-      unitCost: body.unitCost || null,
-      totalCost: body.totalCost || (body.unitCost ? body.unitCost * body.quantity : null),
-    },
+    data: materialData,
   });
 
   return NextResponse.json({ data: materialUsage });

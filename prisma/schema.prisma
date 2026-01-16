@@ -944,12 +944,13 @@ model Quote {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  org       Org        @relation(fields: [orgId], references: [id])
-  customer  Customer   @relation(fields: [customerId], references: [id])
-  site      Site?      @relation(fields: [siteId], references: [id])
-  createdBy User       @relation("QuoteCreatedBy", fields: [createdByUserId], references: [id])
-  lineItems QuoteLineItem[]
-  invoices  Invoice[]
+  org        Org             @relation(fields: [orgId], references: [id])
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  site       Site?           @relation(fields: [siteId], references: [id])
+  createdBy  User            @relation("QuoteCreatedBy", fields: [createdByUserId], references: [id])
+  lineItems  QuoteLineItem[]
+  invoices   Invoice[]
+  workOrders WorkOrder[]     // Work orders created from this quote
 
   @@unique([orgId, quoteNumber])
   @@index([orgId])

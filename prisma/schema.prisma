@@ -930,6 +930,7 @@ model Quote {
   materialMarkupPercent Decimal?     @db.Decimal(5, 2)  // e.g., 15.00 = 15%
   subtotal              Decimal      @default(0) @db.Decimal(12, 2)
   tax                   Decimal      @default(0) @db.Decimal(12, 2)
+  taxRate               Decimal      @default(0) @db.Decimal(5, 2)  // e.g., 8.25 = 8.25%
   total                 Decimal      @default(0) @db.Decimal(12, 2)
   validUntil            DateTime?
   notes                 String?      @db.Text

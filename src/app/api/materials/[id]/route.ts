@@ -1,82 +1,138 @@
+// Individual Material Management API
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
-import { Role, MaterialCategory } from "@prisma/client";
+import { jsonError } from "@/lib/api-server";
+import { requireAuthSessionFirst } from "@/lib/auth";
+import { MaterialCategory } from "@prisma/client";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
-
-type UpdateMaterialPayload = {
-  name?: string;
-  partNumber?: string | null;
-  manufacturer?: string | null;
-  unitCost?: number | null;
-  unit?: string | null;
-  category?: MaterialCategory;
-  isActive?: boolean;
+type RouteParams = {
+  params: Promise<{ id: string }>;
 };
 
+/**
+ * GET /api/materials/:id
+ * Get a single material by ID
+ */
 export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
   const material = await prisma.material.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
+    where: {
+      id,
+      orgId: auth.orgId,
+    },
+    include: {
+      _count: {
+        select: { usages: true },
+      },
+      usages: {
+        take: 10,
+        orderBy: { addedAt: "desc" },
+        include: {
+          taskInstance: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
+    },
   });
 
-  if (!material) return jsonError("Material not found.", 404);
+  if (!material) {
+    return jsonError("Material not found.", 404);
+  }
+
   return NextResponse.json({ data: material });
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
+/**
+ * PATCH /api/materials/:id
+ * Update a material
+ */
+export async function PATCH(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
-  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
-  if (roleError) return roleError;
+  // Check permissions
+  if (auth.role !== "ADMIN" && auth.role !== "DISPATCHER") {
+    return jsonError("Only administrators can update materials.", 403);
+  }
 
+  const body = await request.json();
+  const { name, partNumber, manufacturer, unitCost, unit, category, isActive } = body;
+
+  // Verify material exists and belongs to org
   const existing = await prisma.material.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
+    where: { id, orgId: auth.orgId },
   });
-  if (!existing) return jsonError("Material not found.", 404);
 
-  const body = await parseJson<UpdateMaterialPayload>(request);
-  if (!body) return jsonError("Invalid JSON body.", 400);
+  if (!existing) {
+    return jsonError("Material not found.", 404);
+  }
+
+  // Build update data
+  const updateData: any = {};
+  if (name !== undefined) updateData.name = name;
+  if (partNumber !== undefined) updateData.partNumber = partNumber;
+  if (manufacturer !== undefined) updateData.manufacturer = manufacturer;
+  if (unitCost !== undefined) updateData.unitCost = unitCost ? parseFloat(unitCost) : null;
+  if (unit !== undefined) updateData.unit = unit;
+  if (category !== undefined && Object.values(MaterialCategory).includes(category as MaterialCategory)) {
+    updateData.category = category;
+  }
+  if (isActive !== undefined) updateData.isActive = isActive;
 
   const material = await prisma.material.update({
     where: { id },
-    data: {
-      name: body.name?.trim() ?? existing.name,
-      partNumber: body.partNumber !== undefined ? body.partNumber?.trim() ?? null : existing.partNumber,
-      manufacturer: body.manufacturer !== undefined ? body.manufacturer?.trim() ?? null : existing.manufacturer,
-      unitCost: body.unitCost !== undefined ? body.unitCost : existing.unitCost,
-      unit: body.unit !== undefined ? body.unit?.trim() ?? null : existing.unit,
-      category: body.category ?? existing.category,
-      isActive: body.isActive ?? existing.isActive,
+    data: updateData,
+    include: {
+      _count: {
+        select: { usages: true },
+      },
     },
   });
 
   return NextResponse.json({ data: material });
 }
 
+/**
+ * DELETE /api/materials/:id
+ * Soft delete a material (set isActive = false)
+ */
 export async function DELETE(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
 
-  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
-  if (roleError) return roleError;
+  // Check permissions
+  if (auth.role !== "ADMIN" && auth.role !== "DISPATCHER") {
+    return jsonError("Only administrators can delete materials.", 403);
+  }
 
+  // Verify material exists
   const existing = await prisma.material.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
+    where: { id, orgId: auth.orgId },
   });
-  if (!existing) return jsonError("Material not found.", 404);
 
-  await prisma.material.delete({ where: { id } });
-  return NextResponse.json({ data: { id } });
+  if (!existing) {
+    return jsonError("Material not found.", 404);
+  }
+
+  // Soft delete - set isActive to false
+  const material = await prisma.material.update({
+    where: { id },
+    data: { isActive: false },
+  });
+
+  return NextResponse.json({ data: material });
 }

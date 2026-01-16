@@ -907,6 +907,7 @@ enum QuoteStatus {
   REJECTED
   EXPIRED
   CONVERTED
+  CANCELED
 }
 
 enum QuoteLineItemType {

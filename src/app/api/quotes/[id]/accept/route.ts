@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   // Verify quote can be accepted
-  if (quote.status === QuoteStatus.ACCEPTED) {
+  if (quote.status === QuoteStatus.APPROVED) {
     return jsonError("Quote has already been accepted.", 400);
   }
 
@@ -93,8 +93,8 @@ export async function POST(request: Request, { params }: RouteParams) {
   await prisma.quote.update({
     where: { id: quoteId },
     data: {
-      status: QuoteStatus.ACCEPTED,
-      acceptedAt: new Date(),
+      status: QuoteStatus.APPROVED,
+      approvedAt: new Date(),
     },
   });
 

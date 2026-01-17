@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
           totalCost,
           reference: reference || null,
           notes: notes || null,
-          performedByUserId: auth.id,
+          performedByUserId: auth.userId,
         },
         include: {
           material: {

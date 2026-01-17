@@ -23,6 +23,14 @@ interface LowStockMaterial extends Material {
   percentOfMin: number;
 }
 
+interface StockMovementForm {
+  movementType: StockMovementType;
+  quantity: number;
+  unitCost: number;
+  reference: string;
+  notes: string;
+}
+
 export default function InventoryPage() {
   const router = useRouter();
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -30,7 +38,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
-  const [stockMovement, setStockMovement] = useState({
+  const [stockMovement, setStockMovement] = useState<StockMovementForm>({
     movementType: StockMovementType.PURCHASE,
     quantity: 0,
     unitCost: 0,

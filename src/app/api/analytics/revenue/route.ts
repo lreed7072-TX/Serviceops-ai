@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const currentInvoices = await prisma.invoice.findMany({
       where: {
         orgId: auth.orgId,
-        invoiceDate: {
+        createdAt: {
           gte: start,
           lte: end,
         },
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         subtotal: true,
         tax: true,
         status: true,
-        invoiceDate: true,
+        createdAt: true,
         paidAt: true,
         customer: {
           select: {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     const previousInvoices = await prisma.invoice.findMany({
       where: {
         orgId: auth.orgId,
-        invoiceDate: {
+        createdAt: {
           gte: previousStart,
           lt: previousEnd,
         },
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     // Monthly revenue trend (group by month)
     const monthlyRevenue = currentInvoices.reduce((acc: any[], invoice) => {
-      const month = new Date(invoice.invoiceDate).toISOString().slice(0, 7); // YYYY-MM
+      const month = new Date(invoice.createdAt).toISOString().slice(0, 7); // YYYY-MM
       const existing = acc.find((item) => item.month === month);
       const amount = invoice.total.toNumber();
       
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
       .filter((inv) => inv.paidAt)
       .reduce((sum, inv) => {
         const daysToPay = Math.floor(
-          (new Date(inv.paidAt!).getTime() - new Date(inv.invoiceDate).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date(inv.paidAt!).getTime() - new Date(inv.createdAt).getTime()) / (1000 * 60 * 60 * 24)
         );
         return sum + daysToPay;
       }, 0);

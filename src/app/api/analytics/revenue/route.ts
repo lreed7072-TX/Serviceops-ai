@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
         const amount = item.totalPrice.toNumber();
         if (item.itemType === "LABOR") {
           laborRevenue += amount;
-        } else if (item.itemType === "MATERIAL" || item.itemType === "PART") {
+        } else if (item.itemType === "MATERIAL") {
           materialRevenue += amount;
         } else {
           otherRevenue += amount;

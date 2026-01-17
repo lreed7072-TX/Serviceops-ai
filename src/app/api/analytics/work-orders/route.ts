@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         },
         timeEntries: {
           select: {
-            durationMinutes: true,
+            accumulatedSeconds: true,
           },
         },
       },
@@ -142,11 +142,11 @@ export async function GET(request: NextRequest) {
     technicianWorkload.sort((a, b) => b.taskCount - a.taskCount);
 
     // Total labor hours
-    const totalLaborMinutes = workOrders.reduce((sum, wo) => {
-      return sum + wo.timeEntries.reduce((entrySum, entry) => entrySum + (entry.durationMinutes || 0), 0);
+    const totalLaborSeconds = workOrders.reduce((sum, wo) => {
+      return sum + wo.timeEntries.reduce((entrySum, entry) => entrySum + (entry.accumulatedSeconds || 0), 0);
     }, 0);
 
-    const totalLaborHours = Math.round(totalLaborMinutes / 60);
+    const totalLaborHours = Math.round(totalLaborSeconds / 3600); // Convert seconds to hours
 
     // Monthly trend
     const monthlyTrend = workOrders.reduce((acc: any[], wo) => {

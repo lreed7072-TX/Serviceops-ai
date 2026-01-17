@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAuthSessionFirst } from "@/lib/auth";
 import { StockMovementType } from "@prisma/client";
 
 function jsonResponse(data: any, status = 200) {
@@ -15,12 +14,10 @@ function jsonError(error: string, status = 400) {
 // GET /api/stock-movements - List stock movements with filters
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return jsonError("Unauthorized", 401);
-    }
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
-    const auth = session.user as { id: string; orgId: string; role: string };
     const { searchParams } = new URL(request.url);
     
     const materialId = searchParams.get("materialId");
@@ -63,12 +60,10 @@ export async function GET(request: NextRequest) {
 // POST /api/stock-movements - Record a stock movement
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return jsonError("Unauthorized", 401);
-    }
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
-    const auth = session.user as { id: string; orgId: string; role: string };
     const body = await request.json();
 
     const {

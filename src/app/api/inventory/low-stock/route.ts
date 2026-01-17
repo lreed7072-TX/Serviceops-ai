@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAuthSessionFirst } from "@/lib/auth";
 
 function jsonResponse(data: any, status = 200) {
   return NextResponse.json(data, { status });
@@ -14,12 +13,9 @@ function jsonError(error: string, status = 400) {
 // GET /api/inventory/low-stock - Find materials below minimum quantity
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return jsonError("Unauthorized", 401);
-    }
-
-    const auth = session.user as { id: string; orgId: string; role: string };
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
     // Find materials where stock is below minimum (and minimum is set)
     const lowStockMaterials = await prisma.material.findMany({

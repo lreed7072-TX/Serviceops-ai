@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         quantity: true,
         unitCost: true,
         totalCost: true,
+        createdAt: true,
         material: {
           select: {
             id: true,

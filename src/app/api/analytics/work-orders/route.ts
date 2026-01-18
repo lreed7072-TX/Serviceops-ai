@@ -106,15 +106,16 @@ export async function GET(request: NextRequest) {
     // Technician workload
     const technicianWorkload = workOrders.reduce((acc: any[], wo) => {
       wo.tasks.forEach((task) => {
-        if (task.assignedTo) {
-          const existing = acc.find((item) => item.userId === task.assignedTo.id);
+        const assignedTo = task.assignedTo;
+        if (assignedTo) {
+          const existing = acc.find((item) => item.userId === assignedTo.id);
           if (existing) {
             existing.taskCount += 1;
             if (task.status === "COMPLETED") existing.completedTasks += 1;
           } else {
             acc.push({
-              userId: task.assignedTo.id,
-              userName: task.assignedTo.name,
+              userId: assignedTo.id,
+              userName: assignedTo.name,
               taskCount: 1,
               completedTasks: task.status === "COMPLETED" ? 1 : 0,
             });

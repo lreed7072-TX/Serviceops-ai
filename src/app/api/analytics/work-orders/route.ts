@@ -36,11 +36,10 @@ export async function GET(request: NextRequest) {
       },
       select: {
         id: true,
-        woNumber: true,
+        workOrderNumber: true,
         status: true,
         orderType: true,
         createdAt: true,
-        completedAt: true,
         customer: {
           select: {
             id: true,
@@ -80,21 +79,12 @@ export async function GET(request: NextRequest) {
     }, {});
 
     // Completion metrics
-    const completedOrders = workOrders.filter((wo) => wo.completedAt);
+    const completedOrders = workOrders.filter((wo) => wo.status === "COMPLETED");
     const completionRate = workOrders.length > 0 ? (completedOrders.length / workOrders.length) * 100 : 0;
 
-    // Average completion time (in days)
-    const completionTimes = completedOrders
-      .map((wo) => {
-        if (!wo.completedAt) return 0;
-        return (new Date(wo.completedAt).getTime() - new Date(wo.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-      })
-      .filter((time) => time > 0);
-
-    const avgCompletionTime =
-      completionTimes.length > 0
-        ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length
-        : 0;
+    // Average completion time - not available without completedAt field
+    // For now, we'll report 0 and recommend adding this field to schema
+    const avgCompletionTime = 0;
 
     // Customer frequency
     const customerWorkOrders = workOrders.reduce((acc: any[], wo) => {
@@ -155,12 +145,12 @@ export async function GET(request: NextRequest) {
       
       if (existing) {
         existing.count += 1;
-        if (wo.completedAt) existing.completed += 1;
+        if (wo.status === "COMPLETED") existing.completed += 1;
       } else {
         acc.push({
           month,
           count: 1,
-          completed: wo.completedAt ? 1 : 0,
+          completed: wo.status === "COMPLETED" ? 1 : 0,
         });
       }
       return acc;

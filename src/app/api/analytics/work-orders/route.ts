@@ -111,13 +111,13 @@ export async function GET(request: NextRequest) {
           const existing = acc.find((item) => item.userId === assignedTo.id);
           if (existing) {
             existing.taskCount += 1;
-            if (task.status === "COMPLETED") existing.completedTasks += 1;
+            if (task.status === "DONE") existing.completedTasks += 1;
           } else {
             acc.push({
               userId: assignedTo.id,
               userName: assignedTo.name,
               taskCount: 1,
-              completedTasks: task.status === "COMPLETED" ? 1 : 0,
+              completedTasks: task.status === "DONE" ? 1 : 0,
             });
           }
         }

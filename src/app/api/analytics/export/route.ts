@@ -120,16 +120,16 @@ export async function GET(request: NextRequest) {
             status: true,
             customer: { select: { name: true } },
             total: true,
-            expiresAt: true,
+            validUntil: true,
             sentAt: true,
             approvedAt: true,
           },
           orderBy: { createdAt: "desc" },
         });
 
-        csvContent = "Quote Number,Date,Customer,Status,Total,Sent Date,Approved Date,Expires\n";
+        csvContent = "Quote Number,Date,Customer,Status,Total,Sent Date,Approved Date,Valid Until\n";
         quotes.forEach((quote) => {
-          csvContent += `"${quote.quoteNumber}","${quote.createdAt.toISOString().split("T")[0]}","${quote.customer.name}","${quote.status}",${quote.total},"${quote.sentAt?.toISOString().split("T")[0] || ""}","${quote.approvedAt?.toISOString().split("T")[0] || ""}","${quote.expiresAt?.toISOString().split("T")[0] || ""}"\n`;
+          csvContent += `"${quote.quoteNumber}","${quote.createdAt.toISOString().split("T")[0]}","${quote.customer.name}","${quote.status}",${quote.total},"${quote.sentAt?.toISOString().split("T")[0] || ""}","${quote.approvedAt?.toISOString().split("T")[0] || ""}","${quote.validUntil?.toISOString().split("T")[0] || ""}"\n`;
         });
         filename = `quotes-export-${start.toISOString().split("T")[0]}-to-${end.toISOString().split("T")[0]}.csv`;
         break;

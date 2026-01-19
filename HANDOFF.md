@@ -21,6 +21,34 @@
 
 ---
 
+## 🚨 CRITICAL: PRE-LAUNCH ROADMAP
+
+**⚠️ SCOPE UPDATE:** The platform requires additional features before production launch.
+
+**See PRELAUNCH_ROADMAP.md for complete 8-week plan (986 lines)**
+
+**Pre-Launch Requirements (ALL must be completed):**
+1. **Phase 1:** Testing + Charts + PDF Reports + Production Hardening (Week 1) ← **START HERE**
+2. **Phase 2:** UI Polish & Professional Design System (Week 2)
+3. **Phase 3:** Mobile Field Technician App - React Native (Weeks 3-4)
+4. **Phase 4:** CRM Module - Contacts, Activities, Opportunities (Week 5)
+5. **Phase 5:** Customer Self-Service Portal (Week 6)
+6. **Phase 6:** Preventive Maintenance Scheduling (Week 7)
+7. **Phase 8:** Final Polish & Launch Preparation (Week 8)
+
+**Post-Launch Priority:**
+- **Phase 7:** QuickBooks Integration (Deploy within 2 weeks of launch)
+
+**Total Effort:** ~200-250 hours over 8 weeks  
+**Current Status:** Core platform complete, ready to begin Phase 1
+
+**Next Session Must Start With:**
+- Read PRELAUNCH_ROADMAP.md immediately
+- Begin Phase 1: Testing & Validation
+- Then proceed with charts, PDF reports, and production hardening
+
+---
+
 ## 🏗️ COMPLETE PLATFORM ARCHITECTURE
 
 ### Technology Stack

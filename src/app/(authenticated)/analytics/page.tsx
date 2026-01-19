@@ -82,6 +82,11 @@ export default function AnalyticsPage() {
     return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
   };
 
+  const handleExport = (type: string) => {
+    const { start, end } = getDateRange();
+    window.open(`/api/analytics/export?type=${type}&startDate=${start}&endDate=${end}`, "_blank");
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -122,7 +127,15 @@ export default function AnalyticsPage() {
 
       {/* Revenue Overview */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Revenue Overview</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">Revenue Overview</h2>
+          <button
+            onClick={() => handleExport("revenue")}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Export CSV
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-lg shadow">
             <p className="text-gray-600 text-sm mb-1">Total Revenue</p>
@@ -158,7 +171,15 @@ export default function AnalyticsPage() {
 
       {/* Work Orders */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Work Order Performance</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">Work Order Performance</h2>
+          <button
+            onClick={() => handleExport("work-orders")}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Export CSV
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-lg shadow">
             <p className="text-gray-600 text-sm mb-1">Total Work Orders</p>
@@ -187,7 +208,15 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         {/* Materials */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Material Usage</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Material Usage</h2>
+            <button
+              onClick={() => handleExport("materials")}
+              className="px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+            >
+              Export
+            </button>
+          </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
@@ -212,7 +241,15 @@ export default function AnalyticsPage() {
 
         {/* Quotes */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Quote Pipeline</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Quote Pipeline</h2>
+            <button
+              onClick={() => handleExport("quotes")}
+              className="px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+            >
+              Export
+            </button>
+          </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>

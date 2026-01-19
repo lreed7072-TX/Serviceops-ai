@@ -2674,7 +2674,7 @@ a {
 .analytics-kpi-header {
   display: flex;
   align-items: center;
-  justify-between;
+  justify-content: space-between;
   margin-bottom: 4px;
 }
 
@@ -2745,7 +2745,7 @@ a {
 .analytics-list-item {
   display: flex;
   align-items: center;
-  justify-between;
+  justify-content: space-between;
   font-size: 12px;
 }
 

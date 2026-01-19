@@ -84,7 +84,8 @@ export default function AnalyticsPage() {
 
   const handleExport = (type: string) => {
     const { start, end } = getDateRange();
-    window.open(`/api/analytics/export?type=${type}&startDate=${start}&endDate=${end}`, "_blank");
+    // Use direct assignment to force download instead of opening in new tab
+    window.location.href = `/api/analytics/export?type=${type}&startDate=${start}&endDate=${end}`;
   };
 
   if (loading) {

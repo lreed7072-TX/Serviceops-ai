@@ -29,8 +29,8 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            phone: true,
-            email: true,
+            primaryPhone: true,
+            primaryEmail: true,
           },
         },
         site: {

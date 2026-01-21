@@ -45,7 +45,7 @@ interface WorkOrder {
   workOrderNumber: string;
   status: string;
   orderType: string;
-  customer: { id: string; name: string; phone: string | null; email: string | null };
+  customer: { id: string; name: string; primaryPhone: string | null; primaryEmail: string | null };
   site: { id: string; name: string; address: string | null } | null;
   workPackages: WorkPackage[];
   summary: {

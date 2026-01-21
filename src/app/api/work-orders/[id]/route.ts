@@ -13,14 +13,14 @@ function jsonError(error: string, status = 400) {
 // GET /api/work-orders/[id] - Get work order with full details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requireAuthSessionFirst(request);
     if ("error" in authResult) return authResult.error;
     const { auth } = authResult;
 
-    const { id } = params;
+    const { id } = await params;
 
     const workOrder = await prisma.workOrder.findUnique({
       where: { id, orgId: auth.orgId },

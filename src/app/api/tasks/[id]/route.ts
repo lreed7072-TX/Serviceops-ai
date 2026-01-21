@@ -14,14 +14,14 @@ function jsonError(error: string, status = 400) {
 // PATCH /api/tasks/[id] - Update task status
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requireAuthSessionFirst(request);
     if ("error" in authResult) return authResult.error;
     const { auth } = authResult;
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { status } = body;
 

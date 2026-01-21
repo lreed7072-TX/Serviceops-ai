@@ -353,13 +353,6 @@ export default function WorkOrderDetailsPage() {
                           + Add Material
                         </button>
                       </div>
-                            cursor: "pointer",
-                            fontSize: "13px",
-                          }}
-                        >
-                          + Add Material
-                        </button>
-                      </div>
 
                       {task.materialUsages.length === 0 ? (
                         <div className="material-empty">No materials added yet</div>

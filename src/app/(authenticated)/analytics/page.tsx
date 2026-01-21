@@ -139,14 +139,14 @@ export default function AnalyticsPage() {
             <div className="analytics-kpi-header">
               <span className="analytics-kpi-label">Revenue</span>
               <span className={`analytics-kpi-change ${
-                (revenueData?.percentChange || 0) >= 0 ? "positive" : "negative"
+                (revenueData?.summary?.totalChange || 0) >= 0 ? "positive" : "negative"
               }`}>
-                {formatPercent(revenueData?.percentChange || 0)}
+                {formatPercent(revenueData?.summary?.totalChange || 0)}
               </span>
             </div>
-            <div className="analytics-kpi-value">{formatCurrency(revenueData?.totalRevenue || 0)}</div>
+            <div className="analytics-kpi-value">{formatCurrency(revenueData?.summary?.totalRevenue || 0)}</div>
             <div className="analytics-kpi-meta">
-              {formatCurrency(revenueData?.paid || 0)} paid · {formatCurrency(revenueData?.outstanding || 0)} due
+              {formatCurrency(revenueData?.summary?.paidRevenue || 0)} paid · {formatCurrency(revenueData?.summary?.outstandingRevenue || 0)} due
             </div>
           </div>
 
@@ -195,9 +195,9 @@ export default function AnalyticsPage() {
             <div className="analytics-list">
               {revenueData?.topCustomers?.slice(0, 5).map((customer: any, index: number) => (
                 <div key={index} className="analytics-list-item">
-                  <span className="analytics-list-name">{customer.name}</span>
+                  <span className="analytics-list-name">{customer.customerName}</span>
                   <span className="analytics-list-value">{formatCurrency(customer.revenue)}</span>
-                  <span className="analytics-list-percent">{customer.percentage}%</span>
+                  <span className="analytics-list-percent">{((customer.revenue / (revenueData?.summary?.totalRevenue || 1)) * 100).toFixed(1)}%</span>
                 </div>
               )) || <div className="analytics-list-empty">No customer data</div>}
             </div>

@@ -1,185 +1,101 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
-import { Role, TaskStatus } from "@prisma/client";
+import { requireAuthSessionFirst } from "@/lib/auth";
+import { TaskStatus } from "@prisma/client";
 
-export const runtime = "nodejs";
-
-type RouteParams = {
-  params: Promise<{ id: string }>;
-};
-
-/**
- * GET /api/tasks/:id
- * Retrieve a single task with related work order and package info.
- */
-export async function GET(request: Request, { params }: RouteParams) {
-  const { id } = await params;
-
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
-
-  const { auth } = authResult;
-
-  const task = await prisma.taskInstance.findFirst({
-    where: { id, orgId: auth.orgId },
-    include: {
-      workOrder: {
-        select: { id: true, title: true, workOrderNumber: true },
-      },
-      workPackage: {
-        select: { id: true, name: true, packageType: true },
-      },
-      assignedTo: {
-        select: { id: true, name: true, email: true },
-      },
-    },
-  });
-
-  if (!task) {
-    return jsonError("Task not found.", 404);
-  }
-
-  // TECH can only view tasks assigned to them
-  if (auth.role === Role.TECH && task.assignedToId !== auth.userId) {
-    return jsonError("Access denied.", 403);
-  }
-
-  return NextResponse.json({ data: task });
+function jsonResponse(data: any, status = 200) {
+  return NextResponse.json(data, { status });
 }
 
-type TaskUpdatePayload = {
-  title?: string;
-  description?: string | null;
-  status?: TaskStatus;
-  assignedToId?: string | null;
-  isCritical?: boolean;
-  requiresEvidence?: boolean;
-  sequenceNumber?: number | null;
-};
+function jsonError(error: string, status = 400) {
+  return NextResponse.json({ error }, { status });
+}
 
-const taskUpdateSchema = z
-  .object({
-    title: z.string().optional(),
-    description: z.string().nullable().optional(),
-    status: z.nativeEnum(TaskStatus).optional(),
-    assignedToId: z.string().nullable().optional(),
-    isCritical: z.boolean().optional(),
-    requiresEvidence: z.boolean().optional(),
-    sequenceNumber: z.number().nullable().optional(),
-  })
-  .strip();
+// PATCH /api/tasks/[id] - Update task status
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
-const techStatusOnlySchema = z
-  .object({
-    status: z.nativeEnum(TaskStatus),
-  })
-  .strict();
+    const { id } = params;
+    const body = await request.json();
+    const { status } = body;
 
-export async function PATCH(request: Request, { params }: RouteParams) {
-  const { id } = await params;
-
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
-  const { auth } = authResult;
-
-  // Load task in-org
-  const existing = await prisma.taskInstance.findFirst({
-    where: { id, orgId: auth.orgId },
-    select: {
-      id: true,
-      orgId: true,
-      assignedToId: true,
-      title: true,
-      description: true,
-      status: true,
-      sequenceNumber: true,
-      isCritical: true,
-      requiresEvidence: true,
-    },
-  });
-
-  if (!existing) return jsonError("Task not found.", 404);
-
-  // TECH: status-only, and only for tasks assigned to them
-  if (auth.role === Role.TECH) {
-    if (existing.assignedToId !== auth.userId) {
-      return jsonError("Insufficient permissions.", 403);
+    if (!status || !Object.values(TaskStatus).includes(status)) {
+      return jsonError("Valid status required", 400);
     }
 
-    const body = await parseJson<unknown>(request);
-    const parsed = techStatusOnlySchema.safeParse(body ?? {});
-    if (!parsed.success) {
-      return jsonError("Technicians can only update task status.", 403);
-    }
-
-    const updated = await prisma.taskInstance.update({
-      where: { id: existing.id },
-      data: { status: parsed.data.status },
+    // Verify task belongs to org
+    const existing = await prisma.taskInstance.findUnique({
+      where: { id },
+      select: { orgId: true, workOrderId: true, status: true },
     });
 
-    return NextResponse.json({ data: updated });
-  }
-
-  // ADMIN/DISPATCHER: full edit
-  const roleError = requireRole(auth, [Role.ADMIN, Role.DISPATCHER]);
-  if (roleError) return roleError;
-
-  const body = await parseJson<unknown>(request);
-  const parsedBody = taskUpdateSchema.safeParse(body ?? {});
-  if (!parsedBody.success) {
-    return jsonError(parsedBody.error.issues[0]?.message ?? "Invalid task payload.", 400);
-  }
-
-  const payload = parsedBody.data;
-  const data: TaskUpdatePayload = {};
-
-  if (payload.title !== undefined) data.title = payload.title;
-  if (payload.description !== undefined) data.description = payload.description;
-  if (payload.status !== undefined) data.status = payload.status;
-  if (payload.sequenceNumber !== undefined) data.sequenceNumber = payload.sequenceNumber;
-  if (payload.isCritical !== undefined) data.isCritical = payload.isCritical;
-  if (payload.requiresEvidence !== undefined) data.requiresEvidence = payload.requiresEvidence;
-
-  if (payload.assignedToId !== undefined) {
-    if (!payload.assignedToId) {
-      data.assignedToId = null;
-    } else {
-      const user = await prisma.user.findFirst({
-        where: { id: payload.assignedToId, orgId: auth.orgId },
-        select: { id: true },
-      });
-      if (!user) return jsonError("Assigned technician not found.", 404);
-      data.assignedToId = user.id;
+    if (!existing || existing.orgId !== auth.orgId) {
+      return jsonError("Task not found", 404);
     }
+
+    // Update task
+    const updated = await prisma.taskInstance.update({
+      where: { id },
+      data: { status },
+    });
+
+    // Timer integration: Start/stop timers based on status change
+    if (status === "IN_PROGRESS" && existing.status !== "IN_PROGRESS") {
+      // Task started - create or resume timer
+      const runningTimer = await prisma.timeEntry.findFirst({
+        where: {
+          orgId: auth.orgId,
+          taskInstanceId: id,
+          status: "RUNNING",
+        },
+      });
+
+      if (!runningTimer) {
+        await prisma.timeEntry.create({
+          data: {
+            orgId: auth.orgId,
+            userId: auth.userId,
+            workOrderId: existing.workOrderId,
+            taskInstanceId: id,
+            status: "RUNNING",
+            startedAt: new Date(),
+          },
+        });
+      }
+    } else if (status === "DONE" && existing.status === "IN_PROGRESS") {
+      // Task completed - stop timer
+      const runningTimer = await prisma.timeEntry.findFirst({
+        where: {
+          orgId: auth.orgId,
+          taskInstanceId: id,
+          status: "RUNNING",
+        },
+      });
+
+      if (runningTimer) {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - runningTimer.startedAt.getTime()) / 1000);
+
+        await prisma.timeEntry.update({
+          where: { id: runningTimer.id },
+          data: {
+            status: "STOPPED",
+            stoppedAt: now,
+            accumulatedSeconds: runningTimer.accumulatedSeconds + elapsed,
+          },
+        });
+      }
+    }
+
+    return jsonResponse({ data: updated });
+  } catch (error) {
+    console.error("Failed to update task:", error);
+    return jsonError("Failed to update task", 500);
   }
-
-  const updated = await prisma.taskInstance.update({
-    where: { id: existing.id },
-    data,
-  });
-
-  return NextResponse.json({ data: updated });
-}
-
-export async function DELETE(request: Request, { params }: RouteParams) {
-  const { id } = await params;
-
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
-
-  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
-  if (roleError) return roleError;
-
-  const existing = await prisma.taskInstance.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
-    select: { id: true },
-  });
-
-  if (!existing) return jsonError("Task not found.", 404);
-
-  await prisma.taskInstance.delete({ where: { id: existing.id } });
-  return NextResponse.json({ ok: true });
 }

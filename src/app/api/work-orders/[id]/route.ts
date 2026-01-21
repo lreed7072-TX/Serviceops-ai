@@ -1,102 +1,153 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson } from "@/lib/api-server";
-import { requireAuthSessionFirst, requireRole } from "@/lib/auth";
-import { ExecutionMode, Role, WorkOrderStatus } from "@prisma/client";
-export const runtime = "nodejs";
+import { requireAuthSessionFirst } from "@/lib/auth";
 
-type WorkOrderUpdatePayload = {
-  title?: string;
-  description?: string | null;
-  status?: WorkOrderStatus;
-  executionMode?: ExecutionMode;
-};
+function jsonResponse(data: any, status = 200) {
+  return NextResponse.json(data, { status });
+}
 
-type RouteParams = {
-  params: Promise<{ id: string }>;
-};
+function jsonError(error: string, status = 400) {
+  return NextResponse.json({ error }, { status });
+}
 
-export async function GET(request: Request, { params }: RouteParams) {
-  const { id } = await params;
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
+// GET /api/work-orders/[id] - Get work order with full details
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
-  const whereBase: any = { id, orgId: authResult.auth.orgId };
-    if (authResult.auth.role === "TECH") {
-      whereBase.OR = [
-        { tasks: { some: { assignedToId: authResult.auth.userId } } },
-        { visits: { some: { assignedTechId: authResult.auth.userId } } },
-        { packages: { some: { leadTechId: authResult.auth.userId } } },
-      ];
-    }
+    const { id } = params;
 
-    const workOrder = await prisma.workOrder.findFirst({
-      where: whereBase,
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id, orgId: auth.orgId },
       include: {
-        customer: { select: { id: true, name: true } },
-        site: { select: { id: true, name: true, address: true, city: true, state: true } },
-        asset: { select: { id: true, name: true, manufacturer: true, model: true, serialNumber: true } },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+          },
+        },
+        site: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+          },
+        },
+        workPackages: {
+          include: {
+            tasks: {
+              include: {
+                assignedTo: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+                timeEntries: {
+                  select: {
+                    id: true,
+                    status: true,
+                    accumulatedSeconds: true,
+                    startedAt: true,
+                    stoppedAt: true,
+                  },
+                },
+                materialUsages: {
+                  include: {
+                    material: {
+                      select: {
+                        id: true,
+                        name: true,
+                        partNumber: true,
+                        category: true,
+                      },
+                    },
+                  },
+                  orderBy: {
+                    addedAt: "desc",
+                  },
+                },
+                measurements: {
+                  select: {
+                    id: true,
+                    measurementType: true,
+                    value: true,
+                    unit: true,
+                    label: true,
+                    notes: true,
+                    createdAt: true,
+                  },
+                  orderBy: {
+                    createdAt: "desc",
+                  },
+                },
+              },
+              orderBy: {
+                sequenceNumber: "asc",
+              },
+            },
+          },
+          orderBy: {
+            type: "asc",
+          },
+        },
+        timeEntries: {
+          select: {
+            id: true,
+            accumulatedSeconds: true,
+            status: true,
+          },
+        },
       },
     });
 
-  if (!workOrder) {
-    return jsonError("Work order not found.", 404);
+    if (!workOrder) {
+      return jsonError("Work order not found", 404);
+    }
+
+    // Calculate summary metrics
+    const totalTasks = workOrder.workPackages.reduce((sum, pkg) => sum + pkg.tasks.length, 0);
+    const completedTasks = workOrder.workPackages.reduce(
+      (sum, pkg) => sum + pkg.tasks.filter((t) => t.status === "DONE").length,
+      0
+    );
+
+    const totalLaborSeconds = workOrder.timeEntries.reduce(
+      (sum, entry) => sum + (entry.accumulatedSeconds || 0),
+      0
+    );
+    const totalLaborHours = totalLaborSeconds / 3600;
+
+    const totalMaterialCost = workOrder.workPackages.reduce(
+      (sum, pkg) =>
+        sum + pkg.tasks.reduce((taskSum, task) => 
+          taskSum + task.materialUsages.reduce((matSum, mat) => matSum + (mat.totalCost || 0), 0)
+        , 0)
+      , 0
+    );
+
+    return jsonResponse({
+      data: {
+        ...workOrder,
+        summary: {
+          totalTasks,
+          completedTasks,
+          completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+          totalLaborHours: Math.round(totalLaborHours * 10) / 10,
+          totalMaterialCost,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch work order:", error);
+    return jsonError("Failed to fetch work order", 500);
   }
-
-  return NextResponse.json({ data: workOrder });
-}
-
-export async function PUT(request: Request, { params }: RouteParams) {
-  const { id } = await params;
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
-
-  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
-  if (roleError) return roleError;
-
-  const body = await parseJson<WorkOrderUpdatePayload>(request);
-  if (!body) {
-    return jsonError("Invalid JSON body.");
-  }
-
-  const existing = await prisma.workOrder.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
-  });
-
-  if (!existing) {
-    return jsonError("Work order not found.", 404);
-  }
-
-  const workOrder = await prisma.workOrder.update({
-    where: { id },
-    data: {
-      title: body.title ?? existing.title,
-      description: body.description ?? existing.description,
-      status: body.status ?? existing.status,
-      executionMode: body.executionMode ?? existing.executionMode,
-    },
-  });
-
-  return NextResponse.json({ data: workOrder });
-}
-
-export async function DELETE(request: Request, { params }: RouteParams) {
-  const { id } = await params;
-  const authResult = await requireAuthSessionFirst(request);
-  if ("error" in authResult) return authResult.error;
-
-  const roleError = requireRole(authResult.auth, [Role.ADMIN, Role.DISPATCHER]);
-  if (roleError) return roleError;
-
-  const existing = await prisma.workOrder.findFirst({
-    where: { id, orgId: authResult.auth.orgId },
-  });
-
-  if (!existing) {
-    return jsonError("Work order not found.", 404);
-  }
-
-  await prisma.workOrder.delete({ where: { id } });
-
-  return NextResponse.json({ data: { id } });
 }

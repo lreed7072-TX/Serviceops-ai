@@ -48,7 +48,7 @@ interface TaskInstance {
 
 interface WorkPackage {
   id: string;
-  type: WorkPackageType;
+  packageType: WorkPackageType;
   tasks: TaskInstance[];
 }
 
@@ -112,7 +112,7 @@ export default function WorkOrderDetailsPage() {
         setWorkOrder(result.data);
         // Set first work package as active tab
         if (result.data.packages.length > 0 && !activeTab) {
-          setActiveTab(result.data.packages[0].type);
+          setActiveTab(result.data.packages[0].packageType);
         }
       }
     } catch (error) {
@@ -265,7 +265,7 @@ export default function WorkOrderDetailsPage() {
     return <div className="work-order-details"><div className="analytics-loading-content">Work order not found</div></div>;
   }
 
-  const activePackage = workOrder.packages.find((pkg) => pkg.type === activeTab);
+  const activePackage = workOrder.packages.find((pkg) => pkg.packageType === activeTab);
   const filteredMaterials = catalogMaterials.filter((m) =>
     m.name.toLowerCase().includes(materialSearch.toLowerCase()) ||
     (m.partNumber && m.partNumber.toLowerCase().includes(materialSearch.toLowerCase()))
@@ -302,10 +302,10 @@ export default function WorkOrderDetailsPage() {
         {workOrder.packages.map((pkg) => (
           <button
             key={pkg.id}
-            onClick={() => setActiveTab(pkg.type)}
-            className={`work-package-tab ${activeTab === pkg.type ? "active" : ""}`}
+            onClick={() => setActiveTab(pkg.packageType)}
+            className={`work-package-tab ${activeTab === pkg.packageType ? "active" : ""}`}
           >
-            {pkg.type === "MECH_ELEC_UNIFIED" ? "Unified" : pkg.type.charAt(0) + pkg.type.slice(1).toLowerCase()}
+            {pkg.packageType === "MECH_ELEC_UNIFIED" ? "Unified" : pkg.packageType.charAt(0) + pkg.packageType.slice(1).toLowerCase()}
             <span className="work-package-tab-count">
               ({pkg.tasks.filter((t) => t.status === "DONE").length}/{pkg.tasks.length})
             </span>

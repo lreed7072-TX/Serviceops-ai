@@ -98,7 +98,7 @@ export async function GET(
             },
           },
           orderBy: {
-            type: "asc",
+            packageType: "asc",
           },
         },
         timeEntries: {

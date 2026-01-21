@@ -154,11 +154,11 @@ export default function AnalyticsPage() {
           <div className="analytics-kpi-card">
             <div className="analytics-kpi-header">
               <span className="analytics-kpi-label">Work Orders</span>
-              <span className="analytics-kpi-meta">{workOrderData?.completionRate || 0}% done</span>
+              <span className="analytics-kpi-meta">{workOrderData?.summary?.completionRate?.toFixed(1) || 0}% done</span>
             </div>
-            <div className="analytics-kpi-value">{workOrderData?.total || 0}</div>
+            <div className="analytics-kpi-value">{workOrderData?.summary?.totalWorkOrders || 0}</div>
             <div className="analytics-kpi-meta">
-              {workOrderData?.completed || 0} complete · {workOrderData?.avgCompletionDays || 0}d avg
+              {workOrderData?.summary?.completedWorkOrders || 0} complete · {workOrderData?.summary?.avgCompletionDays || 0}d avg
             </div>
           </div>
 
@@ -166,11 +166,11 @@ export default function AnalyticsPage() {
           <div className="analytics-kpi-card">
             <div className="analytics-kpi-header">
               <span className="analytics-kpi-label">Materials</span>
-              <span className="analytics-kpi-change negative">{materialData?.lowStock || 0} low</span>
+              <span className="analytics-kpi-change negative">{materialData?.summary?.lowStockCount || 0} low</span>
             </div>
-            <div className="analytics-kpi-value">{formatCurrency(materialData?.totalCost || 0)}</div>
+            <div className="analytics-kpi-value">{formatCurrency(materialData?.summary?.totalMaterialCost || 0)}</div>
             <div className="analytics-kpi-meta">
-              {materialData?.usages || 0} usages · {formatCurrency(materialData?.inventoryValue || 0)} stock
+              {materialData?.summary?.totalUsages || 0} usages · {formatCurrency(materialData?.summary?.inventoryValue || 0)} stock
             </div>
           </div>
 
@@ -178,11 +178,11 @@ export default function AnalyticsPage() {
           <div className="analytics-kpi-card">
             <div className="analytics-kpi-header">
               <span className="analytics-kpi-label">Quotes</span>
-              <span className="analytics-kpi-change positive">{quoteData?.conversionRate || 0}% win</span>
+              <span className="analytics-kpi-change positive">{quoteData?.summary?.conversionRate?.toFixed(1) || 0}% win</span>
             </div>
-            <div className="analytics-kpi-value">{formatCurrency(quoteData?.pipelineValue || 0)}</div>
+            <div className="analytics-kpi-value">{formatCurrency(quoteData?.summary?.pipelineValue || 0)}</div>
             <div className="analytics-kpi-meta">
-              {quoteData?.activeCount || 0} active · {formatCurrency(quoteData?.avgValue || 0)} avg
+              {quoteData?.summary?.activeQuotesCount || 0} active · {formatCurrency(quoteData?.summary?.avgQuoteValue || 0)} avg
             </div>
           </div>
         </div>
@@ -207,11 +207,11 @@ export default function AnalyticsPage() {
           <div className="analytics-list-card">
             <h3 className="analytics-list-title">Top Technicians</h3>
             <div className="analytics-list">
-              {workOrderData?.topTechnicians?.slice(0, 5).map((tech: any, index: number) => (
+              {workOrderData?.technicianPerformance?.slice(0, 5).map((tech: any, index: number) => (
                 <div key={index} className="analytics-list-item">
-                  <span className="analytics-list-name">{tech.name}</span>
-                  <span className="analytics-list-value">{tech.workOrders} WO</span>
-                  <span className="analytics-list-percent">{tech.percentage}%</span>
+                  <span className="analytics-list-name">{tech.userName}</span>
+                  <span className="analytics-list-value">{tech.taskCount} tasks</span>
+                  <span className="analytics-list-percent">{tech.completionRate?.toFixed(1) || 0}%</span>
                 </div>
               )) || <div className="analytics-list-empty">No technician data</div>}
             </div>
@@ -223,14 +223,14 @@ export default function AnalyticsPage() {
           {/* Labor Hours */}
           <div className="analytics-stat-card">
             <span className="analytics-stat-label">Labor Hours</span>
-            <div className="analytics-stat-value">{workOrderData?.totalLaborHours?.toFixed(1) || 0}</div>
+            <div className="analytics-stat-value">{workOrderData?.summary?.totalLaborHours?.toFixed(1) || 0}</div>
             <div className="analytics-stat-meta">hours logged</div>
           </div>
 
           {/* Avg Decision Time */}
           <div className="analytics-stat-card">
             <span className="analytics-stat-label">Quote Decision</span>
-            <div className="analytics-stat-value">{quoteData?.avgDecisionDays || 0}</div>
+            <div className="analytics-stat-value">{quoteData?.summary?.avgTimeToDecisionDays?.toFixed(1) || 0}</div>
             <div className="analytics-stat-meta">days average</div>
           </div>
 
@@ -238,10 +238,10 @@ export default function AnalyticsPage() {
           <div className="analytics-stat-card">
             <span className="analytics-stat-label">Top Material</span>
             <div className="analytics-stat-value" style={{ fontSize: "14px" }}>
-              {materialData?.topMaterials?.[0]?.name || "N/A"}
+              {materialData?.topMaterials?.[0]?.materialName || "N/A"}
             </div>
             <div className="analytics-stat-meta">
-              {formatCurrency(materialData?.topMaterials?.[0]?.cost || 0)} cost
+              {formatCurrency(materialData?.topMaterials?.[0]?.totalCost || 0)} cost
             </div>
           </div>
         </div>

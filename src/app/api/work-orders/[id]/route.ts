@@ -78,15 +78,17 @@ export async function GET(
                 measurements: {
                   select: {
                     id: true,
+                    name: true,
                     measurementType: true,
-                    value: true,
+                    numericValue: true,
+                    textValue: true,
+                    passFail: true,
                     unit: true,
-                    label: true,
-                    notes: true,
-                    createdAt: true,
+                    isWithinSpec: true,
+                    capturedAt: true,
                   },
                   orderBy: {
-                    createdAt: "desc",
+                    capturedAt: "desc",
                   },
                 },
               },

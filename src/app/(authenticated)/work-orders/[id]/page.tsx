@@ -22,6 +22,18 @@ interface Material {
   } | null;
 }
 
+interface Measurement {
+  id: string;
+  name: string;
+  measurementType: string;
+  numericValue: number | null;
+  textValue: string | null;
+  passFail: boolean | null;
+  unit: string | null;
+  isWithinSpec: boolean | null;
+  capturedAt: Date | null;
+}
+
 interface TaskInstance {
   id: string;
   title: string;
@@ -31,7 +43,7 @@ interface TaskInstance {
   assignedTo: { id: string; name: string; email: string } | null;
   timeEntries: Array<{ id: string; accumulatedSeconds: number; status: string }>;
   materialUsages: Material[];
-  measurements: any[];
+  measurements: Measurement[];
 }
 
 interface WorkPackage {

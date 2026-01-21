@@ -40,7 +40,7 @@ export async function GET(
             address: true,
           },
         },
-        workPackages: {
+        packages: {
           include: {
             tasks: {
               include: {
@@ -114,8 +114,8 @@ export async function GET(
     }
 
     // Calculate summary metrics
-    const totalTasks = workOrder.workPackages.reduce((sum, pkg) => sum + pkg.tasks.length, 0);
-    const completedTasks = workOrder.workPackages.reduce(
+    const totalTasks = workOrder.packages.reduce((sum, pkg) => sum + pkg.tasks.length, 0);
+    const completedTasks = workOrder.packages.reduce(
       (sum, pkg) => sum + pkg.tasks.filter((t) => t.status === "DONE").length,
       0
     );
@@ -126,7 +126,7 @@ export async function GET(
     );
     const totalLaborHours = totalLaborSeconds / 3600;
 
-    const totalMaterialCost = workOrder.workPackages.reduce(
+    const totalMaterialCost = workOrder.packages.reduce(
       (sum, pkg) =>
         sum + pkg.tasks.reduce((taskSum, task) => 
           taskSum + task.materialUsages.reduce((matSum, mat) => matSum + (mat.totalCost || 0), 0)

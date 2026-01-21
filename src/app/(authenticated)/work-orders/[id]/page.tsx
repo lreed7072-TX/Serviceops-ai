@@ -47,7 +47,7 @@ interface WorkOrder {
   orderType: string;
   customer: { id: string; name: string; primaryPhone: string | null; primaryEmail: string | null };
   site: { id: string; name: string; address: string | null } | null;
-  workPackages: WorkPackage[];
+  packages: WorkPackage[];
   summary: {
     totalTasks: number;
     completedTasks: number;
@@ -99,8 +99,8 @@ export default function WorkOrderDetailsPage() {
         const result = await response.json();
         setWorkOrder(result.data);
         // Set first work package as active tab
-        if (result.data.workPackages.length > 0 && !activeTab) {
-          setActiveTab(result.data.workPackages[0].type);
+        if (result.data.packages.length > 0 && !activeTab) {
+          setActiveTab(result.data.packages[0].type);
         }
       }
     } catch (error) {
@@ -253,7 +253,7 @@ export default function WorkOrderDetailsPage() {
     return <div className="work-order-details"><div className="analytics-loading-content">Work order not found</div></div>;
   }
 
-  const activePackage = workOrder.workPackages.find((pkg) => pkg.type === activeTab);
+  const activePackage = workOrder.packages.find((pkg) => pkg.type === activeTab);
   const filteredMaterials = catalogMaterials.filter((m) =>
     m.name.toLowerCase().includes(materialSearch.toLowerCase()) ||
     (m.partNumber && m.partNumber.toLowerCase().includes(materialSearch.toLowerCase()))
@@ -287,7 +287,7 @@ export default function WorkOrderDetailsPage() {
 
       {/* Work Package Tabs */}
       <div className="work-package-tabs">
-        {workOrder.workPackages.map((pkg) => (
+        {workOrder.packages.map((pkg) => (
           <button
             key={pkg.id}
             onClick={() => setActiveTab(pkg.type)}

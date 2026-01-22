@@ -109,7 +109,7 @@ export default function MaterialSelector({ onSelect, onCancel, showModal = true 
                   </span>
                   {material.unitCost && (
                     <span className="text-sm font-medium text-green-700">
-                      ${material.unitCost.toFixed(2)}{material.unit ? `/${material.unit}` : ""}
+                      ${Number(material.unitCost).toFixed(2)}{material.unit ? `/${material.unit}` : ""}
                     </span>
                   )}
                 </div>

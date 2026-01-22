@@ -163,7 +163,7 @@ export default function MaterialsPage() {
                   <td><strong>{m.name}</strong></td>
                   <td>{m.partNumber || "—"}</td>
                   <td>{m.manufacturer || "—"}</td>
-                  <td>{m.unitCost ? `$${m.unitCost.toFixed(2)}` : "—"}</td>
+                  <td>{m.unitCost ? `$${Number(m.unitCost).toFixed(2)}` : "—"}</td>
                   <td>{m.unit || "—"}</td>
                   <td><span className={`badge ${m.category.toLowerCase()}`}>{m.category}</span></td>
                   <td>

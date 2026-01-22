@@ -51,17 +51,23 @@ export default function AnalyticsPage() {
       const { start, end } = getDateRange();
       
       try {
+        const fetchWithCheck = async (url: string) => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+          return res.json();
+        };
+
         const [revenue, workOrders, materials, quotes] = await Promise.all([
-          fetch(`/api/analytics/revenue?startDate=${start}&endDate=${end}`).then(r => r.json()),
-          fetch(`/api/analytics/work-orders?startDate=${start}&endDate=${end}`).then(r => r.json()),
-          fetch(`/api/analytics/materials?startDate=${start}&endDate=${end}`).then(r => r.json()),
-          fetch(`/api/analytics/quotes?startDate=${start}&endDate=${end}`).then(r => r.json()),
+          fetchWithCheck(`/api/analytics/revenue?startDate=${start}&endDate=${end}`),
+          fetchWithCheck(`/api/analytics/work-orders?startDate=${start}&endDate=${end}`),
+          fetchWithCheck(`/api/analytics/materials?startDate=${start}&endDate=${end}`),
+          fetchWithCheck(`/api/analytics/quotes?startDate=${start}&endDate=${end}`),
         ]);
-        
-        setRevenueData(revenue.data);
-        setWorkOrderData(workOrders.data);
-        setMaterialData(materials.data);
-        setQuoteData(quotes.data);
+
+        setRevenueData(revenue?.data || null);
+        setWorkOrderData(workOrders?.data || null);
+        setMaterialData(materials?.data || null);
+        setQuoteData(quotes?.data || null);
       } catch (error) {
         console.error("Failed to fetch analytics:", error);
       } finally {

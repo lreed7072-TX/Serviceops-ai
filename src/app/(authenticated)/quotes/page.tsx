@@ -9,7 +9,7 @@ interface Quote {
   quoteNumber: string;
   title: string;
   status: QuoteStatus;
-  total: number;
+  total: string | number; // Prisma Decimal serializes to string
   validUntil: string | null;
   sentAt: string | null;
   approvedAt: string | null;
@@ -146,7 +146,7 @@ export default function QuotesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
-                    ${quote.total.toFixed(2)}
+                    ${Number(quote.total).toFixed(2)}
                   </td>
                   <td className="px-4 py-3">
                     {quote.validUntil ? (

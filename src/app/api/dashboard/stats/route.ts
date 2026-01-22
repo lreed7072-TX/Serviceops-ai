@@ -179,13 +179,13 @@ export async function GET(req: NextRequest) {
       ...recentWOs.map(wo => ({
         id: wo.id,
         type: 'WORK_ORDER' as const,
-        description: `Work Order ${wo.workOrderNumber} - ${wo.customer.name} (${wo.status})`,
+        description: `Work Order ${wo.workOrderNumber} - ${wo.customer?.name || "Unknown"} (${wo.status})`,
         timestamp: wo.createdAt.toISOString(),
       })),
       ...recentQuotes.map(q => ({
         id: q.id,
         type: 'QUOTE' as const,
-        description: `Quote ${q.quoteNumber} - ${q.customer.name} (${q.status})`,
+        description: `Quote ${q.quoteNumber} - ${q.customer?.name || "Unknown"} (${q.status})`,
         timestamp: q.createdAt.toISOString(),
       })),
     ]

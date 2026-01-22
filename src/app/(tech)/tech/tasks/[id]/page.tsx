@@ -436,7 +436,7 @@ export default function TechTaskPage() {
                       <strong>{m.name}</strong>
                       {m.partNumber && <span className="material-part">#{m.partNumber}</span>}
                       <span className="material-qty">{m.quantity} {m.unit || "ea"}</span>
-                      {m.totalCost && <span className="material-cost">${m.totalCost.toFixed(2)}</span>}
+                      {m.totalCost && <span className="material-cost">${Number(m.totalCost).toFixed(2)}</span>}
                     </div>
                     <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
                   </div>

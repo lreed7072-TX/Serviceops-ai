@@ -378,13 +378,13 @@ export default function WorkOrderDetailsPage() {
                                   <div className="material-part-number">P/N: {material.partNumber}</div>
                                 )}
                                 <div className="material-quantity">
-                                  Qty: {material.quantity} {material.unit || "ea"} × {material.unitCost ? formatCurrency(material.unitCost) : "$0.00"}
+                                  Qty: {material.quantity} {material.unit || "ea"} × {material.unitCost ? formatCurrency(Number(material.unitCost)) : "$0.00"}
                                 </div>
                                 {material.notes && <div className="material-notes">{material.notes}</div>}
                               </div>
                               <div className="material-actions">
                                 <span className="material-cost">
-                                  {formatCurrency(material.totalCost || 0)}
+                                  {formatCurrency(Number(material.totalCost) || 0)}
                                 </span>
                                 <button onClick={() => deleteMaterial(material.id)} className="material-remove-btn">
                                   Remove
@@ -431,7 +431,7 @@ export default function WorkOrderDetailsPage() {
                       <div className="material-search-item-name">{mat.name}</div>
                       {mat.partNumber && <div className="material-search-item-meta">P/N: {mat.partNumber}</div>}
                       <div className="material-search-item-meta">
-                        {mat.unitCost ? formatCurrency(mat.unitCost) : "No cost"} {mat.unit && `per ${mat.unit}`}
+                        {mat.unitCost ? formatCurrency(Number(mat.unitCost)) : "No cost"} {mat.unit && `per ${mat.unit}`}
                       </div>
                     </div>
                   ))}

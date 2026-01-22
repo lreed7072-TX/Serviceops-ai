@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
         csvContent = "Invoice Number,Date,Customer,Status,Subtotal,Tax,Total,Paid Date\n";
         invoices.forEach((inv) => {
-          csvContent += `"${inv.invoiceNumber}","${inv.createdAt.toISOString().split("T")[0]}","${inv.customer.name}","${inv.status}",${inv.subtotal},${inv.tax},${inv.total},"${inv.paidAt?.toISOString().split("T")[0] || ""}"\n`;
+          csvContent += `"${inv.invoiceNumber}","${inv.createdAt.toISOString().split("T")[0]}","${inv.customer?.name || "N/A"}","${inv.status}",${inv.subtotal},${inv.tax},${inv.total},"${inv.paidAt?.toISOString().split("T")[0] || ""}"\n`;
         });
         filename = `revenue-export-${start.toISOString().split("T")[0]}-to-${end.toISOString().split("T")[0]}.csv`;
         break;
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
         csvContent = "WO Number,Date,Customer,Site,Title,Status,Type\n";
         workOrders.forEach((wo) => {
-          csvContent += `"${wo.workOrderNumber || ""}","${wo.createdAt.toISOString().split("T")[0]}","${wo.customer.name}","${wo.site.name}","${wo.title}","${wo.status}","${wo.orderType}"\n`;
+          csvContent += `"${wo.workOrderNumber || ""}","${wo.createdAt.toISOString().split("T")[0]}","${wo.customer?.name || "N/A"}","${wo.site?.name || "N/A"}","${wo.title}","${wo.status}","${wo.orderType}"\n`;
         });
         filename = `work-orders-export-${start.toISOString().split("T")[0]}-to-${end.toISOString().split("T")[0]}.csv`;
         break;
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
 
         csvContent = "Quote Number,Date,Customer,Status,Total,Sent Date,Approved Date,Valid Until\n";
         quotes.forEach((quote) => {
-          csvContent += `"${quote.quoteNumber}","${quote.createdAt.toISOString().split("T")[0]}","${quote.customer.name}","${quote.status}",${quote.total},"${quote.sentAt?.toISOString().split("T")[0] || ""}","${quote.approvedAt?.toISOString().split("T")[0] || ""}","${quote.validUntil?.toISOString().split("T")[0] || ""}"\n`;
+          csvContent += `"${quote.quoteNumber}","${quote.createdAt.toISOString().split("T")[0]}","${quote.customer?.name || "N/A"}","${quote.status}",${quote.total},"${quote.sentAt?.toISOString().split("T")[0] || ""}","${quote.approvedAt?.toISOString().split("T")[0] || ""}","${quote.validUntil?.toISOString().split("T")[0] || ""}"\n`;
         });
         filename = `quotes-export-${start.toISOString().split("T")[0]}-to-${end.toISOString().split("T")[0]}.csv`;
         break;

@@ -9,9 +9,9 @@ type InvoiceLineItem = {
   id: string;
   itemType: string;
   description: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
+  quantity: string | number; // Prisma Decimal serializes to string
+  unitPrice: string | number;
+  totalPrice: string | number;
 };
 
 type Invoice = {
@@ -20,16 +20,16 @@ type Invoice = {
   status: string;
   title: string;
   description: string | null;
-  subtotal: number;
-  tax: number;
-  taxRate: number;
-  total: number;
+  subtotal: string | number; // Prisma Decimal serializes to string
+  tax: string | number;
+  taxRate: string | number;
+  total: string | number;
   dueDate: string | null;
   paidAt: string | null;
   notes: string | null;
   terms: string | null;
   createdAt: string;
-  customer: { id: string; name: string; email: string | null };
+  customer: { id: string; name: string; primaryEmail: string | null };
   site: { id: string; name: string } | null;
   workOrder: { id: string; title: string; workOrderNumber: string | null } | null;
   lineItems: InvoiceLineItem[];
@@ -131,8 +131,8 @@ export default function InvoiceDetailPage() {
           <div>
             <h3 style={{ marginBottom: 12 }}>Customer</h3>
             <p style={{ fontWeight: 600, marginBottom: 4 }}>{invoice.customer.name}</p>
-            {invoice.customer.email && (
-              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{invoice.customer.email}</p>
+            {invoice.customer.primaryEmail && (
+              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{invoice.customer.primaryEmail}</p>
             )}
             {invoice.site && (
               <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>

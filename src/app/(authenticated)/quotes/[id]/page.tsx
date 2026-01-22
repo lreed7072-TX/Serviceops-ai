@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { QuoteStatus, QuoteLineItemType } from "@prisma/client";
 
 interface QuoteLineItem {
   id: string;
   itemType: QuoteLineItemType;
   description: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
+  quantity: string | number; // Prisma Decimal serializes to string
+  unitPrice: string | number;
+  totalPrice: string | number;
   sortOrder: number;
 }
 
@@ -20,10 +20,10 @@ interface Quote {
   title: string;
   description: string | null;
   status: QuoteStatus;
-  subtotal: number;
-  tax: number;
-  taxRate: number;
-  total: number;
+  subtotal: string | number; // Prisma Decimal serializes to string
+  tax: string | number;
+  taxRate: string | number;
+  total: string | number;
   validUntil: string | null;
   notes: string | null;
   terms: string | null;
@@ -36,7 +36,7 @@ interface Quote {
   customer: {
     id: string;
     name: string;
-    email: string | null;
+    primaryEmail: string | null;
   };
   site: {
     id: string;
@@ -44,24 +44,30 @@ interface Quote {
   } | null;
   lineItems: QuoteLineItem[];
   createdBy: {
-    name: string;
+    name: string | null;
   };
 }
 
-export default function QuoteDetailPage({ params }: { params: { id: string } }) {
+export default function QuoteDetailPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState(false);
 
+  const quoteId = params?.id;
+
   useEffect(() => {
-    fetchQuote();
-  }, [params.id]);
+    if (quoteId) {
+      fetchQuote();
+    }
+  }, [quoteId]);
 
   const fetchQuote = async () => {
+    if (!quoteId) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/quotes/${params.id}`);
+      const response = await fetch(`/api/quotes/${quoteId}`);
       if (response.ok) {
         const result = await response.json();
         setQuote(result.data);
@@ -182,8 +188,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           <div>
             <div className="text-sm text-gray-600">Customer</div>
             <div className="font-medium">{quote.customer.name}</div>
-            {quote.customer.email && (
-              <div className="text-sm text-gray-600">{quote.customer.email}</div>
+            {quote.customer.primaryEmail && (
+              <div className="text-sm text-gray-600">{quote.customer.primaryEmail}</div>
             )}
           </div>
           {quote.site && (
@@ -208,7 +214,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           <div>
             <div className="text-sm text-gray-600">Created</div>
             <div>{new Date(quote.createdAt).toLocaleDateString()}</div>
-            <div className="text-sm text-gray-600">by {quote.createdBy.name}</div>
+            <div className="text-sm text-gray-600">by {quote.createdBy.name || "Unknown"}</div>
           </div>
           {quote.validUntil && (
             <div>
@@ -267,10 +273,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                   </span>
                 </td>
                 <td className="px-4 py-3">{item.description}</td>
-                <td className="px-4 py-3 text-right">{item.quantity}</td>
-                <td className="px-4 py-3 text-right">${item.unitPrice.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right">{Number(item.quantity)}</td>
+                <td className="px-4 py-3 text-right">${Number(item.unitPrice).toFixed(2)}</td>
                 <td className="px-4 py-3 text-right font-medium">
-                  ${item.totalPrice.toFixed(2)}
+                  ${Number(item.totalPrice).toFixed(2)}
                 </td>
               </tr>
             ))}
@@ -281,15 +287,15 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         <div className="mt-4 border-t pt-4 space-y-2">
           <div className="flex justify-between">
             <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium">${quote.subtotal.toFixed(2)}</span>
+            <span className="font-medium">${Number(quote.subtotal).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Tax ({quote.taxRate}%)</span>
-            <span className="font-medium">${quote.tax.toFixed(2)}</span>
+            <span className="text-gray-600">Tax ({Number(quote.taxRate)}%)</span>
+            <span className="font-medium">${Number(quote.tax).toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>Total</span>
-            <span>${quote.total.toFixed(2)}</span>
+            <span>${Number(quote.total).toFixed(2)}</span>
           </div>
         </div>
       </div>

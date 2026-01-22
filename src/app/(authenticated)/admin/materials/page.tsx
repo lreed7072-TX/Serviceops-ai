@@ -333,7 +333,7 @@ export default function MaterialsPage() {
                   <td className="px-4 py-3 text-gray-600">{material.partNumber || "—"}</td>
                   <td className="px-4 py-3 text-gray-600">{material.manufacturer || "—"}</td>
                   <td className="px-4 py-3">
-                    {material.unitCost ? `$${material.unitCost.toFixed(2)}${material.unit ? `/${material.unit}` : ""}` : "—"}
+                    {material.unitCost ? `$${Number(material.unitCost).toFixed(2)}${material.unit ? `/${material.unit}` : ""}` : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-1 text-xs rounded bg-gray-100">

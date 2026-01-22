@@ -9,7 +9,7 @@ type Invoice = {
   invoiceNumber: string;
   status: string;
   title: string;
-  total: number;
+  total: string | number; // Prisma Decimal serializes to string
   dueDate: string | null;
   createdAt: string;
   customer: { id: string; name: string };

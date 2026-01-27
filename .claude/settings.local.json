@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 30 npm run dev)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Comprehensive codebase audit - runtime safety and schema alignment\n\n- Fix Decimal serialization: Add Number\\(\\) conversion for Prisma Decimal fields\n  before calling .toFixed\\(\\) in quotes, invoices, materials, and work-orders pages\n- Fix schema field names: Change customer.email to customer.primaryEmail\n- Fix quotes detail page: Use useParams\\(\\) hook for Next.js 16 client component params\n- Add null safety: Use optional chaining for relation properties in export routes\n- Add error handling: Wrap API routes with try-catch blocks\n- Fix analytics page: Add response.ok checks before parsing fetch responses\n\nFiles modified:\n- quotes pages \\(list, detail, new\\)\n- invoices pages \\(list, detail\\)\n- materials pages \\(list, admin\\)\n- work-orders detail page\n- tech tasks detail page\n- analytics page and export API\n- dashboard stats API\n- quotes API routes\n- MaterialSelector component\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

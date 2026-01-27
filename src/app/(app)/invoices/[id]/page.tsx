@@ -257,7 +257,7 @@ export default function InvoiceDetailPage() {
             <span>Subtotal:</span>
             <span style={{ fontWeight: 600 }}>${parseFloat(invoice.subtotal.toString()).toFixed(2)}</span>
           </div>
-          {invoice.tax > 0 && (
+          {Number(invoice.tax) > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
               <span>Tax ({parseFloat(invoice.taxRate.toString()).toFixed(2)}%):</span>
               <span style={{ fontWeight: 600 }}>${parseFloat(invoice.tax.toString()).toFixed(2)}</span>

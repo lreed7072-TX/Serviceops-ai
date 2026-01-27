@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QuoteStatus } from "@prisma/client";
+import "./quotes.css";
 
 interface Quote {
   id: string;
   quoteNumber: string;
   title: string;
   status: QuoteStatus;
-  total: string | number; // Prisma Decimal serializes to string
+  total: string | number;
   validUntil: string | null;
   sentAt: string | null;
   approvedAt: string | null;
@@ -29,6 +30,7 @@ export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | "ALL">("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchQuotes();
@@ -52,17 +54,17 @@ export default function QuotesPage() {
     }
   };
 
-  const getStatusColor = (status: QuoteStatus) => {
-    switch (status) {
-      case QuoteStatus.DRAFT: return "bg-gray-100 text-gray-800";
-      case QuoteStatus.SENT: return "bg-blue-100 text-blue-800";
-      case QuoteStatus.APPROVED: return "bg-green-100 text-green-800";
-      case QuoteStatus.REJECTED: return "bg-red-100 text-red-800";
-      case QuoteStatus.EXPIRED: return "bg-orange-100 text-orange-800";
-      case QuoteStatus.CONVERTED: return "bg-purple-100 text-purple-800";
-      case QuoteStatus.CANCELED: return "bg-gray-100 text-gray-600";
-      default: return "bg-gray-100 text-gray-800";
-    }
+  const getStatusConfig = (status: QuoteStatus) => {
+    const configs = {
+      DRAFT: { color: "var(--status-draft)", bg: "var(--status-draft-bg)", label: "Draft" },
+      SENT: { color: "var(--status-in-progress)", bg: "var(--status-in-progress-bg)", label: "Sent" },
+      APPROVED: { color: "var(--status-completed)", bg: "var(--status-completed-bg)", label: "Approved" },
+      REJECTED: { color: "var(--status-rejected)", bg: "var(--status-rejected-bg)", label: "Rejected" },
+      EXPIRED: { color: "var(--status-expired)", bg: "var(--status-expired-bg)", label: "Expired" },
+      CONVERTED: { color: "var(--status-converted)", bg: "var(--status-converted-bg)", label: "Converted" },
+      CANCELED: { color: "var(--text-secondary)", bg: "var(--background-secondary)", label: "Canceled" },
+    };
+    return configs[status] || configs.DRAFT;
   };
 
   const isExpired = (validUntil: string | null) => {
@@ -70,27 +72,98 @@ export default function QuotesPage() {
     return new Date(validUntil) < new Date();
   };
 
+  // Filter quotes by search term
+  const filteredQuotes = quotes.filter((quote) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      quote.quoteNumber.toLowerCase().includes(search) ||
+      quote.title.toLowerCase().includes(search) ||
+      quote.customer.name.toLowerCase().includes(search) ||
+      quote.site?.name?.toLowerCase().includes(search)
+    );
+  });
+
+  // Calculate summary stats
+  const stats = {
+    total: quotes.length,
+    draft: quotes.filter(q => q.status === QuoteStatus.DRAFT).length,
+    sent: quotes.filter(q => q.status === QuoteStatus.SENT).length,
+    approved: quotes.filter(q => q.status === QuoteStatus.APPROVED).length,
+    totalValue: quotes.reduce((sum, q) => sum + Number(q.total), 0),
+  };
+
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">Quotes</h1>
-          <p className="text-gray-600">Manage customer quotes and estimates</p>
+    <div className="quotes-page">
+      {/* Header */}
+      <div className="page-header">
+        <div className="header-content">
+          <div>
+            <h1 className="page-title">Quotes & Estimates</h1>
+            <p className="page-subtitle">
+              Manage customer quotes and proposals
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/quotes/new")}
+            className="btn-primary"
+          >
+            <svg className="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Quote
+          </button>
         </div>
-        <button
-          onClick={() => router.push("/quotes/new")}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          + Create Quote
-        </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="summary-grid">
+        <div className="summary-card">
+          <div className="summary-label">Total Quotes</div>
+          <div className="summary-value">{stats.total}</div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-label">Draft</div>
+          <div className="summary-value" style={{ color: "var(--status-draft)" }}>
+            {stats.draft}
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-label">Sent / Pending</div>
+          <div className="summary-value" style={{ color: "var(--status-in-progress)" }}>
+            {stats.sent}
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-label">Approved</div>
+          <div className="summary-value" style={{ color: "var(--status-completed)" }}>
+            {stats.approved}
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-label">Total Value</div>
+          <div className="summary-value">${stats.totalValue.toLocaleString()}</div>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="mb-6">
+      <div className="filters-section">
+        <div className="search-box">
+          <svg className="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search quotes by number, title, or customer..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+        </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as QuoteStatus | "ALL")}
-          className="border rounded px-3 py-2"
+          className="filter-select"
         >
           <option value="ALL">All Statuses</option>
           <option value={QuoteStatus.DRAFT}>Draft</option>
@@ -103,79 +176,83 @@ export default function QuotesPage() {
         </select>
       </div>
 
-      {/* Quotes Table */}
+      {/* Quotes List */}
       {loading ? (
-        <div className="text-center py-8">Loading quotes...</div>
-      ) : quotes.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No quotes found. Create your first quote to get started.
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <div>Loading quotes...</div>
+        </div>
+      ) : filteredQuotes.length === 0 ? (
+        <div className="empty-state">
+          <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3>{searchTerm ? "No matching quotes found" : "No quotes yet"}</h3>
+          <p>{searchTerm ? "Try adjusting your search" : "Create your first quote to get started"}</p>
+          {!searchTerm && (
+            <button onClick={() => router.push("/quotes/new")} className="btn-primary">
+              Create Your First Quote
+            </button>
+          )}
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium">Quote #</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Customer</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Title</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                <th className="px-4 py-3 text-right text-sm font-medium">Total</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Valid Until</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Created</th>
-                <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {quotes.map((quote) => (
-                <tr 
-                  key={quote.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => router.push(`/quotes/${quote.id}`)}
-                >
-                  <td className="px-4 py-3 font-medium">{quote.quoteNumber}</td>
-                  <td className="px-4 py-3">
-                    <div>{quote.customer.name}</div>
+        <div className="quotes-grid">
+          {filteredQuotes.map((quote) => {
+            const statusConfig = getStatusConfig(quote.status);
+            const expired = isExpired(quote.validUntil);
+
+            return (
+              <div
+                key={quote.id}
+                className="quote-card"
+                onClick={() => router.push(`/quotes/${quote.id}`)}
+              >
+                <div className="quote-header">
+                  <div className="quote-number">{quote.quoteNumber}</div>
+                  <span
+                    className="status-badge"
+                    style={{
+                      color: statusConfig.color,
+                      backgroundColor: statusConfig.bg,
+                    }}
+                  >
+                    {statusConfig.label}
+                  </span>
+                </div>
+
+                <div className="quote-title">{quote.title}</div>
+
+                <div className="quote-customer">
+                  <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <div>
+                    <div className="customer-name">{quote.customer.name}</div>
                     {quote.site && (
-                      <div className="text-sm text-gray-600">{quote.site.name}</div>
+                      <div className="site-name">{quote.site.name}</div>
                     )}
-                  </td>
-                  <td className="px-4 py-3">{quote.title}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 text-xs rounded ${getStatusColor(quote.status)}`}>
-                      {quote.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    ${Number(quote.total).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {quote.validUntil ? (
-                      <span className={isExpired(quote.validUntil) ? "text-red-600" : ""}>
-                        {new Date(quote.validUntil).toLocaleDateString()}
-                        {isExpired(quote.validUntil) && " (Expired)"}
-                      </span>
-                    ) : (
-                      "—"
+                  </div>
+                </div>
+
+                <div className="quote-footer">
+                  <div className="quote-total">
+                    <span className="total-label">Total:</span>
+                    <span className="total-value">${Number(quote.total).toFixed(2)}</span>
+                  </div>
+                  <div className="quote-dates">
+                    {quote.validUntil && (
+                      <div className={`valid-until ${expired ? "expired" : ""}`}>
+                        {expired ? "Expired" : "Valid"} {new Date(quote.validUntil).toLocaleDateString()}
+                      </div>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {new Date(quote.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/quotes/${quote.id}`);
-                      }}
-                      className="text-blue-600 hover:underline text-sm"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <div className="created-date">
+                      Created {new Date(quote.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

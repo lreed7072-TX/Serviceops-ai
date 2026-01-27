@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QuoteLineItemType } from "@prisma/client";
+import "./new-quote.css";
 
 interface Customer {
   id: string;
@@ -28,21 +29,20 @@ export default function NewQuotePage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showLineItemModal, setShowLineItemModal] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     customerId: "",
     siteId: "",
     title: "",
     description: "",
-    taxRate: "0",
+    taxRate: "8.25",
     validUntil: "",
     notes: "",
     terms: "Payment due within 30 days of work order completion.",
   });
 
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [showLineItemForm, setShowLineItemForm] = useState(false);
   const [currentLineItem, setCurrentLineItem] = useState<LineItem>({
     itemType: QuoteLineItemType.SERVICE,
     description: "",
@@ -50,6 +50,7 @@ export default function NewQuotePage() {
     unitPrice: 0,
     totalPrice: 0,
   });
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -60,6 +61,7 @@ export default function NewQuotePage() {
       fetchSites(formData.customerId);
     } else {
       setSites([]);
+      setFormData(prev => ({ ...prev, siteId: "" }));
     }
   }, [formData.customerId]);
 
@@ -89,7 +91,21 @@ export default function NewQuotePage() {
 
   const handleAddLineItem = () => {
     const totalPrice = currentLineItem.quantity * currentLineItem.unitPrice;
-    setLineItems([...lineItems, { ...currentLineItem, totalPrice }]);
+    const itemWithTotal = { ...currentLineItem, totalPrice };
+    
+    if (editingIndex !== null) {
+      const updated = [...lineItems];
+      updated[editingIndex] = itemWithTotal;
+      setLineItems(updated);
+      setEditingIndex(null);
+    } else {
+      setLineItems([...lineItems, itemWithTotal]);
+    }
+    
+    resetLineItemForm();
+  };
+
+  const resetLineItemForm = () => {
     setCurrentLineItem({
       itemType: QuoteLineItemType.SERVICE,
       description: "",
@@ -97,7 +113,14 @@ export default function NewQuotePage() {
       unitPrice: 0,
       totalPrice: 0,
     });
-    setShowLineItemForm(false);
+    setShowLineItemModal(false);
+    setEditingIndex(null);
+  };
+
+  const handleEditLineItem = (index: number) => {
+    setCurrentLineItem(lineItems[index]);
+    setEditingIndex(index);
+    setShowLineItemModal(true);
   };
 
   const handleRemoveLineItem = (index: number) => {
@@ -106,94 +129,80 @@ export default function NewQuotePage() {
 
   const calculateTotals = () => {
     const subtotal = lineItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const taxRate = parseFloat(formData.taxRate) || 0;
-    const tax = subtotal * (taxRate / 100);
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
+    const taxAmount = subtotal * (parseFloat(formData.taxRate) / 100);
+    const total = subtotal + taxAmount;
+    return { subtotal, taxAmount, total };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.customerId) {
-      alert("Please select a customer");
+  const handleSubmit = async () => {
+    if (!formData.customerId || !formData.title || lineItems.length === 0) {
+      alert("Please fill in all required fields and add at least one line item");
       return;
     }
-
-    if (lineItems.length === 0) {
-      alert("Please add at least one line item");
-      return;
-    }
-
-    const { subtotal, tax, total } = calculateTotals();
-
-    const payload = {
-      customerId: formData.customerId,
-      siteId: formData.siteId || null,
-      title: formData.title,
-      description: formData.description || null,
-      taxRate: parseFloat(formData.taxRate) || 0,
-      validUntil: formData.validUntil || null,
-      notes: formData.notes || null,
-      terms: formData.terms || null,
-      subtotal,
-      tax,
-      total,
-      lineItems: lineItems.map((item, index) => ({
-        ...item,
-        sortOrder: index,
-      })),
-    };
 
     setLoading(true);
     try {
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...formData,
+          taxRate: parseFloat(formData.taxRate),
+          lineItems,
+        }),
       });
 
       if (response.ok) {
         const result = await response.json();
         router.push(`/quotes/${result.data.id}`);
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to create quote");
+        alert("Failed to create quote");
       }
     } catch (error) {
       console.error("Failed to create quote:", error);
-      alert("An error occurred while creating quote");
+      alert("Failed to create quote");
     } finally {
       setLoading(false);
     }
   };
 
-  const { subtotal, tax, total } = calculateTotals();
+  const { subtotal, taxAmount, total } = calculateTotals();
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <button
-          onClick={() => router.push("/quotes")}
-          className="text-blue-600 hover:underline mb-2"
-        >
-          ← Back to Quotes
+    <div className="new-quote-page">
+      {/* Header */}
+      <div className="page-header">
+        <button onClick={() => router.back()} className="back-button">
+          <svg className="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Quotes
         </button>
-        <h1 className="text-2xl font-bold">Create New Quote</h1>
+        <h1 className="page-title">Create New Quote</h1>
+        <p className="page-subtitle">Build a professional quote for your customer</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Customer Selection */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Customer Information</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Customer *</label>
+      <div className="form-container">
+        {/* Customer Section */}
+        <div className="form-section">
+          <div className="section-header">
+            <svg className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h2 className="section-title">Customer Information</h2>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field">
+              <label className="field-label">
+                Customer *
+                <span className="field-required">Required</span>
+              </label>
               <select
-                required
                 value={formData.customerId}
-                onChange={(e) => setFormData({ ...formData, customerId: e.target.value, siteId: "" })}
-                className="w-full border rounded px-3 py-2"
+                onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+                className="field-input"
+                required
               >
                 <option value="">Select customer...</option>
                 {customers.map((customer) => (
@@ -204,12 +213,12 @@ export default function NewQuotePage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Site (Optional)</label>
+            <div className="form-field">
+              <label className="field-label">Site (Optional)</label>
               <select
                 value={formData.siteId}
                 onChange={(e) => setFormData({ ...formData, siteId: e.target.value })}
-                className="w-full border rounded px-3 py-2"
+                className="field-input"
                 disabled={!formData.customerId || sites.length === 0}
               >
                 <option value="">No specific site</option>
@@ -219,276 +228,327 @@ export default function NewQuotePage() {
                   </option>
                 ))}
               </select>
+              {formData.customerId && sites.length === 0 && (
+                <p className="field-hint">No sites available for this customer</p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Quote Details */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Quote Details</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title *</label>
+        {/* Quote Details Section */}
+        <div className="form-section">
+          <div className="section-header">
+            <svg className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h2 className="section-title">Quote Details</h2>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field full-width">
+              <label className="field-label">
+                Title *
+                <span className="field-required">Required</span>
+              </label>
               <input
                 type="text"
-                required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full border rounded px-3 py-2"
-                placeholder="e.g., Annual pump maintenance"
+                className="field-input"
+                placeholder="e.g., Annual Pump Maintenance & Inspection"
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+            <div className="form-field full-width">
+              <label className="field-label">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full border rounded px-3 py-2"
+                className="field-textarea"
                 rows={3}
                 placeholder="Additional details about this quote..."
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Tax Rate (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.taxRate}
-                  onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
+            <div className="form-field">
+              <label className="field-label">Tax Rate (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.taxRate}
+                onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
+                className="field-input"
+                placeholder="8.25"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Valid Until</label>
-                <input
-                  type="date"
-                  value={formData.validUntil}
-                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
+            <div className="form-field">
+              <label className="field-label">Valid Until</label>
+              <input
+                type="date"
+                value={formData.validUntil}
+                onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                className="field-input"
+              />
             </div>
           </div>
         </div>
 
-        {/* Line Items */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Line Items</h2>
+        {/* Line Items Section */}
+        <div className="form-section">
+          <div className="section-header">
+            <div className="section-header-left">
+              <svg className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <h2 className="section-title">Line Items</h2>
+            </div>
             <button
               type="button"
-              onClick={() => setShowLineItemForm(true)}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              onClick={() => setShowLineItemModal(true)}
+              className="btn-secondary"
             >
-              + Add Item
+              <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Item
             </button>
           </div>
 
           {lineItems.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No items added yet. Click "Add Item" to get started.
+            <div className="empty-state-small">
+              <svg className="empty-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p>No items added yet</p>
+              <button
+                type="button"
+                onClick={() => setShowLineItemModal(true)}
+                className="btn-text"
+              >
+                Add your first item to get started
+              </button>
             </div>
           ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left text-sm">Type</th>
-                  <th className="px-3 py-2 text-left text-sm">Description</th>
-                  <th className="px-3 py-2 text-right text-sm">Qty</th>
-                  <th className="px-3 py-2 text-right text-sm">Unit Price</th>
-                  <th className="px-3 py-2 text-right text-sm">Total</th>
-                  <th className="px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {lineItems.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-3 py-2">
-                      <span className="px-2 py-1 text-xs rounded bg-gray-100">
-                        {item.itemType}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">{item.description}</td>
-                    <td className="px-3 py-2 text-right">{item.quantity}</td>
-                    <td className="px-3 py-2 text-right">${item.unitPrice.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right font-medium">
+            <div className="line-items-table">
+              {lineItems.map((item, index) => (
+                <div key={index} className="line-item-row">
+                  <div className="line-item-main">
+                    <div className="line-item-type">
+                      {item.itemType}
+                    </div>
+                    <div className="line-item-description">
+                      {item.description}
+                    </div>
+                    <div className="line-item-details">
+                      <span>{item.quantity} × ${item.unitPrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div className="line-item-actions">
+                    <div className="line-item-total">
                       ${item.totalPrice.toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLineItem(index)}
-                        className="text-red-600 hover:underline text-sm"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {/* Totals */}
-          {lineItems.length > 0 && (
-            <div className="mt-4 border-t pt-4 space-y-2 max-w-xs ml-auto">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax ({formData.taxRate}%)</span>
-                <span className="font-medium">${tax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEditLineItem(index)}
+                      className="action-button edit"
+                    >
+                      <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveLineItem(index)}
+                      className="action-button delete"
+                    >
+                      <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Notes & Terms */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Notes & Terms</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Notes</label>
+        {/* Totals Section */}
+        {lineItems.length > 0 && (
+          <div className="totals-section">
+            <div className="totals-row">
+              <span className="totals-label">Subtotal</span>
+              <span className="totals-value">${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="totals-row">
+              <span className="totals-label">Tax ({formData.taxRate}%)</span>
+              <span className="totals-value">${taxAmount.toFixed(2)}</span>
+            </div>
+            <div className="totals-row total">
+              <span className="totals-label">Total</span>
+              <span className="totals-value">${total.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Notes & Terms Section */}
+        <div className="form-section">
+          <div className="section-header">
+            <svg className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            <h2 className="section-title">Notes & Terms</h2>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field full-width">
+              <label className="field-label">Internal Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full border rounded px-3 py-2"
+                className="field-textarea"
                 rows={3}
-                placeholder="Internal notes or special instructions..."
+                placeholder="Internal notes (not visible to customer)..."
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Terms & Conditions</label>
+            <div className="form-field full-width">
+              <label className="field-label">Terms & Conditions</label>
               <textarea
                 value={formData.terms}
                 onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
-                className="w-full border rounded px-3 py-2"
+                className="field-textarea"
                 rows={3}
+                placeholder="Terms and conditions..."
               />
             </div>
           </div>
         </div>
 
-        {/* Submit */}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "Creating..." : "Create Quote"}
-          </button>
+        {/* Action Buttons */}
+        <div className="actions-section">
           <button
             type="button"
-            onClick={() => router.push("/quotes")}
-            className="bg-gray-200 px-6 py-2 rounded hover:bg-gray-300"
+            onClick={() => router.back()}
+            className="btn-cancel"
+            disabled={loading}
           >
             Cancel
           </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="btn-submit"
+            disabled={loading || !formData.customerId || !formData.title || lineItems.length === 0}
+          >
+            {loading ? (
+              <>
+                <div className="spinner-sm"></div>
+                Creating Quote...
+              </>
+            ) : (
+              <>
+                <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Create Quote
+              </>
+            )}
+          </button>
         </div>
-      </form>
+      </div>
 
-      {/* Line Item Form Modal */}
-      {showLineItemForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Add Line Item</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
+      {/* Line Item Modal */}
+      {showLineItemModal && (
+        <div className="modal-overlay" onClick={() => resetLineItemForm()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">
+                {editingIndex !== null ? "Edit Line Item" : "Add Line Item"}
+              </h3>
+              <button onClick={() => resetLineItemForm()} className="modal-close">
+                <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-field">
+                <label className="field-label">Item Type</label>
                 <select
                   value={currentLineItem.itemType}
-                  onChange={(e) => setCurrentLineItem({ 
-                    ...currentLineItem, 
-                    itemType: e.target.value as QuoteLineItemType 
-                  })}
-                  className="w-full border rounded px-3 py-2"
+                  onChange={(e) => setCurrentLineItem({ ...currentLineItem, itemType: e.target.value as QuoteLineItemType })}
+                  className="field-input"
                 >
-                  <option value={QuoteLineItemType.LABOR}>Labor</option>
-                  <option value={QuoteLineItemType.MATERIAL}>Material</option>
                   <option value={QuoteLineItemType.SERVICE}>Service</option>
+                  <option value={QuoteLineItemType.MATERIAL}>Material</option>
                   <option value={QuoteLineItemType.OTHER}>Other</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Description *</label>
-                <input
-                  type="text"
-                  required
+              <div className="form-field">
+                <label className="field-label">Description *</label>
+                <textarea
                   value={currentLineItem.description}
-                  onChange={(e) => setCurrentLineItem({ 
-                    ...currentLineItem, 
-                    description: e.target.value 
-                  })}
-                  className="w-full border rounded px-3 py-2"
+                  onChange={(e) => setCurrentLineItem({ ...currentLineItem, description: e.target.value })}
+                  className="field-textarea"
+                  rows={3}
                   placeholder="Describe the item..."
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Quantity</label>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label className="field-label">Quantity</label>
                   <input
                     type="number"
                     step="0.01"
-                    min="0"
                     value={currentLineItem.quantity}
-                    onChange={(e) => setCurrentLineItem({ 
-                      ...currentLineItem, 
-                      quantity: parseFloat(e.target.value) || 0 
-                    })}
-                    className="w-full border rounded px-3 py-2"
+                    onChange={(e) => setCurrentLineItem({ ...currentLineItem, quantity: parseFloat(e.target.value) || 0 })}
+                    className="field-input"
+                    min="0"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Unit Price ($)</label>
+                <div className="form-field">
+                  <label className="field-label">Unit Price</label>
                   <input
                     type="number"
                     step="0.01"
-                    min="0"
                     value={currentLineItem.unitPrice}
-                    onChange={(e) => setCurrentLineItem({ 
-                      ...currentLineItem, 
-                      unitPrice: parseFloat(e.target.value) || 0 
-                    })}
-                    className="w-full border rounded px-3 py-2"
+                    onChange={(e) => setCurrentLineItem({ ...currentLineItem, unitPrice: parseFloat(e.target.value) || 0 })}
+                    className="field-input"
+                    min="0"
                   />
                 </div>
               </div>
 
-              <div className="text-right text-lg font-semibold">
-                Total: ${(currentLineItem.quantity * currentLineItem.unitPrice).toFixed(2)}
+              <div className="item-total-preview">
+                <span>Item Total:</span>
+                <span className="total-amount">
+                  ${(currentLineItem.quantity * currentLineItem.unitPrice).toFixed(2)}
+                </span>
               </div>
             </div>
 
-            <div className="flex gap-2 mt-6">
+            <div className="modal-footer">
               <button
                 type="button"
-                onClick={handleAddLineItem}
-                disabled={!currentLineItem.description}
-                className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                onClick={() => resetLineItemForm()}
+                className="btn-cancel"
               >
-                Add Item
+                Cancel
               </button>
               <button
                 type="button"
-                onClick={() => setShowLineItemForm(false)}
-                className="flex-1 bg-gray-200 py-2 rounded hover:bg-gray-300"
+                onClick={handleAddLineItem}
+                className="btn-primary"
+                disabled={!currentLineItem.description}
               >
-                Cancel
+                {editingIndex !== null ? "Update Item" : "Add Item"}
               </button>
             </div>
           </div>

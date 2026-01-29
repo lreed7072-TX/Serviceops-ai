@@ -76,7 +76,14 @@ export default function SitesPage() {
         fetchList<Site>("/api/sites"),
       ]);
       setCustomers(customerData);
-      setSites(siteData);
+      
+      // Remove duplicates based on site ID
+      const uniqueSites = Array.from(
+        new Map(siteData.map(site => [site.id, site])).values()
+      );
+      setSites(uniqueSites);
+      
+      console.log('Sites loaded:', siteData.length, 'Unique:', uniqueSites.length);
       setLoadError(null);
     } catch (error) {
       console.error(error);
@@ -101,7 +108,14 @@ export default function SitesPage() {
   const refreshSites = async () => {
     try {
       const siteData = await fetchList<Site>("/api/sites");
-      setSites(siteData);
+      
+      // Remove duplicates based on site ID
+      const uniqueSites = Array.from(
+        new Map(siteData.map(site => [site.id, site])).values()
+      );
+      setSites(uniqueSites);
+      
+      console.log('Sites refreshed:', siteData.length, 'Unique:', uniqueSites.length);
       setLoadError(null);
     } catch (error) {
       console.error(error);

@@ -8,7 +8,7 @@ import type { Asset, Customer, Site, WorkOrder } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
-
+import "./work-orders.css";
 
 type ListResponse<T> = {
   data?: T[];
@@ -171,41 +171,56 @@ async function fetchList<T>(path: string): Promise<T[]> {
 }
 
 export default function WorkOrdersPage() {
+  // State - Data
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [standardsPacks, setStandardsPacks] = useState<StandardsPack[]>([]);
+  
+  // State - Form
   const [form, setForm] = useState<WorkOrderFormState>(() => createInitialFormState());
+  
+  // State - UI
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  
+  // State - Search & Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterExecution, setFilterExecution] = useState<string>("all");
+  
+  // State - Modals
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [customerModalState, setCustomerModalState] = useState<CustomerModalState>(() =>
     createCustomerModalState()
   );
   const [customerModalError, setCustomerModalError] = useState<string | null>(null);
   const [customerModalSaving, setCustomerModalSaving] = useState(false);
+  
   const [showSiteModal, setShowSiteModal] = useState(false);
   const [siteModalState, setSiteModalState] = useState<SiteModalState>(() =>
     createSiteModalState()
   );
   const [siteModalError, setSiteModalError] = useState<string | null>(null);
   const [siteModalSaving, setSiteModalSaving] = useState(false);
+  
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [assetModalState, setAssetModalState] = useState<AssetModalState>(() =>
     createAssetModalState()
   );
   const [assetModalError, setAssetModalError] = useState<string | null>(null);
   const [assetModalSaving, setAssetModalSaving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const NEW_CUSTOMER_VALUE = "__workorder_add_customer__";
   const NEW_SITE_VALUE = "__workorder_add_site__";
   const NEW_ASSET_VALUE = "__workorder_add_asset__";
 
+  // Load data on mount
   useEffect(() => {
     let active = true;
 
@@ -247,6 +262,7 @@ export default function WorkOrdersPage() {
     };
   }, []);
 
+  // Computed values - Filtered dropdowns
   const filteredSites = useMemo(() => {
     if (!form.customerId) return sites;
     return sites.filter((site) => site.customerId === form.customerId);
@@ -262,19 +278,53 @@ export default function WorkOrdersPage() {
     return assets;
   }, [assets, form.customerId, form.siteId]);
 
+  // Computed values - Filtered work orders
   const filteredWorkOrders = useMemo(() => {
-    if (!searchQuery.trim()) return workOrders;
-    const query = searchQuery.toLowerCase();
-    return workOrders.filter(wo => 
-      wo.title.toLowerCase().includes(query) ||
-      wo.status.toLowerCase().includes(query) ||
-      (wo as any).workOrderNumber?.toLowerCase().includes(query)
-    );
-  }, [workOrders, searchQuery]);
+    let filtered = [...workOrders];
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(wo => 
+        wo.title.toLowerCase().includes(query) ||
+        wo.status.toLowerCase().includes(query) ||
+        (wo as any).workOrderNumber?.toLowerCase().includes(query) ||
+        (wo as any).description?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Status filter
+    if (filterStatus && filterStatus !== "all") {
+      filtered = filtered.filter(wo => wo.status.toLowerCase() === filterStatus.toLowerCase());
+    }
+    
+    // Type filter
+    if (filterType && filterType !== "all") {
+      filtered = filtered.filter(wo => (wo as any).orderType === filterType);
+    }
+    
+    // Execution filter
+    if (filterExecution && filterExecution !== "all") {
+      filtered = filtered.filter(wo => wo.executionMode === filterExecution);
+    }
+    
+    return filtered;
+  }, [workOrders, searchQuery, filterStatus, filterType, filterExecution]);
+
+  // Computed values - Statistics
+  const stats = useMemo(() => {
+    const total = workOrders.length;
+    const open = workOrders.filter(wo => wo.status === "DRAFT" || wo.status === "SCHEDULED").length;
+    const inProgress = workOrders.filter(wo => wo.status === "IN_PROGRESS").length;
+    const completed = workOrders.filter(wo => wo.status === "COMPLETED").length;
+    
+    return { total, open, inProgress, completed };
+  }, [workOrders]);
 
   const canSubmit =
     form.title.trim().length > 0 && form.customerId.length > 0 && form.siteId.length > 0;
 
+  // Refresh functions
   const refreshWorkOrders = async () => {
     try {
       const data = await fetchList<WorkOrder>("/api/work-orders");
@@ -335,6 +385,7 @@ export default function WorkOrdersPage() {
     }
   };
 
+  // Form field handlers
   const handleFieldChange = (field: keyof WorkOrderFormState, value: string) => {
     setForm((prev) => {
       if (field === "customerId") {
@@ -353,6 +404,7 @@ export default function WorkOrdersPage() {
     });
   };
 
+  // Modal handlers
   const openCustomerModal = () => {
     setCustomerModalState(createCustomerModalState());
     setCustomerModalError(null);
@@ -380,6 +432,61 @@ export default function WorkOrdersPage() {
     setShowAssetModal(true);
   };
 
+  const handleCustomerSelectChange = (value: string) => {
+    if (value === NEW_CUSTOMER_VALUE) {
+      openCustomerModal();
+      return;
+    }
+    handleFieldChange("customerId", value);
+  };
+
+  const handleSiteSelectChange = (value: string) => {
+    if (value === NEW_SITE_VALUE) {
+      openSiteModal();
+      return;
+    }
+    handleFieldChange("siteId", value);
+  };
+
+  const handleAssetSelectChange = (value: string) => {
+    if (value === NEW_ASSET_VALUE) {
+      openAssetModal();
+      return;
+    }
+    handleFieldChange("assetId", value);
+  };
+
+  const closeCustomerModal = () => {
+    setShowCustomerModal(false);
+    setCustomerModalError(null);
+  };
+
+  const closeSiteModal = () => {
+    setShowSiteModal(false);
+    setSiteModalError(null);
+  };
+
+  const closeAssetModal = () => {
+    setShowAssetModal(false);
+    setAssetModalError(null);
+  };
+
+  const assetModalSites = useMemo(() => {
+    if (!assetModalState.customerId) return sites;
+    return sites.filter((site) => site.customerId === assetModalState.customerId);
+  }, [assetModalState.customerId, sites]);
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterStatus("all");
+    setFilterType("all");
+    setFilterExecution("all");
+  };
+
+  const hasActiveFilters = searchQuery || filterStatus !== "all" || filterType !== "all" || filterExecution !== "all";
+
+  // Modal submit handlers
   const handleCustomerModalSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCustomerModalError(null);
@@ -462,7 +569,6 @@ export default function WorkOrdersPage() {
       const data = (await response.json()) as SingleResponse<Site>;
       setShowSiteModal(false);
       setSiteModalState(createSiteModalState());
-      // refresh both sites and potentially assets filtered by site
       await refreshSites(data.data.id);
       await refreshAssets();
     } catch (error) {
@@ -530,50 +636,7 @@ export default function WorkOrdersPage() {
     }
   };
 
-  const handleCustomerSelectChange = (value: string) => {
-    if (value === NEW_CUSTOMER_VALUE) {
-      openCustomerModal();
-      return;
-    }
-    handleFieldChange("customerId", value);
-  };
-
-  const handleSiteSelectChange = (value: string) => {
-    if (value === NEW_SITE_VALUE) {
-      openSiteModal();
-      return;
-    }
-    handleFieldChange("siteId", value);
-  };
-
-  const handleAssetSelectChange = (value: string) => {
-    if (value === NEW_ASSET_VALUE) {
-      openAssetModal();
-      return;
-    }
-    handleFieldChange("assetId", value);
-  };
-
-  const closeCustomerModal = () => {
-    setShowCustomerModal(false);
-    setCustomerModalError(null);
-  };
-
-  const closeSiteModal = () => {
-    setShowSiteModal(false);
-    setSiteModalError(null);
-  };
-
-  const closeAssetModal = () => {
-    setShowAssetModal(false);
-    setAssetModalError(null);
-  };
-
-  const assetModalSites = useMemo(() => {
-    if (!assetModalState.customerId) return sites;
-    return sites.filter((site) => site.customerId === assetModalState.customerId);
-  }, [assetModalState.customerId, sites]);
-
+  // Main work order submit
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError(null);
@@ -643,6 +706,7 @@ export default function WorkOrdersPage() {
     }
   };
 
+  // JSX Return
   return (
     <div>
       {loadError && (
@@ -650,10 +714,8 @@ export default function WorkOrdersPage() {
           Failed to load data: {loadError} – refresh the page or try again.
         </div>
       )}
-      {!loadError && loading && (
-        <div className="page-alert info">Loading work order data…</div>
-      )}
-            <PageHeader
+      
+      <PageHeader
         title="Work Orders"
         subtitle="Dispatch queue and SLA tracking."
         right={
@@ -663,8 +725,232 @@ export default function WorkOrdersPage() {
         }
       />
 
-      <div className="card">
-        <h3>Create work order</h3>
+      {/* Statistics Cards */}
+      {!loadError && !loading && (
+        <div className="stats-grid">
+          <div className="stat-card stat-total">
+            <div className="stat-label">
+              <span className="stat-icon">📋</span>
+              Total Orders
+            </div>
+            <div className="stat-value">{stats.total}</div>
+            <div className="stat-change">All work orders</div>
+          </div>
+
+          <div className="stat-card stat-open">
+            <div className="stat-label">
+              <span className="stat-icon">📝</span>
+              Open / Scheduled
+            </div>
+            <div className="stat-value">{stats.open}</div>
+            <div className="stat-change">Awaiting dispatch</div>
+          </div>
+
+          <div className="stat-card stat-in-progress">
+            <div className="stat-label">
+              <span className="stat-icon">⚙️</span>
+              In Progress
+            </div>
+            <div className="stat-value">{stats.inProgress}</div>
+            <div className="stat-change">Active work</div>
+          </div>
+
+          <div className="stat-card stat-completed">
+            <div className="stat-label">
+              <span className="stat-icon">✅</span>
+              Completed
+            </div>
+            <div className="stat-value">{stats.completed}</div>
+            <div className="stat-change">Finished this period</div>
+          </div>
+
+          <div className="stat-card stat-revenue">
+            <div className="stat-label">
+              <span className="stat-icon">💰</span>
+              Est. Revenue
+            </div>
+            <div className="stat-value">$0</div>
+            <div className="stat-change">Billing pipeline</div>
+          </div>
+        </div>
+      )}
+
+      {/* Search and Filters */}
+      {!loadError && !loading && (
+        <div className="search-filters-container">
+          <div className="search-bar-container">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by title, number, status, or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="filters-row">
+            <div className="filter-group">
+              <label className="filter-label">
+                <span>📊</span> Status
+              </label>
+              <select
+                className="filter-select"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="draft">Draft</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="on_hold">On Hold</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label className="filter-label">
+                <span>🏷️</span> Type
+              </label>
+              <select
+                className="filter-select"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="WORK_ORDER">Work Order</option>
+                <option value="SALES_ORDER">Sales Order</option>
+                <option value="PROJECT">Project</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label className="filter-label">
+                <span>⚡</span> Execution
+              </label>
+              <select
+                className="filter-select"
+                value={filterExecution}
+                onChange={(e) => setFilterExecution(e.target.value)}
+              >
+                <option value="all">All Modes</option>
+                <option value="UNIFIED">Unified</option>
+                <option value="MULTI_LANE">Multi-lane</option>
+              </select>
+            </div>
+          </div>
+
+          {hasActiveFilters && (
+            <div className="search-results-text">
+              Showing <strong>{filteredWorkOrders.length}</strong> of <strong>{workOrders.length}</strong> work orders
+              <button className="clear-filters-btn" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading work orders...</div>
+        </div>
+      )}
+
+      {/* Work Orders Grid */}
+      {!loadError && !loading && (
+        <>
+          {filteredWorkOrders.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📋</div>
+              <div className="empty-title">
+                {searchQuery || hasActiveFilters ? "No matching work orders" : "No work orders yet"}
+              </div>
+              <div className="empty-message">
+                {searchQuery || hasActiveFilters
+                  ? "Try adjusting your search or filters to find what you're looking for."
+                  : "Create your first work order using the form below to get started with dispatching and tracking jobs."}
+              </div>
+              {(searchQuery || hasActiveFilters) && (
+                <button className="empty-action" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="work-orders-grid">
+              {filteredWorkOrders.map((wo) => {
+                const woNumber = (wo as any).workOrderNumber || "—";
+                const woType = ((wo as any).orderType || "WORK_ORDER").toLowerCase().replace("_", "-");
+                const woTypeLabel = ((wo as any).orderType || "WORK_ORDER").replace("_", " ");
+                const woStatus = wo.status.toLowerCase().replace("_", "-");
+                const woStatusLabel = wo.status.replace("_", " ");
+                const customer = customers.find(c => c.id === wo.customerId);
+                const site = sites.find(s => s.id === wo.siteId);
+                const updatedDate = new Date(wo.updatedAt).toLocaleDateString();
+
+                return (
+                  <div key={wo.id} className={`wo-card status-${woStatus}`}>
+                    <div className="wo-card-header">
+                      <div className="wo-number">{woNumber}</div>
+                      <div className="wo-badges">
+                        <span className={`wo-type-badge ${woType}`}>{woTypeLabel}</span>
+                      </div>
+                    </div>
+
+                    <div className="wo-title">{wo.title}</div>
+
+                    <div className="wo-meta">
+                      <div className="wo-meta-item">
+                        <span className="wo-meta-icon">🏢</span>
+                        <span className="wo-meta-label">Customer:</span>
+                        <span className="wo-meta-value">{customer?.name || "—"}</span>
+                      </div>
+                      <div className="wo-meta-item">
+                        <span className="wo-meta-icon">📍</span>
+                        <span className="wo-meta-label">Site:</span>
+                        <span className="wo-meta-value">{site?.name || "—"}</span>
+                      </div>
+                      <div className="wo-meta-item">
+                        <span className="wo-meta-icon">⚡</span>
+                        <span className="wo-meta-label">Mode:</span>
+                        <span className="wo-meta-value">{executionModeLabels[wo.executionMode]}</span>
+                      </div>
+                    </div>
+
+                    {(wo as any).description && (
+                      <div className="wo-description">{(wo as any).description}</div>
+                    )}
+
+                    <div className="wo-footer">
+                      <span className={`wo-status-badge ${woStatus}`}>{woStatusLabel}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span className="wo-updated">
+                          🕐 {updatedDate}
+                        </span>
+                        <Link href={`/work-orders/${wo.id}`} className="wo-view-link">
+                          View →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Create Work Order Form */}
+      <div className="create-wo-section">
+        <h3 className="section-title">
+          <span className="section-title-icon">➕</span>
+          Create New Work Order
+        </h3>
+        
         <form className="work-order-form" onSubmit={handleSubmit}>
           <label className="form-field">
             <span>Order Type</span>
@@ -802,77 +1088,7 @@ export default function WorkOrdersPage() {
         </form>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h3>Existing work orders</h3>
-          <button
-            type="button"
-            className="link-button"
-            onClick={refreshWorkOrders}
-            disabled={loading}
-          >
-            Refresh
-          </button>
-        </div>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-          <input
-            type="text"
-            placeholder="Search work orders by title, status, or number..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ 
-              width: "100%", 
-              padding: "8px 12px", 
-              borderRadius: 6, 
-              border: "1px solid var(--border)",
-              fontSize: 14
-            }}
-          />
-          {searchQuery && (
-            <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-muted)" }}>
-              Found {filteredWorkOrders.length} of {workOrders.length} work orders
-            </div>
-          )}
-        </div>
-        {loading ? (
-          <p style={{ padding: 20 }}>Loading work orders…</p>
-        ) : filteredWorkOrders.length === 0 ? (
-          <p style={{ padding: 20 }}>
-            {searchQuery ? "No work orders match your search." : "No work orders yet. Create the first one above."}
-          </p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Order #</th>
-                <th>Type</th>
-                  <th>Title</th>
-                  <th>Status</th>
-                <th>Execution mode</th>
-                <th>Updated</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWorkOrders.map((workOrder) => (
-                <tr key={workOrder.id}>
-                    <td>{(workOrder as any).workOrderNumber ?? "—"}</td>
-                    <td><span className={`order-type-badge ${((workOrder as any).orderType ?? "WORK_ORDER").toLowerCase().replace("_", "-")}`}>{((workOrder as any).orderType ?? "WORK_ORDER").replace("_", " ")}</span></td>
-                    <td>{workOrder.title}</td>
-                  <td>{workOrder.status}</td>
-                  <td>{executionModeLabels[workOrder.executionMode]}</td>
-                  <td>{new Date(workOrder.updatedAt).toLocaleString()}</td>
-                  <td>
-                    <Link className="link-button" href={`/work-orders/${workOrder.id}`}>
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Customer Modal */}
       {showCustomerModal && (
         <div className="modal-backdrop">
           <div className="modal">
@@ -910,6 +1126,7 @@ export default function WorkOrdersPage() {
         </div>
       )}
 
+      {/* Site Modal */}
       {showSiteModal && (
         <div className="modal-backdrop">
           <div className="modal">
@@ -1040,6 +1257,7 @@ export default function WorkOrdersPage() {
         </div>
       )}
 
+      {/* Asset Modal */}
       {showAssetModal && (
         <div className="modal-backdrop">
           <div

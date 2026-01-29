@@ -129,7 +129,8 @@ export default function NewQuotePage() {
 
   const calculateTotals = () => {
     const subtotal = lineItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const taxAmount = subtotal * (parseFloat(formData.taxRate) / 100);
+    const taxRate = parseFloat(formData.taxRate) || 0;
+    const taxAmount = subtotal * (taxRate / 100);
     const total = subtotal + taxAmount;
     return { subtotal, taxAmount, total };
   };
@@ -274,10 +275,16 @@ export default function NewQuotePage() {
             <div className="form-field">
               <label className="field-label">Tax Rate (%)</label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={formData.taxRate}
-                onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string, numbers, and decimal points
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData({ ...formData, taxRate: value });
+                  }
+                }}
                 className="field-input"
                 placeholder="8.25"
               />
@@ -504,24 +511,36 @@ export default function NewQuotePage() {
                 <div className="form-field">
                   <label className="field-label">Quantity</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={currentLineItem.quantity}
-                    onChange={(e) => setCurrentLineItem({ ...currentLineItem, quantity: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow empty string, numbers, and decimal points
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setCurrentLineItem({ ...currentLineItem, quantity: value === '' ? 0 : parseFloat(value) || 0 });
+                      }
+                    }}
                     className="field-input"
-                    min="0"
+                    placeholder="0"
                   />
                 </div>
 
                 <div className="form-field">
-                  <label className="field-label">Unit Price</label>
+                  <label className="field-label">Unit Price ($)</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={currentLineItem.unitPrice}
-                    onChange={(e) => setCurrentLineItem({ ...currentLineItem, unitPrice: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow empty string, numbers, and decimal points
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setCurrentLineItem({ ...currentLineItem, unitPrice: value === '' ? 0 : parseFloat(value) || 0 });
+                      }
+                    }}
                     className="field-input"
-                    min="0"
+                    placeholder="0.00"
                   />
                 </div>
               </div>

@@ -61,6 +61,11 @@ export default function SitesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  
+  // Pagination and search
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const customerLookup = useMemo(() => {
     const map = new Map<string, Customer>();
@@ -182,6 +187,29 @@ export default function SitesPage() {
     }
     return "—";
   };
+
+  // Filter and paginate sites
+  const filteredSites = sites.filter((site) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    const customer = customerLookup.get(site.customerId);
+    return (
+      site.name.toLowerCase().includes(search) ||
+      customer?.name.toLowerCase().includes(search) ||
+      site.city?.toLowerCase().includes(search) ||
+      site.state?.toLowerCase().includes(search)
+    );
+  });
+
+  const totalPages = Math.ceil(filteredSites.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSites = filteredSites.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   return (
     <div>
@@ -313,7 +341,7 @@ export default function SitesPage() {
 
       <div className="card">
         <div className="card-header">
-          <h3>Sites</h3>
+          <h3>Sites ({sites.length} total)</h3>
           <button
             type="button"
             className="link-button"
@@ -323,31 +351,87 @@ export default function SitesPage() {
             Refresh
           </button>
         </div>
+        
+        {!loading && sites.length > 0 && (
+          <div style={{ padding: "1rem", borderBottom: "1px solid var(--border)" }}>
+            <input
+              type="text"
+              placeholder="Search sites by name, customer, city, or state..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.5rem 1rem",
+                border: "1px solid var(--border)",
+                borderRadius: "4px",
+                fontSize: "0.95rem"
+              }}
+            />
+            <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+              Showing {paginatedSites.length} of {filteredSites.length} sites
+              {searchTerm && ` (filtered from ${sites.length} total)`}
+            </div>
+          </div>
+        )}
+        
         {loading ? (
           <p>Loading sites…</p>
         ) : sites.length === 0 ? (
           <p>No sites yet. Create one.</p>
+        ) : filteredSites.length === 0 ? (
+          <p>No sites match your search.</p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Customer</th>
-                <th>City / State</th>
-                <th>Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sites.map((site) => (
-                <tr key={site.id}>
-                  <td><Link href={`/sites/${site.id}`}>{site.name}</Link></td>
-                  <td>{customerLookup.get(site.customerId)?.name ?? "—"}</td>
-                  <td>{renderLocation(site)}</td>
-                  <td>{new Date(site.updatedAt).toLocaleString()}</td>
+          <>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Customer</th>
+                  <th>City / State</th>
+                  <th>Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedSites.map((site) => (
+                  <tr key={site.id}>
+                    <td><Link href={`/sites/${site.id}`}>{site.name}</Link></td>
+                    <td>{customerLookup.get(site.customerId)?.name ?? "—"}</td>
+                    <td>{renderLocation(site)}</td>
+                    <td>{new Date(site.updatedAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {totalPages > 1 && (
+              <div style={{
+                padding: "1rem",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "1rem",
+                borderTop: "1px solid var(--border)"
+              }}>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{ padding: "0.5rem 1rem" }}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{ padding: "0.5rem 1rem" }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

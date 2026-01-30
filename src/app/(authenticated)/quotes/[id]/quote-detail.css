@@ -707,3 +707,188 @@
     font-size: 20px;
   }
 }
+
+/* ===================================================================
+   PRINT STYLES - PROFESSIONAL PDF/PRINT LAYOUT
+   =================================================================== */
+
+@media print {
+  /* Hide non-printable elements */
+  .no-print,
+  .back-link,
+  .actions-section,
+  .actions-grid,
+  .action-button {
+    display: none !important;
+  }
+
+  /* Reset page layout for printing */
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  .quote-detail-container {
+    max-width: 100%;
+    padding: 20px;
+    margin: 0;
+  }
+
+  /* Header optimization */
+  .quote-header-content {
+    border: 2px solid #000;
+    box-shadow: none;
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+  }
+
+  .quote-number-badge {
+    background: white !important;
+    border: 2px solid #000 !important;
+    color: #000 !important;
+  }
+
+  .quote-status-badge-large {
+    border: 2px solid #000 !important;
+    background: white !important;
+    color: #000 !important;
+  }
+
+  /* Section optimization */
+  .quote-section {
+    border: 1px solid #000;
+    box-shadow: none;
+    page-break-inside: avoid;
+    margin-bottom: 15px;
+  }
+
+  .quote-section-title {
+    border-bottom: 2px solid #000;
+    color: #000;
+  }
+
+  /* Remove backgrounds for better printing */
+  .customer-info-block,
+  .detail-block,
+  .quote-description-block {
+    background: white !important;
+    border: 1px solid #ddd;
+  }
+
+  .status-alert {
+    border: 2px solid #000 !important;
+    background: white !important;
+  }
+
+  .status-alert.approved {
+    border-left: 4px solid #000 !important;
+  }
+
+  .status-alert.rejected {
+    border-left: 4px solid #000 !important;
+  }
+
+  .status-alert-title,
+  .status-alert-text {
+    color: #000 !important;
+  }
+
+  /* Table optimization */
+  .line-items-table-wrapper {
+    border: 1px solid #000;
+  }
+
+  .line-items-table thead {
+    background: #f0f0f0 !important;
+  }
+
+  .line-items-table th {
+    border-bottom: 2px solid #000;
+    color: #000;
+  }
+
+  .line-items-table tbody tr {
+    border-bottom: 1px solid #ddd;
+  }
+
+  .line-items-table tbody tr:hover {
+    background: white !important;
+  }
+
+  .item-type-badge {
+    border: 1px solid #000;
+    background: white !important;
+    color: #000 !important;
+  }
+
+  /* Totals optimization */
+  .total-row {
+    background: white !important;
+    border: 1px solid #ddd;
+  }
+
+  .total-row.grand-total {
+    background: #f0f0f0 !important;
+    border: 2px solid #000 !important;
+  }
+
+  .total-label,
+  .total-value {
+    color: #000 !important;
+  }
+
+  /* Notes optimization */
+  .notes-block {
+    background: white !important;
+    border: 1px solid #000;
+  }
+
+  .notes-title {
+    color: #000 !important;
+  }
+
+  .notes-text {
+    color: #000 !important;
+  }
+
+  /* Prevent page breaks in important sections */
+  .quote-header-content,
+  .customer-grid,
+  .totals-section,
+  .line-items-table thead {
+    page-break-inside: avoid;
+  }
+
+  /* Add company header for printing */
+  .quote-header-content::before {
+    content: "Global Pump Solutions";
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #000;
+  }
+
+  /* Ensure proper page breaks */
+  .quote-section {
+    page-break-after: auto;
+  }
+
+  /* Footer for each page */
+  @page {
+    margin: 1.5cm;
+    
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 10px;
+      color: #666;
+    }
+  }
+}
+
+/* ===================================================================
+   END PRINT STYLES
+   =================================================================== */

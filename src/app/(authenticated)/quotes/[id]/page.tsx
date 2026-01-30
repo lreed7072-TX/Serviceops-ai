@@ -55,6 +55,8 @@ export default function QuoteDetailPage() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState(false);
+  const [emailing, setEmailing] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const quoteId = params?.id;
 
@@ -137,6 +139,72 @@ export default function QuoteDetailPage() {
       alert("An error occurred while converting");
     } finally {
       setConverting(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportPDF = () => {
+    // Use browser's print dialog with "Save as PDF" option
+    window.print();
+  };
+
+  const handleEmailQuote = async () => {
+    if (!quote) return;
+    
+    const email = quote.customer.primaryEmail || prompt("Enter customer email address:");
+    if (!email) return;
+    
+    if (!confirm(`Send quote ${quote.quoteNumber} to ${email}?`)) return;
+    
+    setEmailing(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        alert(`Quote sent successfully to ${email}`);
+        await fetchQuote(); // Refresh to update sentAt timestamp
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to send email");
+      }
+    } catch (error) {
+      console.error("Failed to email quote:", error);
+      alert("An error occurred while sending email");
+    } finally {
+      setEmailing(false);
+    }
+  };
+
+  const handleDuplicateQuote = async () => {
+    if (!quote) return;
+    
+    if (!confirm(`Create a copy of quote ${quote.quoteNumber}?`)) return;
+    
+    setDuplicating(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/duplicate`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        router.push(`/quotes/${result.data.id}`);
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to duplicate quote");
+      }
+    } catch (error) {
+      console.error("Failed to duplicate quote:", error);
+      alert("An error occurred while duplicating");
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -382,12 +450,46 @@ export default function QuoteDetailPage() {
       )}
 
       {/* Actions */}
-      <div className="actions-section">
+      <div className="actions-section no-print">
         <h3 className="actions-title">
           <span className="section-icon">⚡</span>
           Actions
         </h3>
         <div className="actions-grid">
+          {/* Export & Communication Actions */}
+          <button
+            onClick={handlePrint}
+            className="action-button primary"
+          >
+            <span>🖨️</span> Print Quote
+          </button>
+          
+          <button
+            onClick={handleExportPDF}
+            className="action-button primary"
+          >
+            <span>📄</span> Export as PDF
+          </button>
+          
+          <button
+            onClick={handleEmailQuote}
+            disabled={emailing}
+            className="action-button primary"
+          >
+            <span>{emailing ? "⏳" : "📧"}</span>
+            {emailing ? "Sending..." : "Email to Customer"}
+          </button>
+          
+          <button
+            onClick={handleDuplicateQuote}
+            disabled={duplicating}
+            className="action-button secondary"
+          >
+            <span>{duplicating ? "⏳" : "📋"}</span>
+            {duplicating ? "Duplicating..." : "Duplicate Quote"}
+          </button>
+
+          {/* Status Change Actions */}
           {quote.status === QuoteStatus.DRAFT && (
             <button
               onClick={() => handleStatusChange(QuoteStatus.SENT)}

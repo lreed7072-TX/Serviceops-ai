@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteStatus, QuoteLineItemType } from "@prisma/client";
+import "./quote-detail.css";
 
 interface QuoteLineItem {
   id: string;
   itemType: QuoteLineItemType;
   description: string;
-  quantity: string | number; // Prisma Decimal serializes to string
+  quantity: string | number;
   unitPrice: string | number;
   totalPrice: string | number;
   sortOrder: number;
@@ -20,7 +21,7 @@ interface Quote {
   title: string;
   description: string | null;
   status: QuoteStatus;
-  subtotal: string | number; // Prisma Decimal serializes to string
+  subtotal: string | number;
   tax: string | number;
   taxRate: string | number;
   total: string | number;
@@ -140,110 +141,154 @@ export default function QuoteDetailPage() {
   };
 
   if (loading) {
-    return <div className="p-6">Loading quote...</div>;
+    return (
+      <div className="quote-detail-container">
+        <div className="loading-state">
+          <div className="loading-spinner-large"></div>
+          <div className="loading-text">Loading quote...</div>
+        </div>
+      </div>
+    );
   }
 
   if (!quote) {
-    return <div className="p-6">Quote not found</div>;
+    return (
+      <div className="quote-detail-container">
+        <div className="loading-state">
+          <div className="loading-text">Quote not found</div>
+        </div>
+      </div>
+    );
   }
 
-  const getStatusColor = (status: QuoteStatus) => {
-    switch (status) {
-      case QuoteStatus.DRAFT: return "bg-gray-100 text-gray-800";
-      case QuoteStatus.SENT: return "bg-blue-100 text-blue-800";
-      case QuoteStatus.APPROVED: return "bg-green-100 text-green-800";
-      case QuoteStatus.REJECTED: return "bg-red-100 text-red-800";
-      case QuoteStatus.EXPIRED: return "bg-orange-100 text-orange-800";
-      case QuoteStatus.CONVERTED: return "bg-purple-100 text-purple-800";
-      case QuoteStatus.CANCELED: return "bg-gray-100 text-gray-600";
-      default: return "bg-gray-100 text-gray-800";
-    }
+  const getStatusClass = (status: QuoteStatus) => {
+    return status.toLowerCase();
+  };
+
+  const getItemTypeClass = (type: QuoteLineItemType) => {
+    return type.toLowerCase();
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="quote-detail-container">
       {/* Header */}
-      <div className="mb-6">
+      <div className="quote-detail-header">
         <button
           onClick={() => router.push("/quotes")}
-          className="text-blue-600 hover:underline mb-2"
+          className="back-link"
         >
           ← Back to Quotes
         </button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{quote.quoteNumber}</h1>
-            <p className="text-gray-600">{quote.title}</p>
+        
+        <div className="quote-header-content">
+          <div className="quote-header-left">
+            <div className="quote-number-badge">{quote.quoteNumber}</div>
+            <div className="quote-title">{quote.title}</div>
+            <div className="quote-metadata">
+              <div className="quote-meta-item">
+                <span className="quote-meta-icon">👤</span>
+                <span>Created by <span className="quote-meta-value">{quote.createdBy.name || "Unknown"}</span></span>
+              </div>
+              <div className="quote-meta-item">
+                <span className="quote-meta-icon">📅</span>
+                <span className="quote-meta-value">{new Date(quote.createdAt).toLocaleDateString()}</span>
+              </div>
+              {quote.validUntil && (
+                <div className="quote-meta-item">
+                  <span className="quote-meta-icon">⏳</span>
+                  <span>Valid until <span className="quote-meta-value">{new Date(quote.validUntil).toLocaleDateString()}</span></span>
+                </div>
+              )}
+            </div>
           </div>
-          <span className={`px-3 py-1 rounded text-sm font-medium ${getStatusColor(quote.status)}`}>
+          
+          <div className={`quote-status-badge-large ${getStatusClass(quote.status)}`}>
             {quote.status}
-          </span>
+          </div>
         </div>
       </div>
 
-      {/* Customer Info */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Customer Information</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm text-gray-600">Customer</div>
-            <div className="font-medium">{quote.customer.name}</div>
+      {/* Customer Information */}
+      <div className="quote-section">
+        <h2 className="quote-section-title">
+          <span className="section-icon">🏢</span>
+          Customer Information
+        </h2>
+        <div className="customer-grid">
+          <div className="customer-info-block">
+            <div className="customer-label">Customer</div>
+            <div className="customer-value">{quote.customer.name}</div>
             {quote.customer.primaryEmail && (
-              <div className="text-sm text-gray-600">{quote.customer.primaryEmail}</div>
+              <a href={`mailto:${quote.customer.primaryEmail}`} className="customer-email">
+                {quote.customer.primaryEmail}
+              </a>
             )}
           </div>
           {quote.site && (
-            <div>
-              <div className="text-sm text-gray-600">Site</div>
-              <div className="font-medium">{quote.site.name}</div>
+            <div className="customer-info-block">
+              <div className="customer-label">Site</div>
+              <div className="customer-value">{quote.site.name}</div>
             </div>
           )}
         </div>
       </div>
 
       {/* Quote Details */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Quote Details</h2>
+      <div className="quote-section">
+        <h2 className="quote-section-title">
+          <span className="section-icon">📋</span>
+          Quote Details
+        </h2>
+        
         {quote.description && (
-          <div className="mb-4">
-            <div className="text-sm text-gray-600">Description</div>
-            <div className="mt-1">{quote.description}</div>
+          <div className="quote-description-block">
+            <div className="detail-label">Description</div>
+            <div className="quote-description-text">{quote.description}</div>
           </div>
         )}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <div className="text-sm text-gray-600">Created</div>
-            <div>{new Date(quote.createdAt).toLocaleDateString()}</div>
-            <div className="text-sm text-gray-600">by {quote.createdBy.name || "Unknown"}</div>
+
+        <div className="quote-details-grid">
+          <div className="detail-block">
+            <div className="detail-label">Created</div>
+            <div className="detail-value">{new Date(quote.createdAt).toLocaleDateString()}</div>
+            <div className="detail-subtext">by {quote.createdBy.name || "Unknown"}</div>
           </div>
+          
           {quote.validUntil && (
-            <div>
-              <div className="text-sm text-gray-600">Valid Until</div>
-              <div>{new Date(quote.validUntil).toLocaleDateString()}</div>
+            <div className="detail-block">
+              <div className="detail-label">Valid Until</div>
+              <div className="detail-value">{new Date(quote.validUntil).toLocaleDateString()}</div>
             </div>
           )}
+          
           {quote.sentAt && (
-            <div>
-              <div className="text-sm text-gray-600">Sent</div>
-              <div>{new Date(quote.sentAt).toLocaleDateString()}</div>
+            <div className="detail-block">
+              <div className="detail-label">Sent</div>
+              <div className="detail-value">{new Date(quote.sentAt).toLocaleDateString()}</div>
             </div>
           )}
         </div>
+
         {quote.approvedAt && (
-          <div className="mt-4 p-3 bg-green-50 rounded">
-            <div className="text-sm font-medium text-green-800">
-              Approved on {new Date(quote.approvedAt).toLocaleDateString()}
-              {quote.approvedByName && ` by ${quote.approvedByName}`}
+          <div className="status-alert approved">
+            <div className="status-alert-title">
+              ✓ Approved on {new Date(quote.approvedAt).toLocaleDateString()}
             </div>
+            {quote.approvedByName && (
+              <div className="status-alert-text">
+                Approved by {quote.approvedByName}
+              </div>
+            )}
           </div>
         )}
+
         {quote.rejectedAt && (
-          <div className="mt-4 p-3 bg-red-50 rounded">
-            <div className="text-sm font-medium text-red-800">
-              Rejected on {new Date(quote.rejectedAt).toLocaleDateString()}
+          <div className="status-alert rejected">
+            <div className="status-alert-title">
+              ✗ Rejected on {new Date(quote.rejectedAt).toLocaleDateString()}
             </div>
             {quote.rejectionReason && (
-              <div className="text-sm text-red-700 mt-1">
+              <div className="status-alert-text">
                 Reason: {quote.rejectionReason}
               </div>
             )}
@@ -252,115 +297,140 @@ export default function QuoteDetailPage() {
       </div>
 
       {/* Line Items */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Line Items</h2>
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left text-sm font-medium">Type</th>
-              <th className="px-4 py-2 text-left text-sm font-medium">Description</th>
-              <th className="px-4 py-2 text-right text-sm font-medium">Qty</th>
-              <th className="px-4 py-2 text-right text-sm font-medium">Unit Price</th>
-              <th className="px-4 py-2 text-right text-sm font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {quote.lineItems.map((item) => (
-              <tr key={item.id}>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-1 text-xs rounded bg-gray-100">
-                    {item.itemType}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{item.description}</td>
-                <td className="px-4 py-3 text-right">{Number(item.quantity)}</td>
-                <td className="px-4 py-3 text-right">${Number(item.unitPrice).toFixed(2)}</td>
-                <td className="px-4 py-3 text-right font-medium">
-                  ${Number(item.totalPrice).toFixed(2)}
-                </td>
+      <div className="quote-section">
+        <h2 className="quote-section-title">
+          <span className="section-icon">📦</span>
+          Line Items
+        </h2>
+        
+        <div className="line-items-table-wrapper">
+          <table className="line-items-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Description</th>
+                <th className="align-right">Qty</th>
+                <th className="align-right">Unit Price</th>
+                <th className="align-right">Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {quote.lineItems.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <span className={`item-type-badge ${getItemTypeClass(item.itemType)}`}>
+                      {item.itemType}
+                    </span>
+                  </td>
+                  <td>{item.description}</td>
+                  <td className="align-right">{Number(item.quantity)}</td>
+                  <td className="align-right">${Number(item.unitPrice).toFixed(2)}</td>
+                  <td className="align-right" style={{ fontWeight: 600 }}>
+                    ${Number(item.totalPrice).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Totals */}
-        <div className="mt-4 border-t pt-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium">${Number(quote.subtotal).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Tax ({Number(quote.taxRate)}%)</span>
-            <span className="font-medium">${Number(quote.tax).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
-            <span>Total</span>
-            <span>${Number(quote.total).toFixed(2)}</span>
+        <div className="totals-section">
+          <div className="totals-grid">
+            <div className="total-row">
+              <span className="total-label">Subtotal</span>
+              <span className="total-value">${Number(quote.subtotal).toFixed(2)}</span>
+            </div>
+            <div className="total-row">
+              <span className="total-label">Tax ({Number(quote.taxRate)}%)</span>
+              <span className="total-value">${Number(quote.tax).toFixed(2)}</span>
+            </div>
+            <div className="total-row grand-total">
+              <span className="total-label">Total</span>
+              <span className="total-value">${Number(quote.total).toFixed(2)}</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Notes & Terms */}
       {(quote.notes || quote.terms) && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          {quote.notes && (
-            <div className="mb-4">
-              <h3 className="font-semibold mb-2">Notes</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{quote.notes}</p>
-            </div>
-          )}
-          {quote.terms && (
-            <div>
-              <h3 className="font-semibold mb-2">Terms & Conditions</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{quote.terms}</p>
-            </div>
-          )}
+        <div className="quote-section">
+          <h2 className="quote-section-title">
+            <span className="section-icon">📝</span>
+            Notes & Terms
+          </h2>
+          <div className="notes-grid">
+            {quote.notes && (
+              <div className="notes-block">
+                <div className="notes-title">
+                  💡 Notes
+                </div>
+                <div className="notes-text">{quote.notes}</div>
+              </div>
+            )}
+            {quote.terms && (
+              <div className="notes-block">
+                <div className="notes-title">
+                  📜 Terms & Conditions
+                </div>
+                <div className="notes-text">{quote.terms}</div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-semibold mb-4">Actions</h3>
-        <div className="flex flex-wrap gap-3">
+      <div className="actions-section">
+        <h3 className="actions-title">
+          <span className="section-icon">⚡</span>
+          Actions
+        </h3>
+        <div className="actions-grid">
           {quote.status === QuoteStatus.DRAFT && (
             <button
               onClick={() => handleStatusChange(QuoteStatus.SENT)}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="action-button primary"
             >
-              Mark as Sent
+              <span>📤</span> Mark as Sent
             </button>
           )}
+          
           {(quote.status === QuoteStatus.SENT || quote.status === QuoteStatus.DRAFT) && (
             <>
               <button
                 onClick={handleConvertToWorkOrder}
                 disabled={converting}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                className="action-button success"
               >
+                <span>{converting ? "⏳" : "✓"}</span>
                 {converting ? "Converting..." : "Convert to Work Order"}
               </button>
               <button
                 onClick={() => handleStatusChange(QuoteStatus.REJECTED)}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                className="action-button danger"
               >
-                Reject Quote
+                <span>✗</span> Reject Quote
               </button>
             </>
           )}
+          
           {quote.status === QuoteStatus.DRAFT && (
             <button
               onClick={() => router.push(`/quotes/${quote.id}/edit`)}
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              className="action-button primary"
             >
-              Edit Quote
+              <span>✏️</span> Edit Quote
             </button>
           )}
+          
           {quote.status !== QuoteStatus.CANCELED && quote.status !== QuoteStatus.CONVERTED && (
             <button
               onClick={() => handleStatusChange(QuoteStatus.CANCELED)}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+              className="action-button secondary"
             >
-              Cancel Quote
+              <span>🚫</span> Cancel Quote
             </button>
           )}
         </div>

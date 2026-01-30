@@ -6,12 +6,10 @@
 /* CSS VARIABLES - Design System */
 :root {
   /* Colors - Status */
-  --status-draft: #64748b;
-  --status-scheduled: #3b82f6;
+  --status-open: #3b82f6;
   --status-in-progress: #f59e0b;
   --status-completed: #10b981;
-  --status-on-hold: #ef4444;
-  --status-cancelled: #6b7280;
+  --status-canceled: #6b7280;
   
   /* Colors - Types */
   --type-work-order: #3b82f6;
@@ -297,12 +295,10 @@
 }
 
 /* Status-based accent colors */
-.wo-card.status-draft { --card-accent-color: #64748b; }
-.wo-card.status-scheduled { --card-accent-color: #3b82f6; }
+.wo-card.status-open { --card-accent-color: #3b82f6; }
 .wo-card.status-in-progress { --card-accent-color: #f59e0b; }
 .wo-card.status-completed { --card-accent-color: #10b981; }
-.wo-card.status-on-hold { --card-accent-color: #ef4444; }
-.wo-card.status-cancelled { --card-accent-color: #6b7280; }
+.wo-card.status-canceled { --card-accent-color: #6b7280; }
 
 .wo-card-header {
   display: flex;
@@ -428,12 +424,7 @@
   letter-spacing: 0.5px;
 }
 
-.wo-status-badge.draft {
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.wo-status-badge.scheduled {
+.wo-status-badge.open {
   background: #dbeafe;
   color: #1e40af;
 }
@@ -448,12 +439,7 @@
   color: #065f46;
 }
 
-.wo-status-badge.on-hold {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.wo-status-badge.cancelled {
+.wo-status-badge.canceled {
   background: #f3f4f6;
   color: #6b7280;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { AssetCriticality, AssetStatus, ExecutionMode, OrderType } from "@prisma/client";
+import { AssetCriticality, AssetStatus, ExecutionMode, OrderType, WorkOrderStatus } from "@prisma/client";
 import type { Asset, Customer, Site, WorkOrder } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -314,9 +314,9 @@ export default function WorkOrdersPage() {
   // Computed values - Statistics
   const stats = useMemo(() => {
     const total = workOrders.length;
-    const open = workOrders.filter(wo => wo.status === "DRAFT" || wo.status === "SCHEDULED").length;
-    const inProgress = workOrders.filter(wo => wo.status === "IN_PROGRESS").length;
-    const completed = workOrders.filter(wo => wo.status === "COMPLETED").length;
+    const open = workOrders.filter(wo => wo.status === WorkOrderStatus.OPEN).length;
+    const inProgress = workOrders.filter(wo => wo.status === WorkOrderStatus.IN_PROGRESS).length;
+    const completed = workOrders.filter(wo => wo.status === WorkOrderStatus.COMPLETED).length;
     
     return { total, open, inProgress, completed };
   }, [workOrders]);
@@ -740,7 +740,7 @@ export default function WorkOrdersPage() {
           <div className="stat-card stat-open">
             <div className="stat-label">
               <span className="stat-icon">📝</span>
-              Open / Scheduled
+              Open Orders
             </div>
             <div className="stat-value">{stats.open}</div>
             <div className="stat-change">Awaiting dispatch</div>
@@ -800,12 +800,10 @@ export default function WorkOrdersPage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
                 <option value="all">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="scheduled">Scheduled</option>
+                <option value="open">Open</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
-                <option value="on_hold">On Hold</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="canceled">Canceled</option>
               </select>
             </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { AssetCriticality, AssetStatus, ExecutionMode, OrderType, WorkOrderStatus } from "@prisma/client";
@@ -171,6 +172,8 @@ async function fetchList<T>(path: string): Promise<T[]> {
 }
 
 export default function WorkOrdersPage() {
+  const router = useRouter();
+  
   // State - Data
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -881,7 +884,7 @@ export default function WorkOrdersPage() {
           ) : (
             <div className="work-orders-grid">
               {filteredWorkOrders.map((wo) => {
-                const woNumber = (wo as any).workOrderNumber || "—";
+                const woNumber = (wo as any).workOrderNumber || `WO-${wo.id.slice(0, 8).toUpperCase()}`;
                 const woType = ((wo as any).orderType || "WORK_ORDER").toLowerCase().replace("_", "-");
                 const woTypeLabel = ((wo as any).orderType || "WORK_ORDER").replace("_", " ");
                 const woStatus = wo.status.toLowerCase().replace("_", "-");
@@ -891,7 +894,11 @@ export default function WorkOrdersPage() {
                 const updatedDate = new Date(wo.updatedAt).toLocaleDateString();
 
                 return (
-                  <div key={wo.id} className={`wo-card status-${woStatus}`}>
+                  <div 
+                    key={wo.id} 
+                    className={`wo-card status-${woStatus}`}
+                    onClick={() => router.push(`/work-orders/${wo.id}`)}
+                  >
                     <div className="wo-card-header">
                       <div className="wo-number">{woNumber}</div>
                       <div className="wo-badges">
@@ -925,14 +932,9 @@ export default function WorkOrdersPage() {
 
                     <div className="wo-footer">
                       <span className={`wo-status-badge ${woStatus}`}>{woStatusLabel}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <span className="wo-updated">
-                          🕐 {updatedDate}
-                        </span>
-                        <Link href={`/work-orders/${wo.id}`} className="wo-view-link">
-                          View →
-                        </Link>
-                      </div>
+                      <span className="wo-updated">
+                        🕐 {updatedDate}
+                      </span>
                     </div>
                   </div>
                 );

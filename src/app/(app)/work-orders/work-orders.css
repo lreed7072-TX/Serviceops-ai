@@ -316,6 +316,8 @@
   padding: 6px 12px;
   border-radius: 6px;
   white-space: nowrap;
+  cursor: default; /* Not clickable */
+  user-select: none;
 }
 
 .wo-badges {

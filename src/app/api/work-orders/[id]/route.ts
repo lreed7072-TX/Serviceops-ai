@@ -153,3 +153,77 @@ export async function GET(
     return jsonError("Failed to fetch work order", 500);
   }
 }
+
+// PATCH /api/work-orders/[id] - Update work order
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
+
+    const { id } = await params;
+
+    // Check work order exists and belongs to org
+    const existing = await prisma.workOrder.findUnique({
+      where: { id, orgId: auth.orgId },
+      select: { id: true, status: true },
+    });
+
+    if (!existing) {
+      return jsonError("Work order not found", 404);
+    }
+
+    // Don't allow editing completed or canceled work orders
+    if (existing.status === "COMPLETED" || existing.status === "CANCELED") {
+      return jsonError(`Cannot edit a ${existing.status.toLowerCase()} work order`, 400);
+    }
+
+    const body = await request.json();
+    const {
+      title,
+      description,
+      customerId,
+      siteId,
+      assetId,
+      executionMode,
+      orderType,
+      status,
+      scheduledStart,
+      scheduledEnd,
+      priority,
+    } = body;
+
+    // Build update data - only include fields that were provided
+    const updateData: any = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description || null;
+    if (customerId !== undefined) updateData.customerId = customerId;
+    if (siteId !== undefined) updateData.siteId = siteId;
+    if (assetId !== undefined) updateData.assetId = assetId || null;
+    if (executionMode !== undefined) updateData.executionMode = executionMode;
+    if (orderType !== undefined) updateData.orderType = orderType;
+    if (status !== undefined) updateData.status = status;
+    if (scheduledStart !== undefined) updateData.scheduledStart = scheduledStart ? new Date(scheduledStart) : null;
+    if (scheduledEnd !== undefined) updateData.scheduledEnd = scheduledEnd ? new Date(scheduledEnd) : null;
+    if (priority !== undefined) updateData.priority = priority;
+
+    const workOrder = await prisma.workOrder.update({
+      where: { id },
+      data: updateData,
+      include: {
+        customer: { select: { id: true, name: true } },
+        site: { select: { id: true, name: true } },
+        asset: { select: { id: true, name: true, assetNumber: true } },
+      },
+    });
+
+    return jsonResponse({ data: workOrder, message: "Work order updated successfully" });
+  } catch (error) {
+    console.error("Failed to update work order:", error);
+    return jsonError("Failed to update work order", 500);
+  }
+}

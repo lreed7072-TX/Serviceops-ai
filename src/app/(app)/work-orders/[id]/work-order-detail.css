@@ -211,6 +211,10 @@
   white-space: nowrap;
   box-shadow: var(--shadow-md);
   border: 2px solid;
+  /* Make it clearly non-interactive */
+  cursor: default;
+  user-select: none;
+  pointer-events: none;
 }
 
 .wo-status-badge-large.open {
@@ -507,6 +511,20 @@
   border-color: #9ca3af;
   color: #374151;
   transform: translateY(-2px);
+}
+
+.action-button.danger {
+  background: white;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.action-button.danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .action-button:disabled {

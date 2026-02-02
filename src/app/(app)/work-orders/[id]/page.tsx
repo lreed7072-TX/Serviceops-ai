@@ -310,17 +310,21 @@ export default function WorkOrderDetailPage() {
           Actions
         </h3>
         <div className="actions-grid">
-          <button
-            onClick={handlePrint}
-            className="action-button primary"
-          >
-            <span>🖨️</span> Print Work Order
-          </button>
+          {/* Edit Button - always available except for completed/canceled */}
+          {workOrder.status !== WorkOrderStatus.COMPLETED && workOrder.status !== WorkOrderStatus.CANCELED && (
+            <button
+              onClick={() => router.push(`/work-orders/${workOrder.id}/edit`)}
+              className="action-button primary"
+            >
+              <span>✏️</span> Edit Work Order
+            </button>
+          )}
 
+          {/* Status Change Actions */}
           {workOrder.status === WorkOrderStatus.OPEN && (
             <button
               onClick={() => handleStatusChange(WorkOrderStatus.IN_PROGRESS)}
-              className="action-button primary"
+              className="action-button success"
             >
               <span>▶️</span> Start Work Order
             </button>
@@ -335,12 +339,38 @@ export default function WorkOrderDetailPage() {
             </button>
           )}
 
+          {/* Generate Invoice - for completed work orders */}
+          {workOrder.status === WorkOrderStatus.COMPLETED && (
+            <button
+              onClick={() => router.push(`/invoices/new?workOrderId=${workOrder.id}`)}
+              className="action-button primary"
+            >
+              <span>📄</span> Generate Invoice
+            </button>
+          )}
+
+          {/* Export Actions */}
+          <button
+            onClick={handlePrint}
+            className="action-button secondary"
+          >
+            <span>🖨️</span> Print
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="action-button secondary"
+          >
+            <span>📑</span> Export PDF
+          </button>
+
+          {/* Cancel - danger action */}
           {workOrder.status !== WorkOrderStatus.CANCELED && workOrder.status !== WorkOrderStatus.COMPLETED && (
             <button
               onClick={() => handleStatusChange(WorkOrderStatus.CANCELED)}
-              className="action-button secondary"
+              className="action-button danger"
             >
-              <span>🚫</span> Cancel Work Order
+              <span>✗</span> Cancel Work Order
             </button>
           )}
         </div>

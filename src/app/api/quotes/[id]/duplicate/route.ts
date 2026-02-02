@@ -76,7 +76,7 @@ export async function POST(
         validUntil: originalQuote.validUntil,
         notes: originalQuote.notes,
         terms: originalQuote.terms,
-        createdById: auth.userId,
+        createdByUserId: auth.userId,
         // Don't copy: sentAt, approvedAt, approvedByName, rejectedAt, rejectionReason
         lineItems: {
           create: originalQuote.lineItems.map((item, index) => ({

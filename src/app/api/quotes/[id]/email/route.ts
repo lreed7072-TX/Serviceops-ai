@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuthSessionFirst } from "@/lib/server-auth";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAuthSessionFirst } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QuoteStatus } from "@prisma/client";
 
 /**
  * POST /api/quotes/[id]/email
  * Send quote to customer via email
- * 
+ *
  * TODO: Integrate with email service (SendGrid, AWS SES, etc.)
  * For now, this marks the quote as sent and updates the timestamp
  */
@@ -16,12 +15,14 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuthSessionFirst();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
-    requireRole(session.user, ["ADMIN", "DISPATCHER"]);
+    // Check permissions
+    if (auth.role !== "ADMIN" && auth.role !== "DISPATCHER") {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
 
     const resolvedParams = await context.params;
     const quoteId = resolvedParams.id;
@@ -47,9 +48,9 @@ export async function POST(
 
     // Get quote with organization check
     const quote = await prisma.quote.findUnique({
-      where: { 
+      where: {
         id: quoteId,
-        organizationId: session.user.organizationId 
+        orgId: auth.orgId
       },
       include: {
         customer: true,

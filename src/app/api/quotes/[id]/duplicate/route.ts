@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuthSessionFirst } from "@/lib/server-auth";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAuthSessionFirst } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QuoteStatus } from "@prisma/client";
 
@@ -14,21 +13,23 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuthSessionFirst();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
 
-    requireRole(session.user, ["ADMIN", "DISPATCHER"]);
+    // Check permissions
+    if (auth.role !== "ADMIN" && auth.role !== "DISPATCHER") {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
 
     const resolvedParams = await context.params;
     const quoteId = resolvedParams.id;
 
     // Get original quote with line items
     const originalQuote = await prisma.quote.findUnique({
-      where: { 
+      where: {
         id: quoteId,
-        organizationId: session.user.organizationId 
+        orgId: auth.orgId
       },
       include: {
         lineItems: {
@@ -43,7 +44,7 @@ export async function POST(
 
     // Generate new quote number
     const latestQuote = await prisma.quote.findFirst({
-      where: { organizationId: session.user.organizationId },
+      where: { orgId: auth.orgId },
       orderBy: { createdAt: "desc" },
       select: { quoteNumber: true }
     });
@@ -61,7 +62,7 @@ export async function POST(
     // Create duplicate quote
     const duplicateQuote = await prisma.quote.create({
       data: {
-        organizationId: session.user.organizationId,
+        orgId: auth.orgId,
         quoteNumber: newQuoteNumber,
         title: `${originalQuote.title} (Copy)`,
         description: originalQuote.description,
@@ -75,7 +76,7 @@ export async function POST(
         validUntil: originalQuote.validUntil,
         notes: originalQuote.notes,
         terms: originalQuote.terms,
-        createdById: session.user.id,
+        createdById: auth.userId,
         // Don't copy: sentAt, approvedAt, approvedByName, rejectedAt, rejectionReason
         lineItems: {
           create: originalQuote.lineItems.map((item, index) => ({
@@ -85,7 +86,7 @@ export async function POST(
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
             sortOrder: index,
-            organizationId: session.user.organizationId,
+            orgId: auth.orgId,
           }))
         }
       },

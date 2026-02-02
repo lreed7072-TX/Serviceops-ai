@@ -30,11 +30,11 @@ interface WorkOrder {
   customer: {
     id: string;
     name: string;
-  };
+  } | null;
   site: {
     id: string;
     name: string;
-  };
+  } | null;
   asset: {
     id: string;
     assetNumber: string;
@@ -44,7 +44,7 @@ interface WorkOrder {
     id: string;
     quoteNumber: string;
   } | null;
-  tasks: TaskInstance[];
+  tasks?: TaskInstance[];
 }
 
 export default function WorkOrderDetailPage() {
@@ -217,12 +217,12 @@ export default function WorkOrderDetailPage() {
         <div className="customer-grid">
           <div className="info-block">
             <div className="info-label">Customer</div>
-            <div className="info-value">{workOrder.customer.name}</div>
+            <div className="info-value">{workOrder.customer?.name || "No customer assigned"}</div>
           </div>
-          
+
           <div className="info-block">
             <div className="info-label">Site</div>
-            <div className="info-value">{workOrder.site.name}</div>
+            <div className="info-value">{workOrder.site?.name || "No site assigned"}</div>
           </div>
 
           {workOrder.asset && (
@@ -258,16 +258,16 @@ export default function WorkOrderDetailPage() {
       <div className="wo-section">
         <h2 className="wo-section-title">
           <span className="section-icon">✓</span>
-          Tasks {workOrder.tasks.length > 0 && `(${workOrder.tasks.length})`}
+          Tasks {(workOrder.tasks?.length ?? 0) > 0 && `(${workOrder.tasks?.length})`}
         </h2>
-        {workOrder.tasks.length === 0 ? (
+        {!workOrder.tasks || workOrder.tasks.length === 0 ? (
           <div className="task-empty-state">
             <div className="task-empty-icon">📋</div>
             <div>No tasks assigned to this work order yet</div>
           </div>
         ) : (
           <div className="tasks-list">
-            {workOrder.tasks
+            {[...workOrder.tasks]
               .sort((a, b) => (a.sequenceNumber || 999) - (b.sequenceNumber || 999))
               .map((task) => (
                 <div key={task.id} className="task-item">

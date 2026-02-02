@@ -894,10 +894,18 @@ export default function WorkOrdersPage() {
                 const updatedDate = new Date(wo.updatedAt).toLocaleDateString();
 
                 return (
-                  <div 
-                    key={wo.id} 
+                  <div
+                    key={wo.id}
                     className={`wo-card status-${woStatus}`}
                     onClick={() => router.push(`/work-orders/${wo.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/work-orders/${wo.id}`);
+                      }
+                    }}
                   >
                     <div className="wo-card-header">
                       <div className="wo-number">{woNumber}</div>
@@ -932,8 +940,8 @@ export default function WorkOrdersPage() {
 
                     <div className="wo-footer">
                       <span className={`wo-status-badge ${woStatus}`}>{woStatusLabel}</span>
-                      <span className="wo-updated">
-                        🕐 {updatedDate}
+                      <span className="wo-view-link">
+                        View Details →
                       </span>
                     </div>
                   </div>

@@ -457,6 +457,26 @@
   gap: 4px;
 }
 
+.wo-view-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-base);
+}
+
+.wo-card:hover .wo-view-link {
+  color: #2563eb;
+  transform: translateX(4px);
+}
+
+.wo-card:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
 /* ===================================================================
    EMPTY STATES
    =================================================================== */

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
@@ -124,7 +125,12 @@ export default function MaterialsPage() {
           <h1>Materials Catalog</h1>
           <p className="page-subtitle">Parts and materials for work orders</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>+ Add Material</button>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Link href="/materials/duplicates" className="btn btn-secondary" style={{ textDecoration: "none" }}>
+            Find Duplicates
+          </Link>
+          <button className="btn btn-primary" onClick={openCreate}>+ Add Material</button>
+        </div>
       </div>
 
       <div className="filter-bar">

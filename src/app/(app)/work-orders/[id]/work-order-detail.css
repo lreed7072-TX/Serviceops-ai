@@ -1026,7 +1026,146 @@
 }
 
 /* ===================================================================
-   RESPONSIVE - TEAM ASSIGNMENT
+   TIME TRACKING SECTION
+   =================================================================== */
+
+.time-tracking-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timer-active-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: var(--radius-lg);
+  border: 2px solid #6ee7b7;
+}
+
+.timer-clock {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.timer-value {
+  font-size: 36px;
+  font-weight: 700;
+  font-family: "Courier New", monospace;
+  letter-spacing: 1px;
+}
+
+.timer-value.running {
+  color: #059669;
+}
+
+.timer-value.paused {
+  color: #d97706;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.timer-status-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.timer-status-label.running {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.timer-status-label.paused {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.timer-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.timer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.timer-btn.start {
+  background: #10b981;
+  color: white;
+  padding: 14px 28px;
+  font-size: 16px;
+  border-radius: var(--radius-lg);
+}
+
+.timer-btn.start:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.timer-btn.pause {
+  background: #f59e0b;
+  color: white;
+}
+
+.timer-btn.pause:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.timer-btn.resume {
+  background: #10b981;
+  color: white;
+}
+
+.timer-btn.resume:hover:not(:disabled) {
+  background: #059669;
+}
+
+.timer-btn.stop {
+  background: #ef4444;
+  color: white;
+}
+
+.timer-btn.stop:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.time-entries-summary {
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.time-entry-total {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* ===================================================================
+   RESPONSIVE - TEAM ASSIGNMENT & TIME TRACKING
    =================================================================== */
 
 @media (max-width: 768px) {
@@ -1041,6 +1180,24 @@
 
   .assign-tech-btn {
     width: 100%;
+  }
+
+  .timer-active-display {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .timer-clock {
+    justify-content: center;
+  }
+
+  .timer-value {
+    font-size: 28px;
+  }
+
+  .timer-controls {
+    justify-content: center;
   }
 }
 

@@ -60,6 +60,11 @@ interface WorkOrder {
   } | null;
   tasks?: TaskInstance[];
   visits?: Visit[];
+  timeEntries?: Array<{
+    id: string;
+    accumulatedSeconds: number;
+    status: string;
+  }>;
 }
 
 interface OrgUser {
@@ -67,6 +72,24 @@ interface OrgUser {
   name: string | null;
   email: string;
   role: string;
+}
+
+interface ActiveTimer {
+  id: string;
+  status: "RUNNING" | "PAUSED";
+  workOrderId: string;
+  accumulatedSeconds: number;
+  currentSeconds: number;
+  startedAt: string;
+}
+
+interface TimeEntryRecord {
+  id: string;
+  status: string;
+  accumulatedSeconds: number;
+  startedAt: string;
+  stoppedAt: string | null;
+  user: { name: string | null; email: string };
 }
 
 export default function WorkOrderDetailPage() {
@@ -87,12 +110,20 @@ export default function WorkOrderDetailPage() {
   const [assigning, setAssigning] = useState(false);
   const [unassigning, setUnassigning] = useState<string | null>(null);
 
+  // Time tracking state
+  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timeEntries, setTimeEntries] = useState<TimeEntryRecord[]>([]);
+  const [timerLoading, setTimerLoading] = useState(false);
+
   const workOrderId = params?.id;
 
   useEffect(() => {
     if (workOrderId) {
       fetchWorkOrder();
       fetchUsers();
+      fetchTimer();
+      fetchTimeEntries();
     }
   }, [workOrderId]);
 
@@ -103,6 +134,21 @@ export default function WorkOrderDetailPage() {
       return () => clearTimeout(timer);
     }
   }, [emailStatus]);
+
+  // Timer tick - update display every second when running
+  useEffect(() => {
+    if (activeTimer?.status === "RUNNING") {
+      setTimerSeconds(activeTimer.currentSeconds);
+      const interval = setInterval(() => {
+        setTimerSeconds((s) => s + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    } else if (activeTimer?.status === "PAUSED") {
+      setTimerSeconds(activeTimer.currentSeconds);
+    } else {
+      setTimerSeconds(0);
+    }
+  }, [activeTimer]);
 
   const fetchWorkOrder = async () => {
     if (!workOrderId) return;
@@ -132,6 +178,124 @@ export default function WorkOrderDetailPage() {
     } catch (error) {
       console.error("Error fetching users:", error);
     }
+  };
+
+  const fetchTimer = async () => {
+    try {
+      const response = await apiFetch("/api/tech/timer");
+      if (response.ok) {
+        const result = await response.json();
+        // Only show timer if it's for this work order
+        if (result.data && result.data.workOrderId === workOrderId) {
+          setActiveTimer(result.data);
+        } else {
+          setActiveTimer(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching timer:", error);
+    }
+  };
+
+  const fetchTimeEntries = async () => {
+    if (!workOrderId) return;
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrderId}`);
+      if (response.ok) {
+        const result = await response.json();
+        // Extract time entries with user info from the full WO response
+        const entries = result.data?.timeEntries || [];
+        setTimeEntries(entries);
+      }
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+    }
+  };
+
+  const handleStartTimer = async () => {
+    if (!workOrderId) return;
+    setTimerLoading(true);
+    try {
+      const response = await apiFetch("/api/tech/timer/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workOrderId }),
+      });
+      if (response.ok) {
+        await fetchTimer();
+      } else {
+        const err = await response.json();
+        alert(err.error || "Failed to start timer");
+      }
+    } catch (error) {
+      console.error("Failed to start timer:", error);
+    } finally {
+      setTimerLoading(false);
+    }
+  };
+
+  const handlePauseTimer = async () => {
+    setTimerLoading(true);
+    try {
+      const response = await apiFetch("/api/tech/timer/pause", { method: "POST" });
+      if (response.ok) {
+        await fetchTimer();
+      }
+    } catch (error) {
+      console.error("Failed to pause timer:", error);
+    } finally {
+      setTimerLoading(false);
+    }
+  };
+
+  const handleResumeTimer = async () => {
+    setTimerLoading(true);
+    try {
+      const response = await apiFetch("/api/tech/timer/resume", { method: "POST" });
+      if (response.ok) {
+        await fetchTimer();
+      }
+    } catch (error) {
+      console.error("Failed to resume timer:", error);
+    } finally {
+      setTimerLoading(false);
+    }
+  };
+
+  const handleStopTimer = async () => {
+    if (!confirm("Stop the timer?")) return;
+    setTimerLoading(true);
+    try {
+      const response = await apiFetch("/api/tech/timer/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (response.ok) {
+        setActiveTimer(null);
+        setTimerSeconds(0);
+        await fetchTimeEntries();
+        await fetchWorkOrder();
+      }
+    } catch (error) {
+      console.error("Failed to stop timer:", error);
+    } finally {
+      setTimerLoading(false);
+    }
+  };
+
+  const formatDuration = (totalSeconds: number) => {
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hrs > 0) {
+      return `${hrs}h ${mins.toString().padStart(2, "0")}m ${secs.toString().padStart(2, "0")}s`;
+    }
+    return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+  };
+
+  const formatHours = (totalSeconds: number) => {
+    return (totalSeconds / 3600).toFixed(1) + "h";
   };
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
@@ -539,6 +703,92 @@ export default function WorkOrderDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Time Tracking */}
+      {(workOrder.status === WorkOrderStatus.IN_PROGRESS || workOrder.status === WorkOrderStatus.OPEN) && (
+        <div className="wo-section">
+          <h2 className="wo-section-title">
+            <span className="section-icon">⏱️</span>
+            Time Tracking
+          </h2>
+          <div className="time-tracking-section">
+            {activeTimer ? (
+              <div className="timer-active-display">
+                <div className="timer-clock">
+                  <span className={`timer-value ${activeTimer.status === "RUNNING" ? "running" : "paused"}`}>
+                    {formatDuration(timerSeconds)}
+                  </span>
+                  <span className={`timer-status-label ${activeTimer.status.toLowerCase()}`}>
+                    {activeTimer.status}
+                  </span>
+                </div>
+                <div className="timer-controls">
+                  {activeTimer.status === "RUNNING" ? (
+                    <>
+                      <button
+                        onClick={handlePauseTimer}
+                        disabled={timerLoading}
+                        className="timer-btn pause"
+                      >
+                        ⏸ Pause
+                      </button>
+                      <button
+                        onClick={handleStopTimer}
+                        disabled={timerLoading}
+                        className="timer-btn stop"
+                      >
+                        ⏹ Stop
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleResumeTimer}
+                        disabled={timerLoading}
+                        className="timer-btn resume"
+                      >
+                        ▶ Resume
+                      </button>
+                      <button
+                        onClick={handleStopTimer}
+                        disabled={timerLoading}
+                        className="timer-btn stop"
+                      >
+                        ⏹ Stop
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleStartTimer}
+                disabled={timerLoading}
+                className="timer-btn start"
+              >
+                {timerLoading ? "Starting..." : "▶ Start Work Timer"}
+              </button>
+            )}
+
+            {/* Time Entry Summary from WO data */}
+            {workOrder.timeEntries && workOrder.timeEntries.length > 0 && (
+              <div className="time-entries-summary">
+                <h4 style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
+                  Time Entries ({workOrder.timeEntries.length})
+                </h4>
+                <div className="time-entry-total">
+                  Total logged: {formatHours(
+                    workOrder.timeEntries.reduce(
+                      (sum: number, e: any) => sum + (e.accumulatedSeconds || 0),
+                      0
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Description */}
       {workOrder.description && (

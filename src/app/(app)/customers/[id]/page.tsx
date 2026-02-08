@@ -48,6 +48,17 @@ interface Invoice {
   createdAt: string;
 }
 
+interface Activity {
+  id: string;
+  type: "quote" | "work_order" | "invoice";
+  title: string;
+  description: string;
+  amount: number | null;
+  date: string;
+  link: string;
+  status: string;
+}
+
 export default function CustomerDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -59,6 +70,7 @@ export default function CustomerDetailPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [woCount, setWoCount] = useState(0);
   const [invoiceCount, setInvoiceCount] = useState(0);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,11 +106,12 @@ export default function CustomerDetailPage() {
     setError(null);
 
     try {
-      const [custRes, sitesRes, woRes, invRes] = await Promise.all([
+      const [custRes, sitesRes, woRes, invRes, actRes] = await Promise.all([
         apiFetch(`/api/customers/${customerId}`, { cache: "no-store" }),
         apiFetch(`/api/sites`, { cache: "no-store" }),
         apiFetch(`/api/work-orders?customerId=${customerId}`, { cache: "no-store" }),
         apiFetch(`/api/invoices?customerId=${customerId}`, { cache: "no-store" }),
+        apiFetch(`/api/customers/${customerId}/activity`, { cache: "no-store" }),
       ]);
 
       if (!custRes.ok) throw new Error("Failed to load customer");
@@ -117,6 +130,10 @@ export default function CustomerDetailPage() {
       setInvoiceCount(allInvoices.length);
       setWorkOrders(allWOs.slice(0, 5));
       setInvoices(allInvoices.slice(0, 5));
+
+      // Load activity timeline
+      const actData = actRes.ok ? await actRes.json() : { data: [] };
+      setActivities(actData.data ?? []);
 
       // Populate form
       setFormData({
@@ -456,6 +473,56 @@ export default function CustomerDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Activity Timeline */}
+      {activities.length > 0 && (
+        <div className="detail-card" style={{ marginTop: "1.5rem" }}>
+          <div className="card-header">
+            <h2>📊 Activity History</h2>
+          </div>
+          <div className="card-body">
+            <div className="activity-timeline">
+              {activities.slice(0, 15).map((activity) => (
+                <div key={activity.id} className="timeline-item">
+                  <div className="timeline-dot-wrapper">
+                    <div
+                      className="timeline-dot"
+                      style={{
+                        background:
+                          activity.type === "quote"
+                            ? "#3b82f6"
+                            : activity.type === "work_order"
+                              ? "#f59e0b"
+                              : "#10b981",
+                      }}
+                    />
+                    <div className="timeline-line" />
+                  </div>
+                  <div className="timeline-content">
+                    <div className="timeline-header-row">
+                      <Link
+                        href={activity.link}
+                        className="timeline-title-link"
+                      >
+                        {activity.title}
+                      </Link>
+                      <span className="timeline-date">
+                        {new Date(activity.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="timeline-description">{activity.description}</p>
+                    {activity.amount != null && (
+                      <span className="timeline-amount">
+                        ${activity.amount.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {showEdit && (

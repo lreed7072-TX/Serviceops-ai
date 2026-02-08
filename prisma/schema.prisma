@@ -606,6 +606,8 @@ model KbFile {
   orgId     String   @db.Uuid
   title     String
   sourceUrl String?
+  category  String?
+  tags      String?
   status    String   @default("ACTIVE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

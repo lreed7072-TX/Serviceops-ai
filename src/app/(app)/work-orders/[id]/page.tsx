@@ -2,22 +2,61 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { WorkOrderStatus, ExecutionMode, OrderType, TaskStatus } from "@prisma/client";
+import { WorkOrderStatus, ExecutionMode, OrderType } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import TaskList from "@/components/tasks/TaskList";
 import "./work-order-detail.css";
+
+interface TaskMeasurement {
+  id: string;
+  name: string;
+  measurementType: string;
+  numericValue: number | null;
+  textValue: string | null;
+  passFail: boolean | null;
+  unit: string | null;
+  isWithinSpec: boolean | null;
+  capturedAt: string | null;
+}
+
+interface TaskMaterialUsage {
+  id: string;
+  name: string;
+  partNumber: string | null;
+  quantity: number;
+  unitCost: number | null;
+  totalCost: number | null;
+}
 
 interface TaskInstance {
   id: string;
   title: string;
   description: string | null;
-  status: TaskStatus;
+  status: "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED" | "SKIPPED";
   sequenceNumber: number | null;
   isCritical: boolean;
   requiresEvidence: boolean;
   assignedTo: {
     id: string;
     name: string | null;
+    email: string;
   } | null;
+  measurements: TaskMeasurement[];
+  materialUsages: TaskMaterialUsage[];
+  timeEntries: Array<{
+    id: string;
+    status: string;
+    accumulatedSeconds: number;
+  }>;
+}
+
+interface WorkPackage {
+  id: string;
+  name: string;
+  packageType: string;
+  status: string;
+  leadTech: { id: string; name: string | null; email: string } | null;
+  tasks: TaskInstance[];
 }
 
 interface Visit {
@@ -58,8 +97,13 @@ interface WorkOrder {
     id: string;
     quoteNumber: string;
   } | null;
-  tasks?: TaskInstance[];
+  packages?: WorkPackage[];
   visits?: Visit[];
+  summary?: {
+    totalTasks: number;
+    completedTasks: number;
+    completionRate: number;
+  };
   timeEntries?: Array<{
     id: string;
     accumulatedSeconds: number;
@@ -512,10 +556,6 @@ export default function WorkOrderDetailPage() {
     return mode.toLowerCase().replace("_", "-");
   };
 
-  const getTaskStatusClass = (status: TaskStatus) => {
-    return status.toLowerCase().replace("_", "-");
-  };
-
   const isEditable = workOrder?.status !== WorkOrderStatus.COMPLETED && workOrder?.status !== WorkOrderStatus.CANCELED;
 
   if (loading) {
@@ -807,49 +847,18 @@ export default function WorkOrderDetailPage() {
       <div className="wo-section">
         <h2 className="wo-section-title">
           <span className="section-icon">✓</span>
-          Tasks {(workOrder.tasks?.length ?? 0) > 0 && `(${workOrder.tasks?.length})`}
+          Tasks
+          {workOrder.summary && workOrder.summary.totalTasks > 0 && (
+            <span style={{ fontWeight: 400, fontSize: '0.875rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+              ({workOrder.summary.completedTasks}/{workOrder.summary.totalTasks} complete)
+            </span>
+          )}
         </h2>
-        {!workOrder.tasks || workOrder.tasks.length === 0 ? (
-          <div className="task-empty-state">
-            <div className="task-empty-icon">📋</div>
-            <div>No tasks assigned to this work order yet</div>
-          </div>
-        ) : (
-          <div className="tasks-list">
-            {[...workOrder.tasks]
-              .sort((a, b) => (a.sequenceNumber || 999) - (b.sequenceNumber || 999))
-              .map((task) => (
-                <div key={task.id} className="task-item">
-                  <input
-                    type="checkbox"
-                    className="task-checkbox"
-                    checked={task.status === TaskStatus.DONE}
-                    readOnly
-                  />
-                  <div className="task-content">
-                    <div className="task-header">
-                      <div className="task-title">
-                        {task.sequenceNumber && `${task.sequenceNumber}. `}
-                        {task.title}
-                        {task.isCritical && " ⚠️"}
-                      </div>
-                      <span className={`task-status-badge ${getTaskStatusClass(task.status)}`}>
-                        {task.status.replace("_", " ")}
-                      </span>
-                    </div>
-                    {task.description && (
-                      <div className="task-description">{task.description}</div>
-                    )}
-                    {task.assignedTo && (
-                      <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
-                        👤 Assigned to: {task.assignedTo.name}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
+        <TaskList
+          packages={workOrder.packages ?? []}
+          workOrderId={workOrder.id}
+          onRefresh={fetchWorkOrder}
+        />
       </div>
 
       {/* Actions */}

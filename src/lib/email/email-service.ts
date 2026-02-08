@@ -1,7 +1,13 @@
 import { Resend } from "resend";
 
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-initialize Resend to avoid build-time errors when API key is not set
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 // Default sender email - should be configured in environment
 const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@example.com";
@@ -40,7 +46,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
       };
     }
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: options.to,
       subject: options.subject,

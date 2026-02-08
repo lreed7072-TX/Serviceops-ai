@@ -1,12 +1,27 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@fontsource/space-grotesk/index.css";
 import "@fontsource/jetbrains-mono/index.css";
 import "./globals.css";
 import { isDevAuthBypassEnabled } from "@/lib/dev-auth";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
-  title: "Field Service AI",
-  description: "AI-backed field service management MVP",
+  title: "ServiceOpsIQ",
+  description: "AI-powered field service management platform",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ServiceOpsIQ",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({

@@ -11,6 +11,92 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
 }
 
+// GET /api/tasks/[id] - Full task detail with all relations
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
+
+    const { id } = await params;
+
+    const task = await prisma.taskInstance.findFirst({
+      where: { id, orgId: auth.orgId },
+      include: {
+        workOrder: {
+          select: {
+            id: true,
+            workOrderNumber: true,
+            title: true,
+            status: true,
+            customer: { select: { id: true, name: true } },
+            site: { select: { id: true, name: true } },
+          },
+        },
+        workPackage: {
+          select: { id: true, name: true, packageType: true },
+        },
+        assignedTo: {
+          select: { id: true, name: true, email: true },
+        },
+        blockedBy: {
+          select: { id: true, title: true, status: true },
+        },
+        blockingTasks: {
+          select: { id: true, title: true, status: true },
+        },
+        evidence: {
+          include: {
+            createdByUser: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "desc" as const },
+        },
+        measurements: {
+          include: {
+            capturedByUser: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "asc" as const },
+        },
+        materialUsages: {
+          include: {
+            material: {
+              select: { id: true, name: true, partNumber: true },
+            },
+            addedByUser: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { addedAt: "desc" as const },
+        },
+        timeEntries: {
+          include: {
+            user: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { startedAt: "desc" as const },
+        },
+      },
+    });
+
+    if (!task) {
+      return jsonError("Task not found", 404);
+    }
+
+    return jsonResponse({ data: task });
+  } catch (error) {
+    console.error("Failed to fetch task:", error);
+    return jsonError("Failed to fetch task", 500);
+  }
+}
+
 // PATCH /api/tasks/[id] - Update task status
 export async function PATCH(
   request: NextRequest,

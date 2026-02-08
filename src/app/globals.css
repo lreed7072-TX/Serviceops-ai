@@ -3470,3 +3470,78 @@ a {
     padding: var(--space-lg);
   }
 }
+
+/* ===========================================
+   Mobile Touch Improvements
+   =========================================== */
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  button,
+  a.btn,
+  select {
+    min-height: 44px;
+  }
+
+  /* Better button sizing on mobile */
+  .btn {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+
+  /* Full-width modals on mobile */
+  .modal {
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Prevent iOS zoom on focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Card grids to single column */
+  .card-grid,
+  .kb-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Better table scrolling on mobile */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Stack filters vertically */
+  .filter-bar {
+    flex-direction: column;
+  }
+
+  .filter-bar input,
+  .filter-bar select {
+    width: 100%;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .modal {
+    max-height: 95vh;
+  }
+}
+
+/* PWA safe area insets for notched devices */
+@media (display-mode: standalone) {
+  .page-container {
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}

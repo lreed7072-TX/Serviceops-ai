@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import EvidenceCapture from "./EvidenceCapture";
 import MeasurementEntry from "./MeasurementEntry";
@@ -199,13 +200,12 @@ export default function TaskList({ packages, workOrderId, onRefresh }: TaskListP
                           {task.sequenceNumber != null && (
                             <span className="tl-task-num">#{task.sequenceNumber}</span>
                           )}
-                          <h4
+                          <Link
+                            href={`/tasks/${task.id}`}
                             className="tl-task-title"
-                            onClick={() => toggleTask(task.id)}
-                            style={{ cursor: "pointer" }}
                           >
                             {task.title}
-                          </h4>
+                          </Link>
                           {task.isCritical && (
                             <span className="tl-critical">Critical</span>
                           )}

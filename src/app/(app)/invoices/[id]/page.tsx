@@ -52,6 +52,8 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [emailing, setEmailing] = useState(false);
 
   useEffect(() => {
     if (!invoiceId) return;
@@ -71,6 +73,67 @@ export default function InvoiceDetailPage() {
     };
     load();
   }, [invoiceId]);
+
+  const downloadPdf = async () => {
+    if (!invoiceId) return;
+
+    setDownloadingPdf(true);
+    try {
+      const res = await apiFetch(`/api/invoices/${invoiceId}/pdf`);
+      if (!res.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${invoice?.invoiceNumber || "invoice"}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const emailInvoice = async () => {
+    if (!invoiceId || !invoice) return;
+
+    const email = invoice.customer.primaryEmail || prompt("Enter customer email address:");
+    if (!email) return;
+
+    if (!confirm(`Send invoice ${invoice.invoiceNumber} to ${email}?`)) return;
+
+    setEmailing(true);
+    try {
+      const res = await apiFetch(`/api/invoices/${invoiceId}/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to send email");
+      }
+
+      const data = await res.json();
+      alert(data.data.message);
+
+      // Refresh invoice to get updated status
+      const refreshRes = await apiFetch(`/api/invoices/${invoiceId}`, { cache: "no-store" });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        setInvoice(refreshData.data);
+      }
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to send email");
+    } finally {
+      setEmailing(false);
+    }
+  };
 
   const updateStatus = async (newStatus: string) => {
     if (!invoiceId) return;
@@ -101,6 +164,8 @@ export default function InvoiceDetailPage() {
 
   const laborItems = invoice.lineItems.filter(item => item.itemType === "LABOR");
   const materialItems = invoice.lineItems.filter(item => item.itemType === "MATERIAL");
+  const serviceItems = invoice.lineItems.filter(item => item.itemType === "SERVICE");
+  const otherItems = invoice.lineItems.filter(item => item.itemType === "OTHER");
 
   return (
     <div className="page-container">
@@ -174,9 +239,43 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Status Management */}
+      {/* Actions */}
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Update Status</h3>
+        <h3 style={{ marginBottom: 12 }}>Actions</h3>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          <Link
+            href={`/invoices/${invoiceId}/edit`}
+            className="btn btn-outline"
+            style={{ fontSize: 14, padding: "8px 16px", textDecoration: "none" }}
+          >
+            Edit Invoice
+          </Link>
+          <button
+            onClick={downloadPdf}
+            disabled={downloadingPdf}
+            className="btn btn-outline"
+            style={{ fontSize: 14, padding: "8px 16px" }}
+          >
+            {downloadingPdf ? "Generating..." : "Download PDF"}
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="btn btn-outline"
+            style={{ fontSize: 14, padding: "8px 16px" }}
+          >
+            Print
+          </button>
+          <button
+            onClick={emailInvoice}
+            disabled={emailing}
+            className="btn btn-outline"
+            style={{ fontSize: 14, padding: "8px 16px" }}
+          >
+            {emailing ? "Sending..." : "Email to Customer"}
+          </button>
+        </div>
+
+        <h4 style={{ marginBottom: 8, marginTop: 16 }}>Update Status</h4>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {statusOptions.map(status => (
             <button
@@ -236,6 +335,64 @@ export default function InvoiceDetailPage() {
             </thead>
             <tbody>
               {materialItems.map(item => (
+                <tr key={item.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "12px 8px" }}>{item.description}</td>
+                  <td style={{ padding: "12px 8px", textAlign: "right" }}>{parseFloat(item.quantity.toString()).toFixed(2)}</td>
+                  <td style={{ padding: "12px 8px", textAlign: "right" }}>${parseFloat(item.unitPrice.toString()).toFixed(2)}</td>
+                  <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: 600 }}>
+                    ${parseFloat(item.totalPrice.toString()).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Service Line Items */}
+      {serviceItems.length > 0 && (
+        <div className="card">
+          <h3 style={{ marginBottom: 16 }}>Services</h3>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid var(--border)" }}>
+                <th style={{ textAlign: "left", padding: "8px", fontWeight: 600 }}>Description</th>
+                <th style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>Qty</th>
+                <th style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>Unit Price</th>
+                <th style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {serviceItems.map(item => (
+                <tr key={item.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "12px 8px" }}>{item.description}</td>
+                  <td style={{ padding: "12px 8px", textAlign: "right" }}>{parseFloat(item.quantity.toString()).toFixed(2)}</td>
+                  <td style={{ padding: "12px 8px", textAlign: "right" }}>${parseFloat(item.unitPrice.toString()).toFixed(2)}</td>
+                  <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: 600 }}>
+                    ${parseFloat(item.totalPrice.toString()).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Other Line Items */}
+      {otherItems.length > 0 && (
+        <div className="card">
+          <h3 style={{ marginBottom: 16 }}>Other</h3>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid var(--border)" }}>
+                <th style={{ textAlign: "left", padding: "8px", fontWeight: 600 }}>Description</th>
+                <th style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>Qty</th>
+                <th style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>Unit Price</th>
+                <th style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {otherItems.map(item => (
                 <tr key={item.id} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "12px 8px" }}>{item.description}</td>
                   <td style={{ padding: "12px 8px", textAlign: "right" }}>{parseFloat(item.quantity.toString()).toFixed(2)}</td>

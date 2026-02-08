@@ -57,6 +57,9 @@ export default function QuoteDetailPage() {
   const [converting, setConverting] = useState(false);
   const [emailing, setEmailing] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const quoteId = params?.id;
 
@@ -146,9 +149,29 @@ export default function QuoteDetailPage() {
     window.print();
   };
 
-  const handleExportPDF = () => {
-    // Use browser's print dialog with "Save as PDF" option
-    window.print();
+  const handleExportPDF = async () => {
+    if (!quote) return;
+
+    setDownloadingPdf(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/pdf`);
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${quote.quoteNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download PDF:", error);
+      alert("Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const handleEmailQuote = async () => {
@@ -184,9 +207,9 @@ export default function QuoteDetailPage() {
 
   const handleDuplicateQuote = async () => {
     if (!quote) return;
-    
+
     if (!confirm(`Create a copy of quote ${quote.quoteNumber}?`)) return;
-    
+
     setDuplicating(true);
     try {
       const response = await fetch(`/api/quotes/${quote.id}/duplicate`, {
@@ -205,6 +228,30 @@ export default function QuoteDetailPage() {
       alert("An error occurred while duplicating");
     } finally {
       setDuplicating(false);
+    }
+  };
+
+  const handleDeleteQuote = async () => {
+    if (!quote) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/quotes");
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to delete quote");
+      }
+    } catch (error) {
+      console.error("Failed to delete quote:", error);
+      alert("An error occurred while deleting");
+    } finally {
+      setDeleting(false);
+      setDeleteModalOpen(false);
     }
   };
 
@@ -466,9 +513,11 @@ export default function QuoteDetailPage() {
           
           <button
             onClick={handleExportPDF}
+            disabled={downloadingPdf}
             className="action-button primary"
           >
-            <span>📄</span> Export as PDF
+            <span>{downloadingPdf ? "⏳" : "📄"}</span>
+            {downloadingPdf ? "Generating..." : "Download PDF"}
           </button>
           
           <button
@@ -535,8 +584,57 @@ export default function QuoteDetailPage() {
               <span>🚫</span> Cancel Quote
             </button>
           )}
+
+          {quote.status === QuoteStatus.DRAFT && (
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="action-button danger"
+            >
+              <span>🗑️</span> Delete Quote
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="delete-modal-overlay" onClick={() => !deleting && setDeleteModalOpen(false)}>
+          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <h3>Delete Quote</h3>
+              <button
+                onClick={() => !deleting && setDeleteModalOpen(false)}
+                className="delete-modal-close"
+                disabled={deleting}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="delete-modal-body">
+              <div className="delete-warning-icon">⚠️</div>
+              <p>Are you sure you want to delete quote <strong>{quote.quoteNumber}</strong>?</p>
+              <p className="delete-quote-title">"{quote.title}"</p>
+              <p className="delete-warning-text">This action cannot be undone.</p>
+            </div>
+            <div className="delete-modal-footer">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                className="btn-modal-cancel"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteQuote}
+                className="btn-modal-delete"
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete Quote"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

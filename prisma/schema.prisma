@@ -156,44 +156,44 @@ model Org {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users        User[]
-  invites      Invite[]
-  customers    Customer[]
-  sites        Site[]
-  assets       Asset[]
-  workOrders   WorkOrder[]
-  visits       Visit[]
-  findings     Finding[]
-  measures     Measurement[]
-  files        File[]
-  fileLinks   FileLink[]
-  reports      Report[]
-  kbFiles      KbFile[]
-  kbChunks     KbChunk[]
-  workPackages WorkPackage[]
-  tasks        TaskInstance[]
-  taskEvidence TaskEvidence[]
-  reportTemplates ReportTemplate[]
-  reportBlocks ReportBlock[]
-  timeEntries  TimeEntry[]
-  standardsPacks StandardsPack[]
-  standardsPackTasks StandardsPackTask[]
+  users                  User[]
+  invites                Invite[]
+  customers              Customer[]
+  sites                  Site[]
+  assets                 Asset[]
+  workOrders             WorkOrder[]
+  visits                 Visit[]
+  findings               Finding[]
+  measures               Measurement[]
+  files                  File[]
+  fileLinks              FileLink[]
+  reports                Report[]
+  kbFiles                KbFile[]
+  kbChunks               KbChunk[]
+  workPackages           WorkPackage[]
+  tasks                  TaskInstance[]
+  taskEvidence           TaskEvidence[]
+  reportTemplates        ReportTemplate[]
+  reportBlocks           ReportBlock[]
+  timeEntries            TimeEntry[]
+  standardsPacks         StandardsPack[]
+  standardsPackTasks     StandardsPackTask[]
   measurementDefinitions MeasurementDefinition[]
-  taskMeasurements TaskMeasurement[]
-  materials Material[]
-  taskMaterialUsages TaskMaterialUsage[]
-  stockMovements StockMovement[]
-  signatures Signature[]
-  quotes Quote[]
-  quoteLineItems QuoteLineItem[]
-  invoices Invoice[]
-  invoiceLineItems InvoiceLineItem[]
-  procedureTemplates ProcedureTemplate[]
+  taskMeasurements       TaskMeasurement[]
+  materials              Material[]
+  taskMaterialUsages     TaskMaterialUsage[]
+  stockMovements         StockMovement[]
+  signatures             Signature[]
+  quotes                 Quote[]
+  quoteLineItems         QuoteLineItem[]
+  invoices               Invoice[]
+  invoiceLineItems       InvoiceLineItem[]
+  procedureTemplates     ProcedureTemplate[]
   procedureStepTemplates ProcedureStepTemplate[]
-  workflowDefinitions WorkflowDefinition[]
-  aiTaskPlans AITaskPlan[]
-  billingConfig BillingConfig?
-  laborRates LaborRateConfig[]
+  workflowDefinitions    WorkflowDefinition[]
+  aiTaskPlans            AITaskPlan[]
+  billingConfig          BillingConfig?
+  laborRates             LaborRateConfig[]
 }
 
 model User {
@@ -205,24 +205,24 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  org            Org           @relation(fields: [orgId], references: [id])
-  invitesSent    Invite[]      @relation("InviteSentBy")
-  assignedVisits Visit[]       @relation("VisitAssignedTech")
-  leadPackages   WorkPackage[]   @relation("WorkPackageLead")
-  assignedTasks  TaskInstance[]  @relation("TaskAssignedTo")
-  createdTaskEvidence TaskEvidence[] @relation("TaskEvidenceCreatedBy")
-  createdReportTemplates ReportTemplate[] @relation("ReportTemplateCreatedBy")
-  updatedReportTemplates ReportTemplate[] @relation("ReportTemplateUpdatedBy")
-  timeEntries  TimeEntry[]  @relation("TimeEntryUser")
-  capturedMeasurements TaskMeasurement[] @relation("MeasurementCapturedBy")
-  addedMaterialUsages TaskMaterialUsage[] @relation("MaterialUsageAddedBy")
-  capturedSignatures Signature[] @relation("SignatureCapturedBy")
-  createdQuotes Quote[] @relation("QuoteCreatedBy")
-  createdInvoices Invoice[] @relation("InvoiceCreatedBy")
-  createdProcedureTemplates ProcedureTemplate[] @relation("ProcedureTemplateCreatedBy")
+  org                        Org                  @relation(fields: [orgId], references: [id])
+  invitesSent                Invite[]             @relation("InviteSentBy")
+  assignedVisits             Visit[]              @relation("VisitAssignedTech")
+  leadPackages               WorkPackage[]        @relation("WorkPackageLead")
+  assignedTasks              TaskInstance[]       @relation("TaskAssignedTo")
+  createdTaskEvidence        TaskEvidence[]       @relation("TaskEvidenceCreatedBy")
+  createdReportTemplates     ReportTemplate[]     @relation("ReportTemplateCreatedBy")
+  updatedReportTemplates     ReportTemplate[]     @relation("ReportTemplateUpdatedBy")
+  timeEntries                TimeEntry[]          @relation("TimeEntryUser")
+  capturedMeasurements       TaskMeasurement[]    @relation("MeasurementCapturedBy")
+  addedMaterialUsages        TaskMaterialUsage[]  @relation("MaterialUsageAddedBy")
+  capturedSignatures         Signature[]          @relation("SignatureCapturedBy")
+  createdQuotes              Quote[]              @relation("QuoteCreatedBy")
+  createdInvoices            Invoice[]            @relation("InvoiceCreatedBy")
+  createdProcedureTemplates  ProcedureTemplate[]  @relation("ProcedureTemplateCreatedBy")
   createdWorkflowDefinitions WorkflowDefinition[] @relation("WorkflowDefinitionCreatedBy")
-  approvedAITaskPlans AITaskPlan[] @relation("AITaskPlanApprovedBy")
-  performedStockMovements StockMovement[] @relation("StockMovementPerformedBy")
+  approvedAITaskPlans        AITaskPlan[]         @relation("AITaskPlanApprovedBy")
+  performedStockMovements    StockMovement[]      @relation("StockMovementPerformedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -248,29 +248,29 @@ model Invite {
 }
 
 model Customer {
-  id        String   @id @default(uuid()) @db.Uuid
-  orgId     String   @db.Uuid
-  name      String
-  status    String   @default("ACTIVE")
-  primaryEmail  String?
-  primaryPhone  String?
-  billingAddress String?
+  id                String   @id @default(uuid()) @db.Uuid
+  orgId             String   @db.Uuid
+  name              String
+  status            String   @default("ACTIVE")
+  primaryEmail      String?
+  primaryPhone      String?
+  billingAddress    String?
   billingStreet1    String?
   billingStreet2    String?
   billingCity       String?
   billingState      String?
   billingPostalCode String?
   billingCountry    String?
-  notes         String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  org       Org        @relation(fields: [orgId], references: [id])
-  sites     Site[]
-  assets    Asset[]
+  org        Org         @relation(fields: [orgId], references: [id])
+  sites      Site[]
+  assets     Asset[]
   workOrders WorkOrder[]
-  quotes    Quote[]
-  invoices  Invoice[]
+  quotes     Quote[]
+  invoices   Invoice[]
 
   @@index([orgId])
 }
@@ -288,12 +288,12 @@ model Site {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  org      Org      @relation(fields: [orgId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
-  assets   Asset[]
+  org        Org         @relation(fields: [orgId], references: [id])
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  assets     Asset[]
   workOrders WorkOrder[]
-  quotes   Quote[]
-  invoices Invoice[]
+  quotes     Quote[]
+  invoices   Invoice[]
 
   @@index([orgId])
   @@index([orgId, customerId])
@@ -321,9 +321,9 @@ model Asset {
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  org        Org        @relation(fields: [orgId], references: [id])
-  customer   Customer   @relation(fields: [customerId], references: [id])
-  site       Site       @relation(fields: [siteId], references: [id])
+  org        Org         @relation(fields: [orgId], references: [id])
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  site       Site        @relation(fields: [siteId], references: [id])
   workOrders WorkOrder[]
 
   @@index([orgId])
@@ -332,37 +332,37 @@ model Asset {
 }
 
 model WorkOrder {
-  id          String          @id @default(uuid()) @db.Uuid
-  orgId       String          @db.Uuid
-  customerId  String          @db.Uuid
-  siteId      String          @db.Uuid
-  assetId     String?         @db.Uuid
-  quoteId     String?         @db.Uuid // Optional - work order created from accepted quote
-  title       String
-  description String?
-  status      WorkOrderStatus @default(OPEN)
-  executionMode ExecutionMode @default(UNIFIED)
-  orderType   OrderType       @default(WORK_ORDER)
+  id              String          @id @default(uuid()) @db.Uuid
+  orgId           String          @db.Uuid
+  customerId      String          @db.Uuid
+  siteId          String          @db.Uuid
+  assetId         String?         @db.Uuid
+  quoteId         String?         @db.Uuid // Optional - work order created from accepted quote
+  title           String
+  description     String?
+  status          WorkOrderStatus @default(OPEN)
+  executionMode   ExecutionMode   @default(UNIFIED)
+  orderType       OrderType       @default(WORK_ORDER)
   workOrderNumber String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  org      Org      @relation(fields: [orgId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
-  site     Site     @relation(fields: [siteId], references: [id])
-  asset    Asset?   @relation(fields: [assetId], references: [id])
-  quote    Quote?   @relation(fields: [quoteId], references: [id])
-  visits   Visit[]
-  packages WorkPackage[]
-  tasks    TaskInstance[]
+  org         Org            @relation(fields: [orgId], references: [id])
+  customer    Customer       @relation(fields: [customerId], references: [id])
+  site        Site           @relation(fields: [siteId], references: [id])
+  asset       Asset?         @relation(fields: [assetId], references: [id])
+  quote       Quote?         @relation(fields: [quoteId], references: [id])
+  visits      Visit[]
+  packages    WorkPackage[]
+  tasks       TaskInstance[]
   timeEntries TimeEntry[]
-  signatures Signature[]
-  invoices Invoice[]
+  signatures  Signature[]
+  invoices    Invoice[]
   aiTaskPlans AITaskPlan[]
 
+  @@unique([orgId, workOrderNumber])
   @@index([orgId])
   @@index([orgId, customerId])
-  @@unique([orgId, workOrderNumber])
 }
 
 model WorkPackage {
@@ -376,9 +376,9 @@ model WorkPackage {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  org       Org       @relation(fields: [orgId], references: [id])
-  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
-  leadTech  User?     @relation("WorkPackageLead", fields: [leadTechId], references: [id])
+  org       Org            @relation(fields: [orgId], references: [id])
+  workOrder WorkOrder      @relation(fields: [workOrderId], references: [id])
+  leadTech  User?          @relation("WorkPackageLead", fields: [leadTechId], references: [id])
   tasks     TaskInstance[]
 
   @@index([orgId])
@@ -386,32 +386,32 @@ model WorkPackage {
 }
 
 model TaskInstance {
-  id            String      @id @default(uuid()) @db.Uuid
-  orgId         String      @db.Uuid
-  workOrderId   String      @db.Uuid
-  workPackageId String      @db.Uuid
-  title         String
-  description   String?
-  status        TaskStatus  @default(TODO)
-  sequenceNumber Int?
-  assignedToId  String?     @db.Uuid
-  isCritical    Boolean     @default(false)
-  requiresEvidence Boolean  @default(false)
-  blockedById   String?     @db.Uuid  // Task that must complete before this one
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id               String     @id @default(uuid()) @db.Uuid
+  orgId            String     @db.Uuid
+  workOrderId      String     @db.Uuid
+  workPackageId    String     @db.Uuid
+  title            String
+  description      String?
+  status           TaskStatus @default(TODO)
+  sequenceNumber   Int?
+  assignedToId     String?    @db.Uuid
+  isCritical       Boolean    @default(false)
+  requiresEvidence Boolean    @default(false)
+  blockedById      String?    @db.Uuid // Task that must complete before this one
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
-  org        Org         @relation(fields: [orgId], references: [id])
-  workOrder  WorkOrder   @relation(fields: [workOrderId], references: [id])
-  workPackage WorkPackage @relation(fields: [workPackageId], references: [id])
-  assignedTo User?       @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
-  blockedBy  TaskInstance? @relation("TaskDependency", fields: [blockedById], references: [id], onDelete: SetNull)
-  blockingTasks TaskInstance[] @relation("TaskDependency")
-  evidence   TaskEvidence[]
-  timeEntries TimeEntry[]
-  measurements TaskMeasurement[]
-  materialUsages TaskMaterialUsage[]
-  invoiceLineItems InvoiceLineItem[]
+  org                    Org                     @relation(fields: [orgId], references: [id])
+  workOrder              WorkOrder               @relation(fields: [workOrderId], references: [id])
+  workPackage            WorkPackage             @relation(fields: [workPackageId], references: [id])
+  assignedTo             User?                   @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  blockedBy              TaskInstance?           @relation("TaskDependency", fields: [blockedById], references: [id], onDelete: SetNull)
+  blockingTasks          TaskInstance[]          @relation("TaskDependency")
+  evidence               TaskEvidence[]
+  timeEntries            TimeEntry[]
+  measurements           TaskMeasurement[]
+  materialUsages         TaskMaterialUsage[]
+  invoiceLineItems       InvoiceLineItem[]
   measurementDefinitions MeasurementDefinition[]
 
   @@index([orgId])
@@ -430,9 +430,9 @@ model TaskEvidence {
   createdByUserId String           @db.Uuid
   createdAt       DateTime         @default(now())
 
-  org           Org         @relation(fields: [orgId], references: [id])
+  org           Org          @relation(fields: [orgId], references: [id])
   taskInstance  TaskInstance @relation(fields: [taskInstanceId], references: [id])
-  createdByUser User        @relation("TaskEvidenceCreatedBy", fields: [createdByUserId], references: [id])
+  createdByUser User         @relation("TaskEvidenceCreatedBy", fields: [createdByUserId], references: [id])
 
   @@index([orgId])
   @@index([orgId, taskInstanceId])
@@ -440,10 +440,10 @@ model TaskEvidence {
 }
 
 model Visit {
-  id             String     @id @default(uuid()) @db.Uuid
-  orgId          String     @db.Uuid
-  workOrderId    String     @db.Uuid
-  assignedTechId String?    @db.Uuid
+  id             String      @id @default(uuid()) @db.Uuid
+  orgId          String      @db.Uuid
+  workOrderId    String      @db.Uuid
+  assignedTechId String?     @db.Uuid
   status         VisitStatus @default(PLANNED)
   visitNumber    String?
   scheduledFor   DateTime?
@@ -451,20 +451,20 @@ model Visit {
   completedAt    DateTime?
   summary        String?
   outcome        String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  org        Org      @relation(fields: [orgId], references: [id])
-  workOrder  WorkOrder @relation(fields: [workOrderId], references: [id])
-  assignedTech User?   @relation("VisitAssignedTech", fields: [assignedTechId], references: [id])
-  findings   Finding[]
-  measures   Measurement[]
-  files      File[]
-  reports    Report[]
+  org          Org           @relation(fields: [orgId], references: [id])
+  workOrder    WorkOrder     @relation(fields: [workOrderId], references: [id])
+  assignedTech User?         @relation("VisitAssignedTech", fields: [assignedTechId], references: [id])
+  findings     Finding[]
+  measures     Measurement[]
+  files        File[]
+  reports      Report[]
 
+  @@unique([orgId, visitNumber])
   @@index([orgId])
   @@index([orgId, workOrderId])
-  @@unique([orgId, visitNumber])
 }
 
 model Finding {
@@ -518,7 +518,7 @@ model File {
   report Report? @relation(fields: [reportId], references: [id])
   kbFile KbFile? @relation(fields: [kbFileId], references: [id])
 
-  links      FileLink[]
+  links FileLink[]
 
   @@index([orgId])
   @@index([orgId, visitId])
@@ -536,13 +536,11 @@ model FileLink {
   org  Org  @relation(fields: [orgId], references: [id])
   file File @relation(fields: [fileId], references: [id])
 
+  @@unique([orgId, fileId, entityType, entityId])
   @@index([orgId])
   @@index([orgId, entityType, entityId])
   @@index([orgId, fileId])
-  @@unique([orgId, fileId, entityType, entityId])
 }
-
-
 
 model Report {
   id        String   @id @default(uuid()) @db.Uuid
@@ -554,9 +552,9 @@ model Report {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  org    Org   @relation(fields: [orgId], references: [id])
-  visit  Visit @relation(fields: [visitId], references: [id])
-  files  File[]
+  org   Org    @relation(fields: [orgId], references: [id])
+  visit Visit  @relation(fields: [visitId], references: [id])
+  files File[]
 
   @@index([orgId])
   @@index([orgId, visitId])
@@ -575,9 +573,9 @@ model ReportTemplate {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  org           Org  @relation(fields: [orgId], references: [id])
-  createdByUser User @relation("ReportTemplateCreatedBy", fields: [createdByUserId], references: [id])
-  updatedByUser User? @relation("ReportTemplateUpdatedBy", fields: [updatedByUserId], references: [id])
+  org           Org           @relation(fields: [orgId], references: [id])
+  createdByUser User          @relation("ReportTemplateCreatedBy", fields: [createdByUserId], references: [id])
+  updatedByUser User?         @relation("ReportTemplateUpdatedBy", fields: [updatedByUserId], references: [id])
   blocks        ReportBlock[] @relation("ReportTemplateBlocks")
 
   @@index([orgId])
@@ -604,17 +602,17 @@ model ReportBlock {
 }
 
 model KbFile {
-  id           String   @id @default(uuid()) @db.Uuid
-  orgId        String   @db.Uuid
-  title        String
-  sourceUrl    String?
-  status       String   @default("ACTIVE")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  title     String
+  sourceUrl String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  org     Org      @relation(fields: [orgId], references: [id])
-  files   File[]
-  chunks  KbChunk[]
+  org    Org       @relation(fields: [orgId], references: [id])
+  files  File[]
+  chunks KbChunk[]
 
   @@index([orgId])
 }
@@ -643,20 +641,20 @@ enum TimeEntryStatus {
 }
 
 model TimeEntry {
-  id             String          @id @default(uuid()) @db.Uuid
-  orgId          String          @db.Uuid
-  userId         String          @db.Uuid
-  workOrderId    String          @db.Uuid
-  taskInstanceId String?         @db.Uuid
-  status         TimeEntryStatus @default(RUNNING)
-  startedAt      DateTime        @default(now())
-  pausedAt       DateTime?
-  stoppedAt      DateTime?
+  id                 String          @id @default(uuid()) @db.Uuid
+  orgId              String          @db.Uuid
+  userId             String          @db.Uuid
+  workOrderId        String          @db.Uuid
+  taskInstanceId     String?         @db.Uuid
+  status             TimeEntryStatus @default(RUNNING)
+  startedAt          DateTime        @default(now())
+  pausedAt           DateTime?
+  stoppedAt          DateTime?
   // Accumulated seconds before current running segment
-  accumulatedSeconds Int         @default(0)
-  notes          String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  accumulatedSeconds Int             @default(0)
+  notes              String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   org          Org           @relation(fields: [orgId], references: [id])
   user         User          @relation("TimeEntryUser", fields: [userId], references: [id])
@@ -679,8 +677,6 @@ model user_org_roles {
   @@index([user_id])
 }
 
-
-
 // ============================================
 // STANDARDS PACKS - Reusable Task Templates
 // ============================================
@@ -692,18 +688,18 @@ enum StandardsPackStatus {
 }
 
 model StandardsPack {
-  id              String              @id @default(uuid()) @db.Uuid
-  orgId           String              @db.Uuid
-  name            String
-  description     String?
-  equipmentType   String?             // e.g., "Centrifugal Pump", "Control Valve"
-  status          StandardsPackStatus @default(DRAFT)
-  estimatedHours  Float?              // Total estimated hours for all tasks
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id             String              @id @default(uuid()) @db.Uuid
+  orgId          String              @db.Uuid
+  name           String
+  description    String?
+  equipmentType  String? // e.g., "Centrifugal Pump", "Control Valve"
+  status         StandardsPackStatus @default(DRAFT)
+  estimatedHours Float? // Total estimated hours for all tasks
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
-  org   Org                  @relation(fields: [orgId], references: [id])
-  tasks StandardsPackTask[]
+  org                Org                 @relation(fields: [orgId], references: [id])
+  tasks              StandardsPackTask[]
   procedureTemplates ProcedureTemplate[]
 
   @@index([orgId])
@@ -721,19 +717,18 @@ model StandardsPackTask {
   sequenceNumber   Int             @default(0)
   isCritical       Boolean         @default(false)
   requiresEvidence Boolean         @default(false)
-  estimatedMinutes Int?            // Estimated time for this task
+  estimatedMinutes Int? // Estimated time for this task
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  org           Org           @relation(fields: [orgId], references: [id])
-  standardsPack StandardsPack @relation(fields: [standardsPackId], references: [id], onDelete: Cascade)
+  org                    Org                     @relation(fields: [orgId], references: [id])
+  standardsPack          StandardsPack           @relation(fields: [standardsPackId], references: [id], onDelete: Cascade)
   measurementDefinitions MeasurementDefinition[]
 
   @@index([orgId])
   @@index([orgId, standardsPackId])
   @@index([standardsPackId, sequenceNumber])
 }
-
 
 // ============================================
 // MEASUREMENTS - Structured Data Capture
@@ -748,13 +743,13 @@ enum MeasurementType {
 model MeasurementDefinition {
   id                  String          @id @default(uuid()) @db.Uuid
   orgId               String          @db.Uuid
-  standardsPackTaskId String?         @db.Uuid  // Link to template task (nullable)
-  taskInstanceId      String?         @db.Uuid  // Link to actual task instance (nullable)
-  name                String          // e.g., "Bearing Temperature"
-  unit                String?         // e.g., "°F", "mils", "psi"
+  standardsPackTaskId String?         @db.Uuid // Link to template task (nullable)
+  taskInstanceId      String?         @db.Uuid // Link to actual task instance (nullable)
+  name                String // e.g., "Bearing Temperature"
+  unit                String? // e.g., "°F", "mils", "psi"
   measurementType     MeasurementType @default(NUMERIC)
-  minValue            Float?          // Acceptable range min (for NUMERIC)
-  maxValue            Float?          // Acceptable range max (for NUMERIC)
+  minValue            Float? // Acceptable range min (for NUMERIC)
+  maxValue            Float? // Acceptable range max (for NUMERIC)
   isRequired          Boolean         @default(false)
   sortOrder           Int             @default(0)
   createdAt           DateTime        @default(now())
@@ -771,11 +766,11 @@ model MeasurementDefinition {
 }
 
 model TaskMeasurement {
-  id                      String    @id @default(uuid()) @db.Uuid
-  orgId                   String    @db.Uuid
-  taskInstanceId          String    @db.Uuid
-  measurementDefinitionId String?   @db.Uuid  // Link to original definition (nullable for ad-hoc)
-  name                    String    // Copied from definition or custom
+  id                      String          @id @default(uuid()) @db.Uuid
+  orgId                   String          @db.Uuid
+  taskInstanceId          String          @db.Uuid
+  measurementDefinitionId String?         @db.Uuid // Link to original definition (nullable for ad-hoc)
+  name                    String // Copied from definition or custom
   unit                    String?
   measurementType         MeasurementType @default(NUMERIC)
   minValue                Float?
@@ -785,12 +780,12 @@ model TaskMeasurement {
   textValue               String?
   passFail                Boolean?
   // Calculated
-  isWithinSpec            Boolean?  // Auto-calculated for NUMERIC type
+  isWithinSpec            Boolean? // Auto-calculated for NUMERIC type
   // Metadata
   capturedAt              DateTime?
-  capturedByUserId        String?   @db.Uuid
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  capturedByUserId        String?         @db.Uuid
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
 
   org                   Org                    @relation(fields: [orgId], references: [id])
   taskInstance          TaskInstance           @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
@@ -801,7 +796,6 @@ model TaskMeasurement {
   @@index([orgId, taskInstanceId])
   @@index([taskInstanceId])
 }
-
 
 // ============================================
 // MATERIALS - Parts/Inventory Tracking
@@ -821,22 +815,22 @@ model Material {
   partNumber   String?
   manufacturer String?
   unitCost     Float?
-  unit         String?          // "each", "ft", "gal", etc.
+  unit         String? // "each", "ft", "gal", etc.
   category     MaterialCategory @default(PART)
   isActive     Boolean          @default(true)
-  
-  // Inventory Management
-  quantityOnHand Decimal          @default(0) @db.Decimal(10, 2)
-  minQuantity    Decimal?         @db.Decimal(10, 2) // Reorder point
-  maxQuantity    Decimal?         @db.Decimal(10, 2) // Max stock level
-  location       String?          // Storage location
-  lastRestocked  DateTime?        // Last time stock was added
-  
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
 
-  org    Org                 @relation(fields: [orgId], references: [id])
-  usages TaskMaterialUsage[]
+  // Inventory Management
+  quantityOnHand Decimal   @default(0) @db.Decimal(10, 2)
+  minQuantity    Decimal?  @db.Decimal(10, 2) // Reorder point
+  maxQuantity    Decimal?  @db.Decimal(10, 2) // Max stock level
+  location       String? // Storage location
+  lastRestocked  DateTime? // Last time stock was added
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org            Org                 @relation(fields: [orgId], references: [id])
+  usages         TaskMaterialUsage[]
   quoteLineItems QuoteLineItem[]
   stockMovements StockMovement[]
 
@@ -847,32 +841,32 @@ model Material {
 }
 
 enum StockMovementType {
-  PURCHASE        // Incoming stock from supplier
-  ADJUSTMENT      // Manual adjustment (count correction)
-  USAGE           // Used in work order
-  RETURN          // Returned to stock
-  TRANSFER        // Transfer between locations
-  WRITE_OFF       // Damaged/lost inventory
+  PURCHASE // Incoming stock from supplier
+  ADJUSTMENT // Manual adjustment (count correction)
+  USAGE // Used in work order
+  RETURN // Returned to stock
+  TRANSFER // Transfer between locations
+  WRITE_OFF // Damaged/lost inventory
 }
 
 model StockMovement {
-  id             String            @id @default(uuid()) @db.Uuid
-  orgId          String            @db.Uuid
-  materialId     String            @db.Uuid
-  movementType   StockMovementType
-  quantity       Decimal           @db.Decimal(10, 2)
-  quantityBefore Decimal           @db.Decimal(10, 2) // Stock before transaction
-  quantityAfter  Decimal           @db.Decimal(10, 2) // Stock after transaction
-  unitCost       Decimal?          @db.Decimal(12, 2) // Cost per unit (for purchases)
-  totalCost      Decimal?          @db.Decimal(12, 2) // Total transaction cost
-  reference      String?           // PO #, WO #, adjustment reason
-  notes          String?
-  performedByUserId String         @db.Uuid
-  createdAt      DateTime          @default(now())
+  id                String            @id @default(uuid()) @db.Uuid
+  orgId             String            @db.Uuid
+  materialId        String            @db.Uuid
+  movementType      StockMovementType
+  quantity          Decimal           @db.Decimal(10, 2)
+  quantityBefore    Decimal           @db.Decimal(10, 2) // Stock before transaction
+  quantityAfter     Decimal           @db.Decimal(10, 2) // Stock after transaction
+  unitCost          Decimal?          @db.Decimal(12, 2) // Cost per unit (for purchases)
+  totalCost         Decimal?          @db.Decimal(12, 2) // Total transaction cost
+  reference         String? // PO #, WO #, adjustment reason
+  notes             String?
+  performedByUserId String            @db.Uuid
+  createdAt         DateTime          @default(now())
 
-  org          Org      @relation(fields: [orgId], references: [id])
-  material     Material @relation(fields: [materialId], references: [id])
-  performedBy  User     @relation("StockMovementPerformedBy", fields: [performedByUserId], references: [id])
+  org         Org      @relation(fields: [orgId], references: [id])
+  material    Material @relation(fields: [materialId], references: [id])
+  performedBy User     @relation("StockMovementPerformedBy", fields: [performedByUserId], references: [id])
 
   @@index([orgId])
   @@index([orgId, materialId])
@@ -884,7 +878,7 @@ model TaskMaterialUsage {
   id             String   @id @default(uuid()) @db.Uuid
   orgId          String   @db.Uuid
   taskInstanceId String   @db.Uuid
-  materialId     String?  @db.Uuid  // Optional link to catalog
+  materialId     String?  @db.Uuid // Optional link to catalog
   name           String
   partNumber     String?
   quantity       Float    @default(1)
@@ -897,17 +891,16 @@ model TaskMaterialUsage {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  org          Org           @relation(fields: [orgId], references: [id])
-  taskInstance TaskInstance  @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
-  material     Material?     @relation(fields: [materialId], references: [id])
-  addedByUser  User?         @relation("MaterialUsageAddedBy", fields: [addedByUserId], references: [id])
+  org              Org               @relation(fields: [orgId], references: [id])
+  taskInstance     TaskInstance      @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
+  material         Material?         @relation(fields: [materialId], references: [id])
+  addedByUser      User?             @relation("MaterialUsageAddedBy", fields: [addedByUserId], references: [id])
   invoiceLineItems InvoiceLineItem[]
 
   @@index([orgId])
   @@index([orgId, taskInstanceId])
   @@index([taskInstanceId])
 }
-
 
 // ============================================
 // SIGNATURES - Customer/Tech Sign-off
@@ -920,27 +913,26 @@ enum SignatureType {
 }
 
 model Signature {
-  id            String        @id @default(uuid()) @db.Uuid
-  orgId         String        @db.Uuid
-  workOrderId   String        @db.Uuid
-  signatureType SignatureType
-  signerName    String
-  signerTitle   String?       // e.g., "Plant Manager", "Lead Tech"
-  signatureData String        @db.Text  // Base64 PNG or SVG path data
-  signedAt      DateTime      @default(now())
-  capturedByUserId String?    @db.Uuid
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               String        @id @default(uuid()) @db.Uuid
+  orgId            String        @db.Uuid
+  workOrderId      String        @db.Uuid
+  signatureType    SignatureType
+  signerName       String
+  signerTitle      String? // e.g., "Plant Manager", "Lead Tech"
+  signatureData    String        @db.Text // Base64 PNG or SVG path data
+  signedAt         DateTime      @default(now())
+  capturedByUserId String?       @db.Uuid
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  org         Org        @relation(fields: [orgId], references: [id])
-  workOrder   WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  capturedBy  User?      @relation("SignatureCapturedBy", fields: [capturedByUserId], references: [id])
+  org        Org       @relation(fields: [orgId], references: [id])
+  workOrder  WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  capturedBy User?     @relation("SignatureCapturedBy", fields: [capturedByUserId], references: [id])
 
   @@index([orgId])
   @@index([orgId, workOrderId])
   @@index([workOrderId])
 }
-
 
 // ============================================
 // QUOTES MODULE
@@ -964,33 +956,33 @@ enum QuoteLineItemType {
 }
 
 model Quote {
-  id                    String       @id @default(uuid()) @db.Uuid
-  orgId                 String       @db.Uuid
-  customerId            String       @db.Uuid
-  siteId                String?      @db.Uuid
+  id                    String      @id @default(uuid()) @db.Uuid
+  orgId                 String      @db.Uuid
+  customerId            String      @db.Uuid
+  siteId                String?     @db.Uuid
   quoteNumber           String
-  status                QuoteStatus  @default(DRAFT)
+  status                QuoteStatus @default(DRAFT)
   title                 String
   description           String?
-  laborRate             Decimal?     @db.Decimal(10, 2) // Per-hour rate
-  materialMarkupPercent Decimal?     @db.Decimal(5, 2)  // e.g., 15.00 = 15%
-  subtotal              Decimal      @default(0) @db.Decimal(12, 2)
-  tax                   Decimal      @default(0) @db.Decimal(12, 2)
-  taxRate               Decimal      @default(0) @db.Decimal(5, 2)  // e.g., 8.25 = 8.25%
-  total                 Decimal      @default(0) @db.Decimal(12, 2)
+  laborRate             Decimal?    @db.Decimal(10, 2) // Per-hour rate
+  materialMarkupPercent Decimal?    @db.Decimal(5, 2) // e.g., 15.00 = 15%
+  subtotal              Decimal     @default(0) @db.Decimal(12, 2)
+  tax                   Decimal     @default(0) @db.Decimal(12, 2)
+  taxRate               Decimal     @default(0) @db.Decimal(5, 2) // e.g., 8.25 = 8.25%
+  total                 Decimal     @default(0) @db.Decimal(12, 2)
   validUntil            DateTime?
-  notes                 String?      @db.Text
-  terms                 String?      @db.Text
+  notes                 String?     @db.Text
+  terms                 String?     @db.Text
   sentAt                DateTime?
   approvedAt            DateTime?
   approvedByName        String?
   rejectedAt            DateTime?
   rejectionReason       String?
-  convertedToOrderId    String?      @db.Uuid // Reference to created WO/SO/PJ
+  convertedToOrderId    String?     @db.Uuid // Reference to created WO/SO/PJ
   convertedToOrderType  OrderType?
-  createdByUserId       String       @db.Uuid
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  createdByUserId       String      @db.Uuid
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
   org        Org             @relation(fields: [orgId], references: [id])
   customer   Customer        @relation(fields: [customerId], references: [id])
@@ -998,7 +990,7 @@ model Quote {
   createdBy  User            @relation("QuoteCreatedBy", fields: [createdByUserId], references: [id])
   lineItems  QuoteLineItem[]
   invoices   Invoice[]
-  workOrders WorkOrder[]     // Work orders created from this quote
+  workOrders WorkOrder[] // Work orders created from this quote
 
   @@unique([orgId, quoteNumber])
   @@index([orgId])
@@ -1028,7 +1020,6 @@ model QuoteLineItem {
   @@index([quoteId])
 }
 
-
 // ============================================
 // INVOICING MODULE
 // ============================================
@@ -1054,7 +1045,7 @@ model BillingConfig {
 model LaborRateConfig {
   id         String   @id @default(uuid()) @db.Uuid
   orgId      String   @db.Uuid
-  role       Role     // TECH, ADMIN, DISPATCHER
+  role       Role // TECH, ADMIN, DISPATCHER
   hourlyRate Decimal  @db.Decimal(10, 2) // e.g., 85.00
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
@@ -1065,7 +1056,6 @@ model LaborRateConfig {
   @@unique([orgId, role])
   @@index([orgId])
 }
-
 
 // ============================================
 // INVOICES - Post-Work Billing
@@ -1109,13 +1099,13 @@ model Invoice {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  org        Org                 @relation(fields: [orgId], references: [id])
-  customer   Customer            @relation(fields: [customerId], references: [id])
-  site       Site?               @relation(fields: [siteId], references: [id])
-  workOrder  WorkOrder?          @relation(fields: [workOrderId], references: [id])
-  quote      Quote?              @relation(fields: [quoteId], references: [id])
-  createdBy  User                @relation("InvoiceCreatedBy", fields: [createdByUserId], references: [id])
-  lineItems  InvoiceLineItem[]
+  org       Org               @relation(fields: [orgId], references: [id])
+  customer  Customer          @relation(fields: [customerId], references: [id])
+  site      Site?             @relation(fields: [siteId], references: [id])
+  workOrder WorkOrder?        @relation(fields: [workOrderId], references: [id])
+  quote     Quote?            @relation(fields: [quoteId], references: [id])
+  createdBy User              @relation("InvoiceCreatedBy", fields: [createdByUserId], references: [id])
+  lineItems InvoiceLineItem[]
 
   @@unique([orgId, invoiceNumber])
   @@index([orgId])
@@ -1139,15 +1129,14 @@ model InvoiceLineItem {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  org            Org                @relation(fields: [orgId], references: [id])
-  invoice        Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  task           TaskInstance?      @relation(fields: [taskId], references: [id])
-  materialUsage  TaskMaterialUsage? @relation(fields: [materialUsageId], references: [id])
+  org           Org                @relation(fields: [orgId], references: [id])
+  invoice       Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  task          TaskInstance?      @relation(fields: [taskId], references: [id])
+  materialUsage TaskMaterialUsage? @relation(fields: [materialUsageId], references: [id])
 
   @@index([orgId])
   @@index([invoiceId])
 }
-
 
 // ============================================
 // AI ORCHESTRATOR - Procedure Templates & Task Generation
@@ -1174,22 +1163,22 @@ enum AITaskPlanStatus {
 }
 
 model ProcedureTemplate {
-  id                  String                    @id @default(uuid()) @db.Uuid
-  orgId               String                    @db.Uuid
-  name                String
-  description         String?                   @db.Text
-  assetCategory       AssetCategory?
-  assetFamily         AssetFamily?
-  assetSubFamily      AssetSubFamily?
-  context             String?                   // REPAIR, STARTUP, PM, INSTALL, INSPECTION, TROUBLE
-  standardsPackId     String?                   @db.Uuid
-  version             Int                       @default(1)
-  status              ProcedureTemplateStatus   @default(DRAFT)
-  aiSummary           String?                   @db.Text
-  estimatedDuration   Int?                      // Minutes
-  createdByUserId     String                    @db.Uuid
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
+  id                String                  @id @default(uuid()) @db.Uuid
+  orgId             String                  @db.Uuid
+  name              String
+  description       String?                 @db.Text
+  assetCategory     AssetCategory?
+  assetFamily       AssetFamily?
+  assetSubFamily    AssetSubFamily?
+  context           String? // REPAIR, STARTUP, PM, INSTALL, INSPECTION, TROUBLE
+  standardsPackId   String?                 @db.Uuid
+  version           Int                     @default(1)
+  status            ProcedureTemplateStatus @default(DRAFT)
+  aiSummary         String?                 @db.Text
+  estimatedDuration Int? // Minutes
+  createdByUserId   String                  @db.Uuid
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
   org           Org                     @relation(fields: [orgId], references: [id])
   standardsPack StandardsPack?          @relation(fields: [standardsPackId], references: [id])
@@ -1204,21 +1193,21 @@ model ProcedureTemplate {
 }
 
 model ProcedureStepTemplate {
-  id                       String            @id @default(uuid()) @db.Uuid
-  orgId                    String            @db.Uuid
-  procedureTemplateId      String            @db.Uuid
+  id                       String   @id @default(uuid()) @db.Uuid
+  orgId                    String   @db.Uuid
+  procedureTemplateId      String   @db.Uuid
   sequenceNumber           Int
   title                    String
-  description              String?           @db.Text
-  domain                   String?           // MECHANICAL, ELECTRICAL, CONTROLS, INSTRUMENTATION
-  isCritical               Boolean           @default(false)
-  requiresEvidence         Boolean           @default(false)
-  appliesWhenJson          Json?             // Conditions for when this step applies
-  measurementSchemaJson    Json?             // Expected measurements
-  evidenceRequirementsJson Json?             // Photo/file requirements
+  description              String?  @db.Text
+  domain                   String? // MECHANICAL, ELECTRICAL, CONTROLS, INSTRUMENTATION
+  isCritical               Boolean  @default(false)
+  requiresEvidence         Boolean  @default(false)
+  appliesWhenJson          Json? // Conditions for when this step applies
+  measurementSchemaJson    Json? // Expected measurements
+  evidenceRequirementsJson Json? // Photo/file requirements
   estimatedMinutes         Int?
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   org               Org               @relation(fields: [orgId], references: [id])
   procedureTemplate ProcedureTemplate @relation(fields: [procedureTemplateId], references: [id], onDelete: Cascade)
@@ -1229,18 +1218,18 @@ model ProcedureStepTemplate {
 }
 
 model WorkflowDefinition {
-  id                  String                    @id @default(uuid()) @db.Uuid
-  orgId               String                    @db.Uuid
-  name                String
-  description         String?                   @db.Text
-  workOrderContext    String?                   // REPAIR, STARTUP, PM, etc.
-  version             Int                       @default(1)
-  status              WorkflowDefinitionStatus  @default(DRAFT)
-  baseStructureJson   Json?                     // Base workflow structure
-  aiPromptTemplate    String?                   @db.Text
-  createdByUserId     String                    @db.Uuid
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
+  id                String                   @id @default(uuid()) @db.Uuid
+  orgId             String                   @db.Uuid
+  name              String
+  description       String?                  @db.Text
+  workOrderContext  String? // REPAIR, STARTUP, PM, etc.
+  version           Int                      @default(1)
+  status            WorkflowDefinitionStatus @default(DRAFT)
+  baseStructureJson Json? // Base workflow structure
+  aiPromptTemplate  String?                  @db.Text
+  createdByUserId   String                   @db.Uuid
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   org         Org          @relation(fields: [orgId], references: [id])
   createdBy   User         @relation("WorkflowDefinitionCreatedBy", fields: [createdByUserId], references: [id])
@@ -1251,33 +1240,33 @@ model WorkflowDefinition {
 }
 
 model AITaskPlan {
-  id                      String            @id @default(uuid()) @db.Uuid
-  orgId                   String            @db.Uuid
-  workOrderId             String            @db.Uuid
-  procedureTemplateId     String?           @db.Uuid
-  workflowDefinitionId    String?           @db.Uuid
-  status                  AITaskPlanStatus  @default(GENERATING)
-  llmModel                String            // e.g., "claude-sonnet-4-20250514"
-  llmProvider             String            @default("anthropic")
-  promptPayloadJson       Json              // Full prompt sent to LLM
-  llmRawResponseJson      Json?             // Raw LLM response
-  parsedTasksSnapshotJson Json?             // Structured task data
-  generatedAt             DateTime          @default(now())
+  id                      String           @id @default(uuid()) @db.Uuid
+  orgId                   String           @db.Uuid
+  workOrderId             String           @db.Uuid
+  procedureTemplateId     String?          @db.Uuid
+  workflowDefinitionId    String?          @db.Uuid
+  status                  AITaskPlanStatus @default(GENERATING)
+  llmModel                String // e.g., "claude-sonnet-4-20250514"
+  llmProvider             String           @default("anthropic")
+  promptPayloadJson       Json // Full prompt sent to LLM
+  llmRawResponseJson      Json? // Raw LLM response
+  parsedTasksSnapshotJson Json? // Structured task data
+  generatedAt             DateTime         @default(now())
   approvedAt              DateTime?
-  approvedByUserId        String?           @db.Uuid
+  approvedByUserId        String?          @db.Uuid
   rejectedAt              DateTime?
-  rejectionReason         String?           @db.Text
-  errorMessage            String?           @db.Text
+  rejectionReason         String?          @db.Text
+  errorMessage            String?          @db.Text
   tokensUsed              Int?
   durationMs              Int?
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
 
-  org                  Org                 @relation(fields: [orgId], references: [id])
-  workOrder            WorkOrder           @relation(fields: [workOrderId], references: [id])
-  procedureTemplate    ProcedureTemplate?  @relation(fields: [procedureTemplateId], references: [id])
-  workflowDefinition   WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id])
-  approvedBy           User?               @relation("AITaskPlanApprovedBy", fields: [approvedByUserId], references: [id])
+  org                Org                 @relation(fields: [orgId], references: [id])
+  workOrder          WorkOrder           @relation(fields: [workOrderId], references: [id])
+  procedureTemplate  ProcedureTemplate?  @relation(fields: [procedureTemplateId], references: [id])
+  workflowDefinition WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id])
+  approvedBy         User?               @relation("AITaskPlanApprovedBy", fields: [approvedByUserId], references: [id])
 
   @@index([orgId])
   @@index([orgId, workOrderId])

@@ -196,6 +196,11 @@ export default function WorkOrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterExecution, setFilterExecution] = useState<string>("all");
+
+  // State - Delete
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrder | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   // State - Modals
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -488,6 +493,38 @@ export default function WorkOrdersPage() {
   };
 
   const hasActiveFilters = searchQuery || filterStatus !== "all" || filterType !== "all" || filterExecution !== "all";
+
+  // Delete handlers
+  const handleDeleteClick = (e: React.MouseEvent, wo: WorkOrder) => {
+    e.stopPropagation();
+    setWorkOrderToDelete(wo);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!workOrderToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrderToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setWorkOrders(workOrders.filter(wo => wo.id !== workOrderToDelete.id));
+        setDeleteModalOpen(false);
+        setWorkOrderToDelete(null);
+      } else {
+        const error = await response.json() as { error?: string };
+        alert(error.error || "Failed to delete work order");
+      }
+    } catch (error) {
+      console.error("Failed to delete work order:", error);
+      alert("An error occurred while deleting the work order");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Modal submit handlers
   const handleCustomerModalSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -940,9 +977,22 @@ export default function WorkOrdersPage() {
 
                     <div className="wo-footer">
                       <span className={`wo-status-badge ${woStatus}`}>{woStatusLabel}</span>
-                      <span className="wo-view-link">
-                        View Details →
-                      </span>
+                      <div className="wo-footer-right">
+                        {(wo.status === "OPEN" || wo.status === "CANCELED") && (
+                          <button
+                            className="wo-delete-btn"
+                            onClick={(e) => handleDeleteClick(e, wo)}
+                            title="Delete work order"
+                          >
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                        <span className="wo-view-link">
+                          View Details →
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1518,6 +1568,42 @@ export default function WorkOrdersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && workOrderToDelete && (
+        <div className="modal-backdrop" onClick={() => !deleting && setDeleteModalOpen(false)}>
+          <div className="modal delete-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Work Order</h3>
+            <div className="delete-modal-body">
+              <div className="delete-warning-icon">⚠️</div>
+              <p>
+                Are you sure you want to delete work order{" "}
+                <strong>{(workOrderToDelete as any).workOrderNumber || `WO-${workOrderToDelete.id.slice(0, 8).toUpperCase()}`}</strong>?
+              </p>
+              <p className="delete-wo-title">"{workOrderToDelete.title}"</p>
+              <p className="delete-warning-text">This action cannot be undone. All associated tasks, time entries, and data will be permanently removed.</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="delete-confirm-btn"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete Work Order"}
+              </button>
+            </div>
           </div>
         </div>
       )}

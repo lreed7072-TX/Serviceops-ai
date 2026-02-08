@@ -52,6 +52,9 @@ export default function WorkOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const workOrderId = params?.id;
 
@@ -105,6 +108,55 @@ export default function WorkOrderDetailPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!workOrder) return;
+
+    setDownloadingPdf(true);
+    try {
+      const response = await fetch(`/api/work-orders/${workOrder.id}/pdf`);
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${workOrder.workOrderNumber || `WO-${workOrder.id.slice(0, 8)}`}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download PDF:", error);
+      alert("Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleDeleteWorkOrder = async () => {
+    if (!workOrder) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/work-orders/${workOrder.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/work-orders");
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to delete work order");
+      }
+    } catch (error) {
+      console.error("Failed to delete work order:", error);
+      alert("An error occurred while deleting");
+    } finally {
+      setDeleting(false);
+      setDeleteModalOpen(false);
+    }
   };
 
   const getStatusClass = (status: WorkOrderStatus) => {
@@ -358,10 +410,12 @@ export default function WorkOrderDetailPage() {
           </button>
 
           <button
-            onClick={() => window.print()}
+            onClick={handleDownloadPDF}
+            disabled={downloadingPdf}
             className="action-button secondary"
           >
-            <span>📑</span> Export PDF
+            <span>{downloadingPdf ? "⏳" : "📑"}</span>
+            {downloadingPdf ? "Generating..." : "Download PDF"}
           </button>
 
           {/* Cancel - danger action */}
@@ -373,8 +427,58 @@ export default function WorkOrderDetailPage() {
               <span>✗</span> Cancel Work Order
             </button>
           )}
+
+          {/* Delete - only for OPEN or CANCELED */}
+          {(workOrder.status === WorkOrderStatus.OPEN || workOrder.status === WorkOrderStatus.CANCELED) && (
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="action-button danger"
+            >
+              <span>🗑️</span> Delete Work Order
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="delete-modal-overlay" onClick={() => !deleting && setDeleteModalOpen(false)}>
+          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <h3>Delete Work Order</h3>
+              <button
+                onClick={() => !deleting && setDeleteModalOpen(false)}
+                className="delete-modal-close"
+                disabled={deleting}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="delete-modal-body">
+              <div className="delete-warning-icon">⚠️</div>
+              <p>Are you sure you want to delete work order <strong>{workOrder.workOrderNumber || `WO-${workOrder.id.slice(0, 8).toUpperCase()}`}</strong>?</p>
+              <p className="delete-wo-title">"{workOrder.title}"</p>
+              <p className="delete-warning-text">This action cannot be undone. All associated tasks, time entries, and data will be permanently removed.</p>
+            </div>
+            <div className="delete-modal-footer">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                className="btn-modal-cancel"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteWorkOrder}
+                className="btn-modal-delete"
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete Work Order"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

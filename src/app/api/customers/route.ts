@@ -42,9 +42,16 @@ const authResult = await requireAuthSessionFirst(request);
 
       const customers = await prisma.customer.findMany({
         where: whereBase,
-
-      orderBy: { createdAt: "desc" },
-    });
+        include: {
+          _count: {
+            select: {
+              sites: true,
+              workOrders: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
 
     return NextResponse.json({ data: customers });
   } catch (err) {

@@ -2,8 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
-import { PageHeader } from "@/components/ui/PageHeader";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+import "./dashboard.css";
 
 type DashboardStats = {
   workOrders: {
@@ -64,6 +76,11 @@ type DashboardStats = {
     timestamp: string;
     user?: string;
   }[];
+  charts: {
+    revenueByMonth: { month: string; revenue: number }[];
+    workOrdersByStatus: { name: string; value: number; color: string }[];
+    topCustomers: { name: string; revenue: number }[];
+  };
 };
 
 export default function DashboardPage() {
@@ -74,7 +91,10 @@ export default function DashboardPage() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch("/api/dashboard/stats", { cache: "no-store" });
+      const res = await fetch("/api/dashboard/stats", {
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to load dashboard stats");
       setStats((await res.json()).data);
     } catch (e: any) {
@@ -84,29 +104,68 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => {
+    loadStats();
+  }, []);
 
-  const formatCurrency = (val: number) => 
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(val);
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val);
 
-  if (loading) return <div className="page-container"><p>Loading dashboard...</p></div>;
-  if (error) return <div className="page-container"><div className="page-alert error">{error}</div></div>;
-  if (!stats) return <div className="page-container"><p>No data available</p></div>;
+  const formatShortCurrency = (val: number) => {
+    if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
+    if (val >= 1000) return `$${(val / 1000).toFixed(0)}K`;
+    return `$${val}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <span>Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <div className="error-container">{error}</div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="dashboard-page">
+        <div className="empty-state">No data available</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="page-container">
-      <PageHeader 
-        title="Dashboard" 
-        subtitle="Overview of your service operations" 
-      />
+    <div className="dashboard-page">
+      {/* Page Header */}
+      <div className="dashboard-header">
+        <h1>Dashboard</h1>
+        <p className="dashboard-subtitle">
+          Overview of your service operations
+        </p>
+      </div>
 
       {/* Quick Actions */}
-      <div className="quick-actions" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Link href="/quotes" className="action-card">
+      <div className="quick-actions">
+        <Link href="/quotes/new" className="action-card">
           <div className="action-icon">📋</div>
           <div className="action-label">Create Quote</div>
         </Link>
-        <Link href="/work-orders" className="action-card">
+        <Link href="/work-orders/new" className="action-card">
           <div className="action-icon">🔧</div>
           <div className="action-label">New Work Order</div>
         </Link>
@@ -114,121 +173,159 @@ export default function DashboardPage() {
           <div className="action-icon">👥</div>
           <div className="action-label">Manage Customers</div>
         </Link>
-        <Link href="/materials" className="action-card">
-          <div className="action-icon">📦</div>
-          <div className="action-label">Material Catalog</div>
+        <Link href="/invoices" className="action-card">
+          <div className="action-icon">📄</div>
+          <div className="action-label">View Invoices</div>
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 24 }}>
-        
-        {/* Work Orders Stats */}
+      {/* KPI Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card highlight">
+          <div className="kpi-icon revenue">💰</div>
+          <div className="kpi-content">
+            <h3 className="kpi-value">{formatCurrency(stats.revenue.paidRevenue)}</h3>
+            <p className="kpi-label">Total Revenue</p>
+            <p className="kpi-change positive">
+              {formatCurrency(stats.revenue.thisMonthInvoiced)} this month
+            </p>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon workorders">🔧</div>
+          <div className="kpi-content">
+            <h3 className="kpi-value">{stats.workOrders.open + stats.workOrders.inProgress}</h3>
+            <p className="kpi-label">Active Work Orders</p>
+            <p className="kpi-change">
+              {stats.workOrders.open} open, {stats.workOrders.inProgress} in progress
+            </p>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon invoices">📄</div>
+          <div className="kpi-content">
+            <h3 className="kpi-value">{stats.invoices.sent + stats.invoices.overdue}</h3>
+            <p className="kpi-label">Pending Invoices</p>
+            <p className="kpi-change negative">
+              {stats.invoices.overdue > 0 ? `${stats.invoices.overdue} overdue` : "None overdue"}
+            </p>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon quotes">📋</div>
+          <div className="kpi-content">
+            <h3 className="kpi-value">{stats.quotes.sent}</h3>
+            <p className="kpi-label">Open Quotes</p>
+            <p className="kpi-change">
+              {formatCurrency(stats.quotes.pendingValue)} pending
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="charts-grid">
+        {/* Revenue Chart */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3>Revenue (Last 6 Months)</h3>
+          </div>
+          <div className="chart-body">
+            {stats.charts.revenueByMonth.some((d) => d.revenue > 0) ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats.charts.revenueByMonth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fill: "#6b7280", fontSize: 12 }}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                  />
+                  <YAxis
+                    tickFormatter={formatShortCurrency}
+                    tick={{ fill: "#6b7280", fontSize: 12 }}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                  />
+                  <Tooltip
+                    formatter={(value) => [formatCurrency(Number(value || 0)), "Revenue"]}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #e5e7eb",
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="empty-state">No revenue data yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* Work Orders by Status */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3>Work Orders by Status</h3>
+          </div>
+          <div className="chart-body">
+            {stats.charts.workOrdersByStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={stats.charts.workOrdersByStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}
+                    labelLine={false}
+                  >
+                    {stats.charts.workOrdersByStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => [Number(value || 0), String(name)]}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #e5e7eb",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="empty-state">No work orders yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats and Activity Row */}
+      <div className="stats-section">
+        {/* Top Customers */}
         <div className="stat-card">
           <div className="stat-header">
-            <h3>Work Orders</h3>
-            <span className="stat-total">{stats.workOrders.total}</span>
+            <h3>Top Customers</h3>
           </div>
-          <div className="stat-breakdown">
-            <div className="stat-row">
-              <span className="stat-label">Open</span>
-              <span className="stat-value">{stats.workOrders.open}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">In Progress</span>
-              <span className="stat-value status-blue">{stats.workOrders.inProgress}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Completed</span>
-              <span className="stat-value status-green">{stats.workOrders.completed}</span>
-            </div>
-          </div>
-          {stats.workOrders.byType.length > 0 && (
-            <div className="stat-footer">
-              {stats.workOrders.byType.map((t) => (
-                <span key={t.type} className="stat-chip">
-                  {t.type}: {t.count}
-                </span>
+          {stats.charts.topCustomers.length > 0 ? (
+            <div className="customers-list">
+              {stats.charts.topCustomers.map((customer, idx) => (
+                <div key={idx} className="customer-item">
+                  <span className="customer-name">{customer.name}</span>
+                  <span className="customer-revenue">
+                    {formatCurrency(customer.revenue)}
+                  </span>
+                </div>
               ))}
             </div>
+          ) : (
+            <div className="empty-state">No customer data</div>
           )}
         </div>
 
-        {/* Quotes Stats */}
-        <div className="stat-card">
-          <div className="stat-header">
-            <h3>Quotes</h3>
-            <span className="stat-total">{stats.quotes.total}</span>
-          </div>
-          <div className="stat-breakdown">
-            <div className="stat-row">
-              <span className="stat-label">Draft</span>
-              <span className="stat-value">{stats.quotes.draft}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Sent (Pending)</span>
-              <span className="stat-value status-blue">{stats.quotes.sent}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Approved</span>
-              <span className="stat-value status-green">{stats.quotes.approved}</span>
-            </div>
-          </div>
-          <div className="stat-footer">
-            <div>Pending: {formatCurrency(stats.quotes.pendingValue)}</div>
-            <div>Approved: {formatCurrency(stats.quotes.approvedValue)}</div>
-          </div>
-        </div>
-
-        {/* Revenue Stats */}
-        <div className="stat-card highlight">
-          <div className="stat-header">
-            <h3>💰 Revenue</h3>
-            <span className="stat-total revenue">{formatCurrency(stats.revenue.totalBilled)}</span>
-          </div>
-          <div className="stat-breakdown">
-            <div className="stat-row">
-              <span className="stat-label">Paid</span>
-              <span className="stat-value status-green">{formatCurrency(stats.revenue.paidRevenue)}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Pending</span>
-              <span className="stat-value status-orange">{formatCurrency(stats.revenue.pendingRevenue)}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">This Month</span>
-              <span className="stat-value">{formatCurrency(stats.revenue.thisMonthInvoiced)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Invoice Stats */}
-        <div className="stat-card">
-          <div className="stat-header">
-            <h3>📄 Invoices</h3>
-            <span className="stat-total">{stats.invoices.total}</span>
-          </div>
-          <div className="stat-breakdown">
-            <div className="stat-row">
-              <span className="stat-label">Draft</span>
-              <span className="stat-value">{stats.invoices.draft}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Sent</span>
-              <span className="stat-value status-blue">{stats.invoices.sent}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Paid</span>
-              <span className="stat-value status-green">{stats.invoices.paid}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Overdue</span>
-              <span className="stat-value status-red">{stats.invoices.overdue}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Technician Stats */}
+        {/* Technicians */}
         <div className="stat-card">
           <div className="stat-header">
             <h3>Technicians</h3>
@@ -237,7 +334,7 @@ export default function DashboardPage() {
           <div className="stat-breakdown">
             <div className="stat-row">
               <span className="stat-label">Active Today</span>
-              <span className="stat-value status-green">{stats.technicians.activeToday}</span>
+              <span className="stat-value green">{stats.technicians.activeToday}</span>
             </div>
             <div className="stat-row">
               <span className="stat-label">Hours This Week</span>
@@ -246,11 +343,36 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Tasks */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <h3>Tasks</h3>
+            <span className="stat-total">{stats.tasks.total}</span>
+          </div>
+          <div className="stat-breakdown">
+            <div className="stat-row">
+              <span className="stat-label">Done</span>
+              <span className="stat-value green">{stats.tasks.done}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">In Progress</span>
+              <span className="stat-value blue">{stats.tasks.inProgress}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Blocked</span>
+              <span className="stat-value red">{stats.tasks.blocked}</span>
+            </div>
+          </div>
+          <div className="stat-footer">
+            Completion Rate: {stats.tasks.completionRate}%
+          </div>
+        </div>
+
         {/* AI Stats */}
-        <div className="stat-card" style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", border: "none", color: "white" }}>
-          <div className="stat-header" style={{ borderBottomColor: "rgba(255,255,255,0.2)" }}>
-            <h3>✨ AI Generation</h3>
-            <span className="stat-total" style={{ color: "white" }}>{stats.ai.approved}</span>
+        <div className="stat-card ai-card">
+          <div className="stat-header">
+            <h3>AI Generation</h3>
+            <span className="stat-total">{stats.ai.approved}</span>
           </div>
           <div className="stat-breakdown">
             <div className="stat-row">
@@ -267,225 +389,42 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Task Stats */}
-        <div className="stat-card">
-          <div className="stat-header">
-            <h3>Tasks</h3>
-            <span className="stat-total">{stats.tasks.total}</span>
-          </div>
-          <div className="stat-breakdown">
-            <div className="stat-row">
-              <span className="stat-label">Done</span>
-              <span className="stat-value status-green">{stats.tasks.done}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">In Progress</span>
-              <span className="stat-value status-blue">{stats.tasks.inProgress}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Blocked</span>
-              <span className="stat-value status-red">{stats.tasks.blocked}</span>
-            </div>
-          </div>
-          <div className="stat-footer" style={{ marginTop: 12, fontSize: 14, fontWeight: 600 }}>
-            Completion Rate: {stats.tasks.completionRate}%
-          </div>
+      {/* Recent Activity */}
+      <div className="activity-section">
+        <div className="activity-header">
+          <h3>Recent Activity</h3>
+          <Link href="/work-orders" className="activity-link">
+            View All
+          </Link>
         </div>
-
-        {/* Package Stats */}
-        <div className="stat-card">
-          <div className="stat-header">
-            <h3>Work Packages</h3>
-            <span className="stat-total">{stats.packages.total}</span>
-          </div>
-          {stats.packages.byType.length > 0 && (
-            <div className="stat-breakdown">
-              {stats.packages.byType.map((p) => (
-                <div key={p.type} className="stat-row">
-                  <span className="stat-label">{p.type.replace(/_/g, ' ')}</span>
-                  <span className="stat-value">{p.count}</span>
+        <div className="activity-body">
+          {stats.recentActivity.length === 0 ? (
+            <div className="activity-empty">No recent activity</div>
+          ) : (
+            <div className="activity-list">
+              {stats.recentActivity.map((activity) => (
+                <div key={activity.id} className="activity-item">
+                  <div className="activity-icon">
+                    {activity.type === "WORK_ORDER" && "🔧"}
+                    {activity.type === "QUOTE" && "📋"}
+                    {activity.type === "TASK" && "✓"}
+                    {activity.type === "SIGNATURE" && "✍️"}
+                  </div>
+                  <div className="activity-content">
+                    <div className="activity-description">{activity.description}</div>
+                    <div className="activity-meta">
+                      {activity.user && <span>{activity.user} - </span>}
+                      {new Date(activity.timestamp).toLocaleString()}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
-
-      {/* Recent Activity */}
-      <div className="card">
-        <div className="card-header">
-          <h3>Recent Activity</h3>
-          <Link href="/work-orders" className="link-button">View All →</Link>
-        </div>
-        {stats.recentActivity.length === 0 ? (
-          <p className="muted">No recent activity</p>
-        ) : (
-          <div className="activity-feed">
-            {stats.recentActivity.map((activity) => (
-              <div key={activity.id} className="activity-item">
-                <div className="activity-icon">
-                  {activity.type === "WORK_ORDER" && "🔧"}
-                  {activity.type === "QUOTE" && "📋"}
-                  {activity.type === "TASK" && "✓"}
-                  {activity.type === "SIGNATURE" && "✍️"}
-                </div>
-                <div className="activity-content">
-                  <div className="activity-description">{activity.description}</div>
-                  <div className="activity-meta">
-                    {activity.user && <span>{activity.user} • </span>}
-                    {new Date(activity.timestamp).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <style jsx>{`
-        .quick-actions .action-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 24px;
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          text-decoration: none;
-          transition: all 0.2s;
-          cursor: pointer;
-        }
-        .quick-actions .action-card:hover {
-          border-color: var(--primary);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          transform: translateY(-2px);
-        }
-        .action-icon {
-          font-size: 32px;
-          margin-bottom: 8px;
-        }
-        .action-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--text);
-        }
-
-        .stat-card {
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 20px;
-        }
-        .stat-card.highlight {
-          background: linear-gradient(135deg, #3b82f6, #2563eb);
-          border-color: #2563eb;
-          color: white;
-        }
-        .stat-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid var(--border);
-        }
-        .stat-card.highlight .stat-header {
-          border-bottom-color: rgba(255,255,255,0.2);
-        }
-        .stat-header h3 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .stat-total {
-          font-size: 32px;
-          font-weight: 700;
-        }
-        .stat-total.revenue {
-          color: #fff;
-        }
-        .stat-breakdown {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .stat-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .stat-label {
-          font-size: 13px;
-          color: var(--text-muted);
-        }
-        .stat-card.highlight .stat-label {
-          color: rgba(255,255,255,0.85);
-        }
-        .stat-value {
-          font-size: 16px;
-          font-weight: 600;
-        }
-        .stat-value.status-blue {
-          color: #3b82f6;
-        }
-        .stat-value.status-green {
-          color: #10b981;
-        }
-        .stat-value.status-orange {
-          color: #f59e0b;
-        }
-        .stat-footer {
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px solid var(--border);
-          font-size: 12px;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .stat-card.highlight .stat-footer {
-          border-top-color: rgba(255,255,255,0.2);
-          color: rgba(255,255,255,0.9);
-        }
-        .stat-chip {
-          padding: 4px 8px;
-          background: var(--background);
-          border-radius: 4px;
-          font-size: 11px;
-        }
-
-        .activity-feed {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .activity-item {
-          display: flex;
-          gap: 12px;
-          padding: 12px;
-          background: var(--background);
-          border-radius: 6px;
-        }
-        .activity-icon {
-          font-size: 20px;
-          line-height: 1;
-        }
-        .activity-content {
-          flex: 1;
-        }
-        .activity-description {
-          font-size: 14px;
-          margin-bottom: 4px;
-        }
-        .activity-meta {
-          font-size: 12px;
-          color: var(--text-muted);
-        }
-      `}</style>
     </div>
   );
 }

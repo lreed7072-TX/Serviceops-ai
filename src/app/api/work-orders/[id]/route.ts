@@ -217,7 +217,7 @@ export async function PATCH(
       include: {
         customer: { select: { id: true, name: true } },
         site: { select: { id: true, name: true } },
-        asset: { select: { id: true, name: true, assetNumber: true } },
+        asset: { select: { id: true, name: true, serialNumber: true, assetTag: true } },
       },
     });
 
@@ -225,5 +225,52 @@ export async function PATCH(
   } catch (error) {
     console.error("Failed to update work order:", error);
     return jsonError("Failed to update work order", 500);
+  }
+}
+
+// DELETE /api/work-orders/[id] - Delete work order
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireAuthSessionFirst(request);
+    if ("error" in authResult) return authResult.error;
+    const { auth } = authResult;
+
+    // Only ADMIN can delete work orders
+    if (auth.role !== "ADMIN") {
+      return jsonError("Only administrators can delete work orders", 403);
+    }
+
+    const { id } = await params;
+
+    // Check work order exists and belongs to org
+    const existing = await prisma.workOrder.findUnique({
+      where: { id, orgId: auth.orgId },
+      select: { id: true, status: true, workOrderNumber: true },
+    });
+
+    if (!existing) {
+      return jsonError("Work order not found", 404);
+    }
+
+    // Only allow deleting OPEN or CANCELED work orders
+    if (existing.status !== "OPEN" && existing.status !== "CANCELED") {
+      return jsonError(
+        `Cannot delete a work order with status ${existing.status}. Only OPEN or CANCELED work orders can be deleted.`,
+        400
+      );
+    }
+
+    // Delete the work order (cascades will handle related records)
+    await prisma.workOrder.delete({
+      where: { id },
+    });
+
+    return jsonResponse({ success: true, message: `Work order ${existing.workOrderNumber} deleted successfully` });
+  } catch (error) {
+    console.error("Failed to delete work order:", error);
+    return jsonError("Failed to delete work order", 500);
   }
 }

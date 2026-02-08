@@ -1,21 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
-import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import "./customer-detail.css";
 
-type SingleResponse<T> = { data: T };
-type ListResponse<T> = { data?: T[] };
+interface Customer {
+  id: string;
+  name: string;
+  status: string;
+  primaryEmail: string | null;
+  primaryPhone: string | null;
+  billingStreet1: string | null;
+  billingStreet2: string | null;
+  billingCity: string | null;
+  billingState: string | null;
+  billingPostalCode: string | null;
+  billingCountry: string | null;
+  notes: string | null;
+}
+
+interface Site {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  customerId: string;
+}
+
+interface WorkOrder {
+  id: string;
+  workOrderNumber: string | null;
+  title: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  title: string;
+  status: string;
+  total: number | string;
+  createdAt: string;
+}
 
 export default function CustomerDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const customerId = params?.id as string | undefined;
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [woCount, setWoCount] = useState(0);
+  const [invoiceCount, setInvoiceCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,88 +66,81 @@ export default function CustomerDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+    primaryEmail: "",
+    primaryPhone: "",
+    billingStreet1: "",
+    billingStreet2: "",
+    billingCity: "",
+    billingState: "",
+    billingPostalCode: "",
+    notes: "",
+  });
 
-  const [editName, setEditName] = useState("");
-  const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
-  const [editEmail, setEditEmail] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [editBillingStreet1, setEditBillingStreet1] = useState("");
-  const [editBillingStreet2, setEditBillingStreet2] = useState("");
-  const [editBillingCity, setEditBillingCity] = useState("");
-  const [editBillingState, setEditBillingState] = useState("");
-  const [editBillingPostalCode, setEditBillingPostalCode] = useState("");
-  const [editNotes, setEditNotes] = useState("");
-
-  const safe = (v: unknown) => {
-    if (typeof v !== "string") return "—";
-    const t = v.trim();
-    return t.length ? t : "—";
-  };
-
-  const primeEditFields = (c: Customer) => {
-    setEditName(c.name ?? "");
-    setEditStatus(((c.status ?? "ACTIVE") as any) === "INACTIVE" ? "INACTIVE" : "ACTIVE");
-    setEditEmail((((c as any).primaryEmail ?? "") as string) || "");
-    setEditPhone((((c as any).primaryPhone ?? "") as string) || "");
-    setEditBillingStreet1((((c as any).billingStreet1 ?? "") as string) || "");
-    setEditBillingStreet2((((c as any).billingStreet2 ?? "") as string) || "");
-    setEditBillingCity((((c as any).billingCity ?? "") as string) || "");
-    setEditBillingState((((c as any).billingState ?? "") as string) || "");
-    setEditBillingPostalCode((((c as any).billingPostalCode ?? "") as string) || "");
-    setEditNotes((((c as any).notes ?? "") as string) || "");
-  };
+  // Delete modal state
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!customerId) return;
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        setLoading(true);
-
-        const [custRes, sitesRes] = await Promise.all([
-          apiFetch(`/api/customers/${customerId}`, { cache: "no-store" }),
-          apiFetch(`/api/sites`, { cache: "no-store" }),
-        ]);
-
-        if (!custRes.ok) {
-          const payload = (await custRes.json()) as { error?: string };
-          throw new Error(payload.error ?? "Failed to load customer.");
-        }
-        if (!sitesRes.ok) {
-          const payload = (await sitesRes.json()) as { error?: string };
-          throw new Error(payload.error ?? "Failed to load sites.");
-        }
-
-        const custPayload = (await custRes.json()) as SingleResponse<Customer>;
-        const sitesPayload = (await sitesRes.json()) as ListResponse<Site>;
-
-        if (cancelled) return;
-
-        setCustomer(custPayload.data);
-        setSites((sitesPayload.data ?? []).filter((s) => s.customerId === customerId));
-        primeEditFields(custPayload.data);
-
-        setError(null);
-      } catch (err) {
-        if (cancelled) return;
-        console.error(err);
-        setError(err instanceof Error ? err.message : "Failed to load customer.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
+    if (customerId) {
+      loadData();
+    }
   }, [customerId]);
 
-  async function saveCustomer(e: React.FormEvent) {
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [custRes, sitesRes, woRes, invRes] = await Promise.all([
+        apiFetch(`/api/customers/${customerId}`, { cache: "no-store" }),
+        apiFetch(`/api/sites`, { cache: "no-store" }),
+        apiFetch(`/api/work-orders?customerId=${customerId}`, { cache: "no-store" }),
+        apiFetch(`/api/invoices?customerId=${customerId}`, { cache: "no-store" }),
+      ]);
+
+      if (!custRes.ok) throw new Error("Failed to load customer");
+
+      const custData = await custRes.json();
+      const sitesData = sitesRes.ok ? await sitesRes.json() : { data: [] };
+      const woData = woRes.ok ? await woRes.json() : { data: [] };
+      const invData = invRes.ok ? await invRes.json() : { data: [] };
+
+      const cust = custData.data;
+      setCustomer(cust);
+      setSites((sitesData.data ?? []).filter((s: Site) => s.customerId === customerId));
+      const allWOs = woData.data ?? [];
+      const allInvoices = invData.data ?? [];
+      setWoCount(allWOs.length);
+      setInvoiceCount(allInvoices.length);
+      setWorkOrders(allWOs.slice(0, 5));
+      setInvoices(allInvoices.slice(0, 5));
+
+      // Populate form
+      setFormData({
+        name: cust.name || "",
+        status: cust.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+        primaryEmail: cust.primaryEmail || "",
+        primaryPhone: cust.primaryPhone || "",
+        billingStreet1: cust.billingStreet1 || "",
+        billingStreet2: cust.billingStreet2 || "",
+        billingCity: cust.billingCity || "",
+        billingState: cust.billingState || "",
+        billingPostalCode: cust.billingPostalCode || "",
+        notes: cust.notes || "",
+      });
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load customer");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId) return;
-    if (saving) return;
+    if (saving || !formData.name.trim()) return;
 
     setSaving(true);
     setSaveError(null);
@@ -114,284 +150,471 @@ export default function CustomerDetailPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: editName.trim(),
-          status: editStatus,
-          primaryEmail: editEmail.trim() || null,
-          primaryPhone: editPhone.trim() || null,
-          billingStreet1: editBillingStreet1.trim() || null,
-          billingStreet2: editBillingStreet2.trim() || null,
-          billingCity: editBillingCity.trim() || null,
-          billingState: editBillingState.trim() || null,
-          billingPostalCode: editBillingPostalCode.trim() || null,
+          name: formData.name.trim(),
+          status: formData.status,
+          primaryEmail: formData.primaryEmail.trim() || null,
+          primaryPhone: formData.primaryPhone.trim() || null,
+          billingStreet1: formData.billingStreet1.trim() || null,
+          billingStreet2: formData.billingStreet2.trim() || null,
+          billingCity: formData.billingCity.trim() || null,
+          billingState: formData.billingState.trim() || null,
+          billingPostalCode: formData.billingPostalCode.trim() || null,
           billingCountry: "US",
-          notes: editNotes.trim() || null,
+          notes: formData.notes.trim() || null,
         }),
       });
 
       if (!res.ok) {
-        const payload = (await res.json()) as { error?: string };
-        throw new Error(payload.error ?? `Save failed (${res.status})`);
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save");
       }
 
-      const payload = (await res.json()) as SingleResponse<Customer>;
-      setCustomer(payload.data);
-      primeEditFields(payload.data);
+      await loadData();
       setShowEdit(false);
     } catch (err: any) {
-      setSaveError(err?.message ?? "Failed to save customer.");
+      setSaveError(err?.message ?? "Failed to save customer");
     } finally {
       setSaving(false);
     }
-  }
+  };
+
+  const handleDelete = async () => {
+    if (deleting) return;
+
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`/api/customers/${customerId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+
+      router.push("/customers");
+    } catch (err: any) {
+      alert(err?.message ?? "Failed to delete customer");
+    } finally {
+      setDeleting(false);
+      setShowDelete(false);
+    }
+  };
+
+  const getStatusClass = (status: string) => status?.toLowerCase().replace("_", "-") || "active";
+
+  // Calculate stats
+  const totalRevenue = invoices
+    .filter((i) => i.status === "PAID")
+    .reduce((sum, i) => sum + Number(i.total), 0);
 
   if (!customerId) {
     return (
-      <div className="card">
-        <p>Missing customer ID in URL.</p>
+      <div className="customer-detail-page">
+        <div className="error-container">
+          <div className="error-icon">⚠️</div>
+          <h2>Missing Customer ID</h2>
+          <p>No customer ID was provided in the URL.</p>
+          <Link href="/customers" className="btn-primary">
+            Back to Customers
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const title = customer?.name ?? "Customer";
+  if (loading) {
+    return (
+      <div className="customer-detail-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <span>Loading customer...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !customer) {
+    return (
+      <div className="customer-detail-page">
+        <div className="error-container">
+          <div className="error-icon">⚠️</div>
+          <h2>Customer Not Found</h2>
+          <p>{error || "The requested customer could not be found."}</p>
+          <Link href="/customers" className="btn-primary">
+            Back to Customers
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="customer-detail-page">
+      {/* Page Header */}
       <div className="page-header">
-        <div>
-          <h2>Customer</h2>
-          <p>Customer profile and sites.</p>
-        </div>
-        <Link className="link-button" href="/customers">
-          ← Back to list
+        <Link href="/customers" className="back-link">
+          ← Back to Customers
         </Link>
-      </div>
 
-      {error && <div className="page-alert error">{error}</div>}
-      {loading && !error && <div className="page-alert info">Loading customer…</div>}
-
-      {customer && (
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-            <h3 style={{ margin: 0 }}>{title}</h3>
-            <button type="button" className="link-button" onClick={() => setShowEdit(true)}>
-              Edit
-            </button>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>{customer.name}</h1>
+            <span className={`customer-status ${getStatusClass(customer.status)}`}>
+              {customer.status || "Active"}
+            </span>
           </div>
 
-          <dl className="detail-grid">
-            <div>
-              <dt>Status</dt>
-              <dd>{customer.status ?? "ACTIVE"}</dd>
-            </div>
-
-            <div>
-              <dt>Email</dt>
-              <dd>{safe((customer as any).primaryEmail)}</dd>
-            </div>
-
-            <div>
-              <dt>Phone</dt>
-              <dd>{safe((customer as any).primaryPhone)}</dd>
-            </div>
-
-            <div>
-              <dt>Billing address</dt>
-              <dd>{[(customer as any).billingStreet1,(customer as any).billingStreet2,(customer as any).billingCity,(customer as any).billingState,(customer as any).billingPostalCode,(customer as any).billingCountry].filter(Boolean).join(", ") || safe((customer as any).billingAddress)}</dd>
-            </div>
-
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>Notes</dt>
-              <dd>{safe((customer as any).notes)}</dd>
-            </div>
-          </dl>
+          <div className="header-right">
+            <button onClick={() => setShowEdit(true)} className="btn-secondary">
+              ✏️ Edit
+            </button>
+            <Link href={`/work-orders/new?customerId=${customerId}`} className="btn-primary">
+              + New Work Order
+            </Link>
+            <button onClick={() => setShowDelete(true)} className="btn-danger">
+              🗑️ Delete
+            </button>
+          </div>
         </div>
-      )}
-
-      
-        <AttachmentsPanel entityType="customer" entityId={customerId as string} />
-
-<div className="card">
-        <h3>Sites</h3>
-        {loading ? (
-          <p>Loading sites…</p>
-        ) : sites.length === 0 ? (
-          <p>No sites yet for this customer.</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Address</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sites.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>
-                    {[s.address, s.city, s.state, s.postalCode, s.country].filter(Boolean).join(", ") || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
 
-      {showEdit && customer && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-            zIndex: 50,
-          }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setShowEdit(false);
-          }}
-        >
-          <div
-            style={{
-              width: "min(640px, 100%)",
-              background: "white",
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.12)",
-              padding: 16,
-              maxHeight: "80vh",
-              overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-              <h3 style={{ margin: 0 }}>Edit Customer</h3>
-              <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
-                Close
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon sites">📍</div>
+          <div className="stat-content">
+            <h3>{sites.length}</h3>
+            <p>Sites</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon workorders">🔧</div>
+          <div className="stat-content">
+            <h3>{woCount}</h3>
+            <p>Work Orders</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon invoices">📄</div>
+          <div className="stat-content">
+            <h3>{invoiceCount}</h3>
+            <p>Invoices</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon revenue">💰</div>
+          <div className="stat-content">
+            <h3>${totalRevenue.toFixed(2)}</h3>
+            <p>Revenue</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="content-grid">
+        {/* Contact Information */}
+        <div className="detail-card">
+          <div className="card-header">
+            <h2>📇 Contact Information</h2>
+          </div>
+          <div className="card-body">
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="info-label">Email</span>
+                <span className="info-value">{customer.primaryEmail || "—"}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Phone</span>
+                <span className="info-value">{customer.primaryPhone || "—"}</span>
+              </div>
+              <div className="info-item full-width">
+                <span className="info-label">Billing Address</span>
+                <span className="info-value">
+                  {[
+                    customer.billingStreet1,
+                    customer.billingStreet2,
+                    customer.billingCity,
+                    customer.billingState,
+                    customer.billingPostalCode,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "—"}
+                </span>
+              </div>
+              {customer.notes && (
+                <div className="info-item full-width">
+                  <span className="info-label">Notes</span>
+                  <span className="info-value">{customer.notes}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sites */}
+        <div className="detail-card">
+          <div className="card-header">
+            <h2>📍 Sites</h2>
+            <Link href={`/sites/new?customerId=${customerId}`} className="btn-link">
+              + Add Site
+            </Link>
+          </div>
+          <div className="card-body">
+            {sites.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🏢</div>
+                <p>No sites yet</p>
+              </div>
+            ) : (
+              <div className="sites-list">
+                {sites.map((site) => (
+                  <Link key={site.id} href={`/sites/${site.id}`} className="site-item">
+                    <div className="site-icon">🏢</div>
+                    <div className="site-info">
+                      <h4>{site.name}</h4>
+                      <p>
+                        {[site.address, site.city, site.state]
+                          .filter(Boolean)
+                          .join(", ") || "No address"}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Work Orders & Invoices Row */}
+      <div className="content-grid" style={{ marginTop: "1.5rem" }}>
+        {/* Recent Work Orders */}
+        <div className="detail-card">
+          <div className="card-header">
+            <h2>🔧 Recent Work Orders</h2>
+            <Link href={`/work-orders?customerId=${customerId}`} className="btn-link">
+              View All
+            </Link>
+          </div>
+          <div className="card-body">
+            {workOrders.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📋</div>
+                <p>No work orders yet</p>
+              </div>
+            ) : (
+              <div className="wo-list">
+                {workOrders.map((wo) => (
+                  <Link key={wo.id} href={`/work-orders/${wo.id}`} className="wo-item">
+                    <div className="wo-info">
+                      <h4>{wo.workOrderNumber || wo.title}</h4>
+                      <p>{new Date(wo.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`wo-status ${getStatusClass(wo.status)}`}>
+                      {wo.status.replace("_", " ")}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Invoices */}
+        <div className="detail-card">
+          <div className="card-header">
+            <h2>📄 Recent Invoices</h2>
+            <Link href={`/invoices?customerId=${customerId}`} className="btn-link">
+              View All
+            </Link>
+          </div>
+          <div className="card-body">
+            {invoices.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📄</div>
+                <p>No invoices yet</p>
+              </div>
+            ) : (
+              <div className="invoice-list">
+                {invoices.map((inv) => (
+                  <Link key={inv.id} href={`/invoices/${inv.id}`} className="invoice-item">
+                    <div className="invoice-info">
+                      <h4>{inv.invoiceNumber}</h4>
+                      <p>{new Date(inv.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                      <span className={`invoice-status ${getStatusClass(inv.status)}`}>
+                        {inv.status}
+                      </span>
+                      <span className="invoice-amount">${Number(inv.total).toFixed(2)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="modal-overlay" onClick={() => !saving && setShowEdit(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Customer</h3>
+              <button onClick={() => setShowEdit(false)} className="modal-close" disabled={saving}>
+                ✕
               </button>
             </div>
 
-            <form onSubmit={saveCustomer} style={{ marginTop: 12, display: "grid", gap: 12 }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Name</span>
-                <input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
+            <form onSubmit={handleSave}>
+              <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-field">
+                    <label className="field-label">Name *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="field-input"
+                      required
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="field-label">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          status: e.target.value as "ACTIVE" | "INACTIVE",
+                        })
+                      }
+                      className="field-select"
+                    >
+                      <option value="ACTIVE">Active</option>
+                      <option value="INACTIVE">Inactive</option>
+                    </select>
+                  </div>
+                </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Status</span>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as any)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-              </label>
+                <div className="form-row">
+                  <div className="form-field">
+                    <label className="field-label">Email</label>
+                    <input
+                      type="email"
+                      value={formData.primaryEmail}
+                      onChange={(e) => setFormData({ ...formData, primaryEmail: e.target.value })}
+                      className="field-input"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="field-label">Phone</label>
+                    <input
+                      type="tel"
+                      value={formData.primaryPhone}
+                      onChange={(e) => setFormData({ ...formData, primaryPhone: e.target.value })}
+                      className="field-input"
+                    />
+                  </div>
+                </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Primary email</span>
-                <input
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Primary phone</span>
-                <input
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-              <div style={{ display: "grid", gap: 12 }}>
-                <label style={{ display: "grid", gap: 6 }}>
-                  <span style={{ fontWeight: 600 }}>Billing street 1</span>
+                <div className="form-field">
+                  <label className="field-label">Street Address</label>
                   <input
-                    value={editBillingStreet1}
-                    onChange={(e) => setEditBillingStreet1(e.target.value)}
-                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                    type="text"
+                    value={formData.billingStreet1}
+                    onChange={(e) => setFormData({ ...formData, billingStreet1: e.target.value })}
+                    className="field-input"
                   />
-                </label>
+                </div>
 
-                <label style={{ display: "grid", gap: 6 }}>
-                  <span style={{ fontWeight: 600 }}>Billing street 2</span>
-                  <input
-                    value={editBillingStreet2}
-                    onChange={(e) => setEditBillingStreet2(e.target.value)}
-                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                  />
-                </label>
+                <div className="form-row">
+                  <div className="form-field">
+                    <label className="field-label">City</label>
+                    <input
+                      type="text"
+                      value={formData.billingCity}
+                      onChange={(e) => setFormData({ ...formData, billingCity: e.target.value })}
+                      className="field-input"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="field-label">State</label>
+                    <input
+                      type="text"
+                      value={formData.billingState}
+                      onChange={(e) => setFormData({ ...formData, billingState: e.target.value })}
+                      className="field-input"
+                    />
+                  </div>
+                </div>
 
-                <label style={{ display: "grid", gap: 6 }}>
-                  <span style={{ fontWeight: 600 }}>Billing city</span>
-                  <input
-                    value={editBillingCity}
-                    onChange={(e) => setEditBillingCity(e.target.value)}
-                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
+                <div className="form-field">
+                  <label className="field-label">Notes</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="field-textarea"
+                    rows={3}
                   />
-                </label>
+                </div>
 
-                <label style={{ display: "grid", gap: 6 }}>
-                  <span style={{ fontWeight: 600 }}>Billing state</span>
-                  <input
-                    value={editBillingState}
-                    onChange={(e) => setEditBillingState(e.target.value)}
-                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                  />
-                </label>
-
-                <label style={{ display: "grid", gap: 6 }}>
-                  <span style={{ fontWeight: 600 }}>Billing ZIP</span>
-                  <input
-                    value={editBillingPostalCode}
-                    onChange={(e) => setEditBillingPostalCode(e.target.value)}
-                    style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                  />
-                </label>
+                {saveError && (
+                  <div style={{ padding: "1rem", background: "#fee2e2", borderRadius: "8px", color: "#991b1b" }}>
+                    {saveError}
+                  </div>
+                )}
               </div>
 
-
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Notes</span>
-                <textarea
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  rows={4}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.18)",
-                    resize: "vertical",
-                  }}
-                />
-              </label>
-
-              {saveError && (
-                <div style={{ padding: 12, border: "1px solid rgba(255,0,0,0.25)", borderRadius: 10 }}>
-                  <strong>Error:</strong> {saveError}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowEdit(false)} className="btn-cancel" disabled={saving}>
                   Cancel
                 </button>
-                <button type="submit" disabled={saving || !editName.trim()}>
-                  {saving ? "Saving…" : "Save changes"}
+                <button type="submit" className="btn-submit" disabled={saving || !formData.name.trim()}>
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDelete && (
+        <div className="modal-overlay" onClick={() => !deleting && setShowDelete(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete Customer</h3>
+              <button onClick={() => setShowDelete(false)} className="modal-close" disabled={deleting}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⚠️</div>
+                <p style={{ marginBottom: "0.5rem" }}>
+                  Are you sure you want to delete <strong>{customer.name}</strong>?
+                </p>
+                <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                  This action cannot be undone. All associated sites, work orders, and invoices will be affected.
+                </p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setShowDelete(false)} className="btn-cancel" disabled={deleting}>
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="btn-danger"
+                disabled={deleting}
+                style={{ background: "#dc2626", color: "white", border: "none" }}
+              >
+                {deleting ? "Deleting..." : "Delete Customer"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { QuoteStatus } from "@prisma/client";
-import { sendQuoteEmail } from "@/lib/email/email-service";
-import { generateQuotePDF } from "@/lib/pdf/quote-pdf";
+import { InvoiceStatus } from "@prisma/client";
+import { sendInvoiceEmail } from "@/lib/email/email-service";
+import { generateInvoicePDF } from "@/lib/pdf/invoice-pdf";
 
 /**
- * POST /api/quotes/[id]/email
- * Send quote to customer via email with PDF attachment
+ * POST /api/invoices/[id]/email
+ * Send invoice to customer via email with PDF attachment
  */
 export async function POST(
   request: NextRequest,
@@ -24,7 +24,7 @@ export async function POST(
     }
 
     const resolvedParams = await context.params;
-    const quoteId = resolvedParams.id;
+    const invoiceId = resolvedParams.id;
 
     const body = await request.json();
     const { email, includePdf = true } = body;
@@ -45,10 +45,10 @@ export async function POST(
       );
     }
 
-    // Get quote with all related data
-    const quote = await prisma.quote.findUnique({
+    // Get invoice with all related data
+    const invoice = await prisma.invoice.findUnique({
       where: {
-        id: quoteId,
+        id: invoiceId,
         orgId: auth.orgId
       },
       include: {
@@ -66,14 +66,21 @@ export async function POST(
             address: true,
           },
         },
+        workOrder: {
+          select: {
+            id: true,
+            workOrderNumber: true,
+            title: true,
+          },
+        },
         lineItems: {
           orderBy: { sortOrder: "asc" }
         }
       }
     });
 
-    if (!quote) {
-      return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
     // Get organization name
@@ -88,36 +95,39 @@ export async function POST(
     let pdfBuffer: Buffer | undefined;
     if (includePdf) {
       try {
-        pdfBuffer = await generateQuotePDF({
-          quoteNumber: quote.quoteNumber,
-          title: quote.title,
-          description: quote.description,
-          status: quote.status,
-          subtotal: Number(quote.subtotal),
-          tax: Number(quote.tax),
-          taxRate: Number(quote.taxRate),
-          total: Number(quote.total),
-          validUntil: quote.validUntil?.toISOString() || null,
-          notes: quote.notes,
-          terms: quote.terms,
-          sentAt: quote.sentAt?.toISOString() || null,
-          approvedAt: quote.approvedAt?.toISOString() || null,
-          approvedByName: quote.approvedByName,
-          rejectedAt: quote.rejectedAt?.toISOString() || null,
-          createdAt: quote.createdAt.toISOString(),
+        pdfBuffer = await generateInvoicePDF({
+          invoiceNumber: invoice.invoiceNumber,
+          title: invoice.title,
+          description: invoice.description,
+          status: invoice.status,
+          subtotal: Number(invoice.subtotal),
+          tax: Number(invoice.tax),
+          taxRate: Number(invoice.taxRate),
+          total: Number(invoice.total),
+          dueDate: invoice.dueDate?.toISOString() || null,
+          paidAt: invoice.paidAt?.toISOString() || null,
+          notes: invoice.notes,
+          terms: invoice.terms,
+          createdAt: invoice.createdAt.toISOString(),
           customer: {
-            name: quote.customer.name,
-            primaryEmail: quote.customer.primaryEmail,
-            primaryPhone: quote.customer.primaryPhone,
-            billingAddress: quote.customer.billingAddress,
+            name: invoice.customer.name,
+            primaryEmail: invoice.customer.primaryEmail,
+            primaryPhone: invoice.customer.primaryPhone,
+            billingAddress: invoice.customer.billingAddress,
           },
-          site: quote.site
+          site: invoice.site
             ? {
-                name: quote.site.name,
-                address: quote.site.address,
+                name: invoice.site.name,
+                address: invoice.site.address,
               }
             : null,
-          lineItems: quote.lineItems.map((item) => ({
+          workOrder: invoice.workOrder
+            ? {
+                workOrderNumber: invoice.workOrder.workOrderNumber,
+                title: invoice.workOrder.title,
+              }
+            : null,
+          lineItems: invoice.lineItems.map((item) => ({
             id: item.id,
             itemType: item.itemType,
             description: item.description,
@@ -134,14 +144,14 @@ export async function POST(
     }
 
     // Send email
-    const emailResult = await sendQuoteEmail({
-      quoteNumber: quote.quoteNumber,
-      customerName: quote.customer.name,
+    const emailResult = await sendInvoiceEmail({
+      invoiceNumber: invoice.invoiceNumber,
+      customerName: invoice.customer.name,
       customerEmail: email,
-      total: Number(quote.total),
-      validUntil: quote.validUntil?.toISOString() || null,
-      title: quote.title,
-      description: quote.description,
+      total: Number(invoice.total),
+      dueDate: invoice.dueDate?.toISOString() || null,
+      title: invoice.title,
+      description: invoice.description,
       orgName,
       pdfBuffer,
     });
@@ -153,25 +163,34 @@ export async function POST(
       );
     }
 
-    // Update quote status and sentAt timestamp
-    const updatedQuote = await prisma.quote.update({
-      where: { id: quoteId },
-      data: {
-        status: quote.status === QuoteStatus.DRAFT ? QuoteStatus.SENT : quote.status,
-        sentAt: new Date(),
-      },
-    });
+    // Update invoice status (DRAFT -> SENT) and sentAt timestamp if applicable
+    const updateData: any = {};
+    if (invoice.status === InvoiceStatus.DRAFT) {
+      updateData.status = InvoiceStatus.SENT;
+    }
+
+    let updatedStatus = invoice.status;
+    if (Object.keys(updateData).length > 0) {
+      const updated = await prisma.invoice.update({
+        where: { id: invoiceId },
+        data: updateData,
+        select: { status: true },
+      });
+      updatedStatus = updated.status;
+    }
 
     return NextResponse.json({
       data: {
-        quote: updatedQuote,
-        message: `Quote ${quote.quoteNumber} sent to ${email}`,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        status: updatedStatus,
+        message: `Invoice ${invoice.invoiceNumber} sent to ${email}`,
         email: email,
         pdfIncluded: !!pdfBuffer,
       },
     });
   } catch (error) {
-    console.error("Failed to email quote:", error);
+    console.error("Failed to email invoice:", error);
     return NextResponse.json(
       { error: "Failed to send email" },
       { status: 500 }

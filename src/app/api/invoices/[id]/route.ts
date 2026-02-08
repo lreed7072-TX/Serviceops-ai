@@ -73,7 +73,24 @@ export async function PATCH(
     }
   }
 
-  // Update other fields if provided
+  // Update other fields if provided (only for DRAFT invoices)
+  if (existing.status === InvoiceStatus.DRAFT) {
+    if (body?.title !== undefined) {
+      updateData.title = body.title;
+    }
+    if (body?.description !== undefined) {
+      updateData.description = body.description || null;
+    }
+    if (body?.taxRate !== undefined) {
+      const newTaxRate = parseFloat(body.taxRate) || 0;
+      updateData.taxRate = newTaxRate;
+      // Recalculate tax and total
+      const currentSubtotal = Number(existing.subtotal);
+      updateData.tax = currentSubtotal * (newTaxRate / 100);
+      updateData.total = currentSubtotal + updateData.tax;
+    }
+  }
+
   if (body?.dueDate !== undefined) {
     updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
   }

@@ -54,8 +54,15 @@ export default function InvoicesPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Invoices</h1>
+        <Link
+          href="/invoices/new"
+          className="btn btn-primary"
+          style={{ textDecoration: "none" }}
+        >
+          + Create Invoice
+        </Link>
       </div>
 
       {/* Filters */}

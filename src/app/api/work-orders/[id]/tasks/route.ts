@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
-import { Role, TaskStatus, PackageType } from "@prisma/client";
+import { Role, TaskStatus, WorkPackageType } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -91,7 +91,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     description,
     isCritical = false,
     requiresEvidence = false,
-    estimatedMinutes,
     assignedToId,
     workPackageId,
   } = body;
@@ -108,7 +107,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let defaultPackage = await prisma.workPackage.findFirst({
       where: {
         workOrderId: workOrder.id,
-        packageType: PackageType.GENERAL,
+        packageType: WorkPackageType.MECH_ELEC_UNIFIED,
       },
     });
 
@@ -117,7 +116,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           orgId: auth.orgId,
           workOrderId: workOrder.id,
-          packageType: PackageType.GENERAL,
+          packageType: WorkPackageType.MECH_ELEC_UNIFIED,
           name: "General Tasks",
         },
       });
@@ -147,7 +146,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       sequenceNumber: nextSequence,
       isCritical,
       requiresEvidence,
-      estimatedMinutes: estimatedMinutes || null,
       assignedToId: assignedToId || null,
     },
     include: {

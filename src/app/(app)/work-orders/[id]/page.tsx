@@ -5,18 +5,26 @@ import { useRouter, useParams } from "next/navigation";
 import { WorkOrderStatus, ExecutionMode, OrderType } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import TaskList from "@/components/tasks/TaskList";
+import SignaturePanel from "@/components/signatures/SignaturePanel";
 import "./work-order-detail.css";
 
 interface TaskMeasurement {
   id: string;
   name: string;
-  measurementType: string;
+  measurementType: "NUMERIC" | "TEXT" | "PASS_FAIL";
   numericValue: number | null;
   textValue: string | null;
   passFail: boolean | null;
   unit: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
   isWithinSpec: boolean | null;
   capturedAt: string | null;
+  capturedByUser?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
 }
 
 interface TaskMaterialUsage {
@@ -859,6 +867,15 @@ export default function WorkOrderDetailPage() {
           workOrderId={workOrder.id}
           onRefresh={fetchWorkOrder}
         />
+      </div>
+
+      {/* Signatures */}
+      <div className="wo-section">
+        <h2 className="wo-section-title">
+          <span className="section-icon">✍️</span>
+          Signatures
+        </h2>
+        <SignaturePanel workOrderId={workOrder.id} />
       </div>
 
       {/* Actions */}

@@ -1,0 +1,232 @@
+/* SignaturePanel Component Styles */
+
+.sp-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Capture Buttons */
+.sp-capture-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sp-capture-btn {
+  font-size: 0.8125rem !important;
+  padding: 0.5rem 1rem !important;
+}
+
+/* Existing Signatures Gallery */
+.sp-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sp-sig-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.sp-sig-preview {
+  flex-shrink: 0;
+  width: 180px;
+  height: 90px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  overflow: hidden;
+}
+
+.sp-sig-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sp-sig-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sp-sig-type {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.sp-sig-type.customer {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sp-sig-type.tech {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.sp-sig-type.witness {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sp-sig-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sp-sig-title {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.sp-sig-meta {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Signature Pad Modal */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.sp-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: 1.5rem;
+}
+
+/* Override canvas for responsive */
+.sp-modal .signature-canvas-wrapper canvas {
+  width: 100%;
+  height: auto;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.sp-modal .signature-canvas-wrapper {
+  margin: 0.75rem 0;
+}
+
+.sp-modal .signature-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0.25rem 0 0 0;
+}
+
+.sp-modal .signature-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.sp-modal .signature-pad-container h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: #111827;
+}
+
+.sp-modal .form-field {
+  margin-bottom: 0.75rem;
+}
+
+.sp-modal .form-field label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.sp-modal .form-field input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.sp-modal .form-field input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Empty state */
+.sp-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+/* Error */
+.sp-error {
+  padding: 0.625rem 1rem;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #991b1b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sp-capture-row {
+    flex-direction: column;
+  }
+
+  .sp-capture-row .sp-capture-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .sp-sig-card {
+    flex-direction: column;
+  }
+
+  .sp-sig-preview {
+    width: 100%;
+    height: 120px;
+  }
+
+  .sp-modal {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+}

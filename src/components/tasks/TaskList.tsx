@@ -3,18 +3,26 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 import EvidenceCapture from "./EvidenceCapture";
+import MeasurementEntry from "./MeasurementEntry";
 import "./TaskList.css";
 
 type TaskMeasurement = {
   id: string;
   name: string;
-  measurementType: string;
+  measurementType: "NUMERIC" | "TEXT" | "PASS_FAIL";
   numericValue: number | null;
   textValue: string | null;
   passFail: boolean | null;
   unit: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
   isWithinSpec: boolean | null;
   capturedAt: string | null;
+  capturedByUser?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
 };
 
 type TaskMaterialUsage = {
@@ -281,36 +289,14 @@ export default function TaskList({ packages, workOrderId, onRefresh }: TaskListP
                       {taskExpanded && (
                         <div className="tl-task-detail">
                           {/* Measurements */}
-                          {task.measurements.length > 0 && (
-                            <div className="tl-detail-section">
-                              <h5>Measurements</h5>
-                              <div className="tl-measurements">
-                                {task.measurements.map((m) => (
-                                  <div key={m.id} className="tl-measurement">
-                                    <span className="tl-meas-name">{m.name}</span>
-                                    <span className="tl-meas-value">
-                                      {m.measurementType === "PASS_FAIL"
-                                        ? m.passFail === true
-                                          ? "✅ Pass"
-                                          : m.passFail === false
-                                            ? "❌ Fail"
-                                            : "—"
-                                        : m.measurementType === "NUMERIC"
-                                          ? `${m.numericValue ?? "—"} ${m.unit || ""}`
-                                          : m.textValue || "—"}
-                                    </span>
-                                    {m.isWithinSpec !== null && (
-                                      <span
-                                        className={`tl-meas-spec ${m.isWithinSpec ? "in-spec" : "out-spec"}`}
-                                      >
-                                        {m.isWithinSpec ? "In Spec" : "Out of Spec"}
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                          <div className="tl-detail-section">
+                            <h5>Measurements</h5>
+                            <MeasurementEntry
+                              taskId={task.id}
+                              measurements={task.measurements}
+                              onRefresh={onRefresh}
+                            />
+                          </div>
 
                           {/* Materials */}
                           {task.materialUsages.length > 0 && (

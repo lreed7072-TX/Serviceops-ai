@@ -84,11 +84,16 @@ export async function GET(
                     textValue: true,
                     passFail: true,
                     unit: true,
+                    minValue: true,
+                    maxValue: true,
                     isWithinSpec: true,
                     capturedAt: true,
+                    capturedByUser: {
+                      select: { id: true, name: true, email: true },
+                    },
                   },
                   orderBy: {
-                    capturedAt: "desc",
+                    createdAt: "asc",
                   },
                 },
               },

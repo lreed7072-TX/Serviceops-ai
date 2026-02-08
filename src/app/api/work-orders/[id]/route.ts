@@ -101,6 +101,20 @@ export async function GET(
             packageType: "asc",
           },
         },
+        visits: {
+          include: {
+            assignedTech: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
         timeEntries: {
           select: {
             id: true,

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { WorkOrderStatus, ExecutionMode, OrderType, TaskStatus } from "@prisma/client";
+import { apiFetch } from "@/lib/api";
 import "./work-order-detail.css";
 
 interface TaskInstance {
@@ -14,8 +15,20 @@ interface TaskInstance {
   isCritical: boolean;
   requiresEvidence: boolean;
   assignedTo: {
+    id: string;
     name: string | null;
   } | null;
+}
+
+interface Visit {
+  id: string;
+  assignedTechId: string | null;
+  assignedTech: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+  status: string;
 }
 
 interface WorkOrder {
@@ -30,6 +43,7 @@ interface WorkOrder {
   customer: {
     id: string;
     name: string;
+    primaryEmail: string | null;
   } | null;
   site: {
     id: string;
@@ -45,6 +59,14 @@ interface WorkOrder {
     quoteNumber: string;
   } | null;
   tasks?: TaskInstance[];
+  visits?: Visit[];
+}
+
+interface OrgUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
 }
 
 export default function WorkOrderDetailPage() {
@@ -55,20 +77,38 @@ export default function WorkOrderDetailPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Tech assignment state
+  const [orgUsers, setOrgUsers] = useState<OrgUser[]>([]);
+  const [selectedTechId, setSelectedTechId] = useState("");
+  const [assignTasks, setAssignTasks] = useState(true);
+  const [assigning, setAssigning] = useState(false);
+  const [unassigning, setUnassigning] = useState<string | null>(null);
 
   const workOrderId = params?.id;
 
   useEffect(() => {
     if (workOrderId) {
       fetchWorkOrder();
+      fetchUsers();
     }
   }, [workOrderId]);
+
+  // Clear email status after 5 seconds
+  useEffect(() => {
+    if (emailStatus) {
+      const timer = setTimeout(() => setEmailStatus(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [emailStatus]);
 
   const fetchWorkOrder = async () => {
     if (!workOrderId) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/work-orders/${workOrderId}`);
+      const response = await apiFetch(`/api/work-orders/${workOrderId}`);
       if (response.ok) {
         const result = await response.json();
         setWorkOrder(result.data);
@@ -82,13 +122,25 @@ export default function WorkOrderDetailPage() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await apiFetch("/api/users");
+      if (response.ok) {
+        const result = await response.json();
+        setOrgUsers(Array.isArray(result.data) ? result.data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
     if (!workOrder) return;
-    
+
     if (!confirm(`Change work order status to ${newStatus}?`)) return;
 
     try {
-      const response = await fetch(`/api/work-orders/${workOrder.id}`, {
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -115,7 +167,7 @@ export default function WorkOrderDetailPage() {
 
     setDownloadingPdf(true);
     try {
-      const response = await fetch(`/api/work-orders/${workOrder.id}/pdf`);
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}/pdf`);
       if (!response.ok) throw new Error("Failed to generate PDF");
 
       const blob = await response.blob();
@@ -135,12 +187,96 @@ export default function WorkOrderDetailPage() {
     }
   };
 
+  const handleEmailWorkOrder = async () => {
+    if (!workOrder) return;
+
+    if (!workOrder.customer?.primaryEmail) {
+      setEmailStatus({ type: "error", message: "Customer does not have an email address." });
+      return;
+    }
+
+    if (!confirm(`Send work order to ${workOrder.customer.primaryEmail}?`)) return;
+
+    setSendingEmail(true);
+    setEmailStatus(null);
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}/email`, {
+        method: "POST",
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setEmailStatus({ type: "success", message: result.message || "Email sent successfully!" });
+      } else {
+        setEmailStatus({ type: "error", message: result.error || "Failed to send email" });
+      }
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      setEmailStatus({ type: "error", message: "An error occurred while sending email" });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleAssignTech = async () => {
+    if (!workOrder || !selectedTechId) return;
+
+    setAssigning(true);
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}/assign-tech`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ techId: selectedTechId, assignTasks }),
+      });
+
+      if (response.ok) {
+        setSelectedTechId("");
+        await fetchWorkOrder();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to assign technician");
+      }
+    } catch (error) {
+      console.error("Failed to assign tech:", error);
+      alert("An error occurred while assigning technician");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleUnassignTech = async (techId: string) => {
+    if (!workOrder) return;
+
+    if (!confirm("Remove this technician from the work order?")) return;
+
+    setUnassigning(techId);
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}/unassign-tech`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ techId }),
+      });
+
+      if (response.ok) {
+        await fetchWorkOrder();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to remove technician");
+      }
+    } catch (error) {
+      console.error("Failed to unassign tech:", error);
+      alert("An error occurred while removing technician");
+    } finally {
+      setUnassigning(null);
+    }
+  };
+
   const handleDeleteWorkOrder = async () => {
     if (!workOrder) return;
 
     setDeleting(true);
     try {
-      const response = await fetch(`/api/work-orders/${workOrder.id}`, {
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}`, {
         method: "DELETE",
       });
 
@@ -157,6 +293,30 @@ export default function WorkOrderDetailPage() {
       setDeleting(false);
       setDeleteModalOpen(false);
     }
+  };
+
+  // Get techs currently assigned to this WO (from visits)
+  const getAssignedTechs = (): Array<{ id: string; name: string; email: string }> => {
+    if (!workOrder?.visits) return [];
+    const seen = new Set<string>();
+    const techs: Array<{ id: string; name: string; email: string }> = [];
+    for (const visit of workOrder.visits) {
+      if (visit.assignedTech && !seen.has(visit.assignedTech.id)) {
+        seen.add(visit.assignedTech.id);
+        techs.push({
+          id: visit.assignedTech.id,
+          name: visit.assignedTech.name || visit.assignedTech.email,
+          email: visit.assignedTech.email,
+        });
+      }
+    }
+    return techs;
+  };
+
+  // Available techs = org users with TECH role minus already assigned
+  const getAvailableTechs = () => {
+    const assignedIds = new Set(getAssignedTechs().map((t) => t.id));
+    return orgUsers.filter((u) => u.role === "TECH" && !assignedIds.has(u.id));
   };
 
   const getStatusClass = (status: WorkOrderStatus) => {
@@ -192,6 +352,8 @@ export default function WorkOrderDetailPage() {
     return status.toLowerCase().replace("_", "-");
   };
 
+  const isEditable = workOrder?.status !== WorkOrderStatus.COMPLETED && workOrder?.status !== WorkOrderStatus.CANCELED;
+
   if (loading) {
     return (
       <div className="wo-detail-container">
@@ -213,6 +375,9 @@ export default function WorkOrderDetailPage() {
     );
   }
 
+  const assignedTechs = getAssignedTechs();
+  const availableTechs = getAvailableTechs();
+
   return (
     <div className="wo-detail-container">
       {/* Header */}
@@ -223,14 +388,14 @@ export default function WorkOrderDetailPage() {
         >
           ← Back to Work Orders
         </button>
-        
+
         <div className="wo-header-content">
           <div className="wo-header-left">
             <div className="wo-number-badge">
               {workOrder.workOrderNumber || `WO-${workOrder.id.slice(0, 8)}`}
             </div>
             <div className="wo-title">{workOrder.title}</div>
-            
+
             <div className="wo-badges-row">
               <span className={`wo-type-badge ${getOrderTypeClass(workOrder.orderType)}`}>
                 {getOrderTypeDisplay(workOrder.orderType)}
@@ -253,12 +418,20 @@ export default function WorkOrderDetailPage() {
               )}
             </div>
           </div>
-          
+
           <div className={`wo-status-badge-large ${getStatusClass(workOrder.status)}`}>
             {workOrder.status.replace("_", " ")}
           </div>
         </div>
       </div>
+
+      {/* Email Status Banner */}
+      {emailStatus && (
+        <div className={`email-status-banner ${emailStatus.type}`}>
+          <span>{emailStatus.type === "success" ? "✓" : "!"}</span>
+          {emailStatus.message}
+        </div>
+      )}
 
       {/* Customer & Site Information */}
       <div className="wo-section">
@@ -288,6 +461,80 @@ export default function WorkOrderDetailPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Team Assignment */}
+      <div className="wo-section">
+        <h2 className="wo-section-title">
+          <span className="section-icon">👥</span>
+          Team Assignment
+        </h2>
+        <div className="team-assignment-section">
+          {/* Currently Assigned Techs */}
+          {assignedTechs.length > 0 ? (
+            <div className="assigned-techs-list">
+              {assignedTechs.map((tech) => (
+                <div key={tech.id} className="tech-chip">
+                  <span className="tech-chip-icon">👤</span>
+                  <span className="tech-chip-name">{tech.name}</span>
+                  {isEditable && (
+                    <button
+                      className="tech-chip-remove"
+                      onClick={() => handleUnassignTech(tech.id)}
+                      disabled={unassigning === tech.id}
+                      title="Remove technician"
+                    >
+                      {unassigning === tech.id ? "..." : "✕"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-techs-message">No technicians assigned yet</div>
+          )}
+
+          {/* Assign New Tech */}
+          {isEditable && availableTechs.length > 0 && (
+            <div className="assign-tech-form">
+              <select
+                className="assign-tech-dropdown"
+                value={selectedTechId}
+                onChange={(e) => setSelectedTechId(e.target.value)}
+              >
+                <option value="">Select a technician...</option>
+                {availableTechs.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name || user.email}
+                  </option>
+                ))}
+              </select>
+
+              <label className="assign-tasks-checkbox">
+                <input
+                  type="checkbox"
+                  checked={assignTasks}
+                  onChange={(e) => setAssignTasks(e.target.checked)}
+                />
+                <span>Assign unassigned tasks</span>
+              </label>
+
+              <button
+                className="assign-tech-btn"
+                onClick={handleAssignTech}
+                disabled={!selectedTechId || assigning}
+              >
+                {assigning ? "Assigning..." : "Assign"}
+              </button>
+            </div>
+          )}
+
+          {isEditable && availableTechs.length === 0 && orgUsers.filter((u) => u.role === "TECH").length === 0 && (
+            <div className="no-techs-message" style={{ marginTop: 8 }}>
+              No technicians found in your organization.
             </div>
           )}
         </div>
@@ -363,7 +610,7 @@ export default function WorkOrderDetailPage() {
         </h3>
         <div className="actions-grid">
           {/* Edit Button - always available except for completed/canceled */}
-          {workOrder.status !== WorkOrderStatus.COMPLETED && workOrder.status !== WorkOrderStatus.CANCELED && (
+          {isEditable && (
             <button
               onClick={() => router.push(`/work-orders/${workOrder.id}/edit`)}
               className="action-button primary"
@@ -400,6 +647,16 @@ export default function WorkOrderDetailPage() {
               <span>📄</span> Generate Invoice
             </button>
           )}
+
+          {/* Email to Customer */}
+          <button
+            onClick={handleEmailWorkOrder}
+            disabled={sendingEmail}
+            className="action-button email"
+          >
+            <span>{sendingEmail ? "⏳" : "📧"}</span>
+            {sendingEmail ? "Sending..." : "Email to Customer"}
+          </button>
 
           {/* Export Actions */}
           <button

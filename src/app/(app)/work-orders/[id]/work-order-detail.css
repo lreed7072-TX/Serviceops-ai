@@ -838,5 +838,212 @@
 }
 
 /* ===================================================================
+   EMAIL BUTTON & STATUS BANNER
+   =================================================================== */
+
+.action-button.email {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.action-button.email:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.email-status-banner {
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideDown 0.3s ease;
+}
+
+.email-status-banner.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.email-status-banner.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================================================================
+   TEAM ASSIGNMENT SECTION
+   =================================================================== */
+
+.team-assignment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.assigned-techs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tech-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e40af;
+  transition: all var(--transition-base);
+}
+
+.tech-chip:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.tech-chip-icon {
+  font-size: 16px;
+}
+
+.tech-chip-name {
+  font-weight: 600;
+}
+
+.tech-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(30, 64, 175, 0.15);
+  color: #1e40af;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: 4px;
+}
+
+.tech-chip-remove:hover:not(:disabled) {
+  background: #ef4444;
+  color: white;
+}
+
+.tech-chip-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.no-techs-message {
+  color: #9ca3af;
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.assign-tech-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.assign-tech-dropdown {
+  padding: 10px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: #374151;
+  background: white;
+  min-width: 220px;
+  cursor: pointer;
+  transition: border-color var(--transition-base);
+}
+
+.assign-tech-dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.assign-tasks-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  user-select: none;
+}
+
+.assign-tasks-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.assign-tech-btn {
+  padding: 10px 20px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.assign-tech-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.assign-tech-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===================================================================
+   RESPONSIVE - TEAM ASSIGNMENT
+   =================================================================== */
+
+@media (max-width: 768px) {
+  .assign-tech-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assign-tech-dropdown {
+    min-width: 100%;
+  }
+
+  .assign-tech-btn {
+    width: 100%;
+  }
+}
+
+/* ===================================================================
    END OF WORK ORDER DETAIL STYLES
    =================================================================== */

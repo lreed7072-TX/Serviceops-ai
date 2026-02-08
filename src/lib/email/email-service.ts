@@ -283,3 +283,126 @@ ${data.orgName}
     attachments,
   });
 }
+
+interface WorkOrderEmailData {
+  workOrderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  orgName: string;
+  siteName?: string | null;
+  technicianName?: string | null;
+  workOrderUrl?: string;
+  pdfBuffer?: Buffer;
+}
+
+/**
+ * Send a work order email to a customer
+ */
+export async function sendWorkOrderEmail(data: WorkOrderEmailData): Promise<EmailResult> {
+  const statusDisplay = data.status.replace("_", " ");
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Work Order ${data.workOrderNumber}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .header p { margin: 8px 0 0 0; opacity: 0.9; }
+          .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+          .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+          .detail-label { font-weight: 600; color: #374151; min-width: 140px; }
+          .detail-value { color: #111827; }
+          .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; background: #dbeafe; color: #1e40af; text-transform: uppercase; }
+          .cta { display: inline-block; background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
+          .footer { padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${data.orgName}</h1>
+            <p>Work Order ${data.workOrderNumber}</p>
+          </div>
+          <div class="content">
+            <p>Dear ${data.customerName},</p>
+            <p>Please find the details for your work order below:</p>
+            <h2 style="margin: 20px 0 10px 0; color: #111827;">${data.title}</h2>
+            ${data.description ? `<p style="color: #6b7280;">${data.description}</p>` : ""}
+            <div style="margin: 20px 0; background: white; border-radius: 8px; padding: 16px; border: 1px solid #e5e7eb;">
+              <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value"><span class="status-badge">${statusDisplay}</span></span>
+              </div>
+              ${data.siteName ? `
+              <div class="detail-row">
+                <span class="detail-label">Service Location</span>
+                <span class="detail-value">${data.siteName}</span>
+              </div>` : ""}
+              ${data.technicianName ? `
+              <div class="detail-row">
+                <span class="detail-label">Assigned Tech</span>
+                <span class="detail-value">${data.technicianName}</span>
+              </div>` : ""}
+            </div>
+            ${data.workOrderUrl ? `<a href="${data.workOrderUrl}" class="cta">View Work Order Online</a>` : ""}
+            <p style="margin-top: 30px;">A PDF copy of this work order is attached for your records.</p>
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+            <p>Best regards,<br>${data.orgName}</p>
+          </div>
+          <div class="footer">
+            <p>This email was sent by ${data.orgName}</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+Work Order ${data.workOrderNumber} from ${data.orgName}
+
+Dear ${data.customerName},
+
+Please find the details for your work order below:
+
+${data.title}
+${data.description || ""}
+
+Status: ${statusDisplay}
+${data.siteName ? `Service Location: ${data.siteName}` : ""}
+${data.technicianName ? `Assigned Technician: ${data.technicianName}` : ""}
+
+A PDF copy of this work order is attached for your records.
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+${data.orgName}
+  `.trim();
+
+  const attachments = data.pdfBuffer
+    ? [
+        {
+          filename: `${data.workOrderNumber}.pdf`,
+          content: data.pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ]
+    : undefined;
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `Work Order ${data.workOrderNumber} - ${data.orgName}`,
+    html,
+    text,
+    attachments,
+  });
+}

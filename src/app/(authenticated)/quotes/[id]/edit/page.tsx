@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteLineItemType, QuoteStatus } from "@prisma/client";
-import "../new-quote.css";
+import "../../new/new-quote.css";
 
 interface Customer {
   id: string;

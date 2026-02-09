@@ -221,6 +221,7 @@ model User {
   createdInvoices            Invoice[]            @relation("InvoiceCreatedBy")
   createdProcedureTemplates  ProcedureTemplate[]  @relation("ProcedureTemplateCreatedBy")
   createdWorkflowDefinitions WorkflowDefinition[] @relation("WorkflowDefinitionCreatedBy")
+  createdWorkOrders          WorkOrder[]          @relation("WorkOrderCreatedBy")
   approvedAITaskPlans        AITaskPlan[]         @relation("AITaskPlanApprovedBy")
   performedStockMovements    StockMovement[]      @relation("StockMovementPerformedBy")
 
@@ -265,12 +266,13 @@ model Customer {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  org        Org         @relation(fields: [orgId], references: [id])
-  sites      Site[]
-  assets     Asset[]
-  workOrders WorkOrder[]
-  quotes     Quote[]
-  invoices   Invoice[]
+  org         Org                  @relation(fields: [orgId], references: [id])
+  sites       Site[]
+  assets      Asset[]
+  workOrders  WorkOrder[]
+  quotes      Quote[]
+  invoices    Invoice[]
+  pmSchedules WorkflowDefinition[] @relation("PMScheduleCustomer")
 
   @@index([orgId])
 }
@@ -288,12 +290,13 @@ model Site {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  org        Org         @relation(fields: [orgId], references: [id])
-  customer   Customer    @relation(fields: [customerId], references: [id])
-  assets     Asset[]
-  workOrders WorkOrder[]
-  quotes     Quote[]
-  invoices   Invoice[]
+  org         Org                  @relation(fields: [orgId], references: [id])
+  customer    Customer             @relation(fields: [customerId], references: [id])
+  assets      Asset[]
+  workOrders  WorkOrder[]
+  quotes      Quote[]
+  invoices    Invoice[]
+  pmSchedules WorkflowDefinition[] @relation("PMScheduleSite")
 
   @@index([orgId])
   @@index([orgId, customerId])
@@ -324,7 +327,8 @@ model Asset {
   org        Org         @relation(fields: [orgId], references: [id])
   customer   Customer    @relation(fields: [customerId], references: [id])
   site       Site        @relation(fields: [siteId], references: [id])
-  workOrders WorkOrder[]
+  workOrders             WorkOrder[]
+  pmSchedules            WorkflowDefinition[] @relation("PMScheduleAsset")
 
   @@index([orgId])
   @@index([orgId, siteId])
@@ -332,33 +336,42 @@ model Asset {
 }
 
 model WorkOrder {
-  id              String          @id @default(uuid()) @db.Uuid
-  orgId           String          @db.Uuid
-  customerId      String          @db.Uuid
-  siteId          String          @db.Uuid
-  assetId         String?         @db.Uuid
-  quoteId         String?         @db.Uuid // Optional - work order created from accepted quote
-  title           String
-  description     String?
-  status          WorkOrderStatus @default(OPEN)
-  executionMode   ExecutionMode   @default(UNIFIED)
-  orderType       OrderType       @default(WORK_ORDER)
-  workOrderNumber String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id               String          @id @default(uuid()) @db.Uuid
+  orgId            String          @db.Uuid
+  customerId       String          @db.Uuid
+  siteId           String          @db.Uuid
+  assetId          String?         @db.Uuid
+  quoteId          String?         @db.Uuid // Optional - work order created from accepted quote
+  title            String
+  description      String?
+  status           WorkOrderStatus @default(OPEN)
+  executionMode    ExecutionMode   @default(UNIFIED)
+  orderType        OrderType       @default(WORK_ORDER)
+  workOrderNumber  String?
+  priority         String?         // LOW, MEDIUM, HIGH, CRITICAL
+  dueDate          DateTime?
+  completedAt      DateTime?
+  estimatedHours   Float?
+  createdByUserId  String?         @db.Uuid
+  sourceWorkflowId String?         @db.Uuid // PM schedule that generated this WO
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
-  org         Org            @relation(fields: [orgId], references: [id])
-  customer    Customer       @relation(fields: [customerId], references: [id])
-  site        Site           @relation(fields: [siteId], references: [id])
-  asset       Asset?         @relation(fields: [assetId], references: [id])
-  quote       Quote?         @relation(fields: [quoteId], references: [id])
-  visits      Visit[]
-  packages    WorkPackage[]
-  tasks       TaskInstance[]
-  timeEntries TimeEntry[]
-  signatures  Signature[]
-  invoices    Invoice[]
-  aiTaskPlans AITaskPlan[]
+  org            Org                  @relation(fields: [orgId], references: [id])
+  customer       Customer             @relation(fields: [customerId], references: [id])
+  site           Site                 @relation(fields: [siteId], references: [id])
+  asset          Asset?               @relation(fields: [assetId], references: [id])
+  quote          Quote?               @relation(fields: [quoteId], references: [id])
+  createdByUser  User?                @relation("WorkOrderCreatedBy", fields: [createdByUserId], references: [id])
+  sourceWorkflow WorkflowDefinition?  @relation("PMGeneratedWOs", fields: [sourceWorkflowId], references: [id])
+  visits         Visit[]
+  packages       WorkPackage[]
+  tasks          TaskInstance[]
+  timeEntries    TimeEntry[]
+  signatures     Signature[]
+  invoices       Invoice[]
+  aiTaskPlans    AITaskPlan[]
+  pmLastGenFor   WorkflowDefinition[] @relation("PMLastGeneratedWO")
 
   @@unique([orgId, workOrderNumber])
   @@index([orgId])
@@ -1187,6 +1200,7 @@ model ProcedureTemplate {
   createdBy     User                    @relation("ProcedureTemplateCreatedBy", fields: [createdByUserId], references: [id])
   steps         ProcedureStepTemplate[]
   aiTaskPlans   AITaskPlan[]
+  pmSchedules   WorkflowDefinition[]    @relation("PMScheduleProcedure")
 
   @@index([orgId])
   @@index([orgId, status])
@@ -1220,25 +1234,48 @@ model ProcedureStepTemplate {
 }
 
 model WorkflowDefinition {
-  id                String                   @id @default(uuid()) @db.Uuid
-  orgId             String                   @db.Uuid
-  name              String
-  description       String?                  @db.Text
-  workOrderContext  String? // REPAIR, STARTUP, PM, etc.
-  version           Int                      @default(1)
-  status            WorkflowDefinitionStatus @default(DRAFT)
-  baseStructureJson Json? // Base workflow structure
-  aiPromptTemplate  String?                  @db.Text
-  createdByUserId   String                   @db.Uuid
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  id                       String                   @id @default(uuid()) @db.Uuid
+  orgId                    String                   @db.Uuid
+  name                     String
+  description              String?                  @db.Text
+  workOrderContext         String? // REPAIR, STARTUP, PM, etc.
+  version                  Int                      @default(1)
+  status                   WorkflowDefinitionStatus @default(DRAFT)
+  baseStructureJson        Json? // Base workflow structure
+  aiPromptTemplate         String?                  @db.Text
+  // PM Scheduling fields
+  assetId                  String?                  @db.Uuid
+  siteId                   String?                  @db.Uuid
+  customerId               String?                  @db.Uuid
+  procedureTemplateId      String?                  @db.Uuid
+  frequencyType            String? // DAILY, WEEKLY, MONTHLY, YEARLY
+  frequencyValue           Int? // How many units between PMs
+  nextScheduledDate        DateTime?
+  lastGeneratedDate        DateTime?
+  lastGeneratedWorkOrderId String?                  @db.Uuid
+  autoGenerateWorkOrders   Boolean                  @default(false)
+  workOrderTitle           String?
+  estimatedHours           Float?
+  priority                 String? // LOW, MEDIUM, HIGH, CRITICAL
+  executionCount           Int                      @default(0)
+  createdByUserId          String                   @db.Uuid
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
 
-  org         Org          @relation(fields: [orgId], references: [id])
-  createdBy   User         @relation("WorkflowDefinitionCreatedBy", fields: [createdByUserId], references: [id])
-  aiTaskPlans AITaskPlan[]
+  org                    Org                @relation(fields: [orgId], references: [id])
+  createdBy              User               @relation("WorkflowDefinitionCreatedBy", fields: [createdByUserId], references: [id])
+  asset                  Asset?             @relation("PMScheduleAsset", fields: [assetId], references: [id])
+  site                   Site?              @relation("PMScheduleSite", fields: [siteId], references: [id])
+  customer               Customer?          @relation("PMScheduleCustomer", fields: [customerId], references: [id])
+  procedureTemplate      ProcedureTemplate? @relation("PMScheduleProcedure", fields: [procedureTemplateId], references: [id])
+  lastGeneratedWorkOrder WorkOrder?         @relation("PMLastGeneratedWO", fields: [lastGeneratedWorkOrderId], references: [id])
+  generatedWorkOrders    WorkOrder[]        @relation("PMGeneratedWOs")
+  aiTaskPlans            AITaskPlan[]
 
   @@index([orgId])
   @@index([orgId, status])
+  @@index([orgId, assetId])
+  @@index([orgId, nextScheduledDate])
 }
 
 model AITaskPlan {

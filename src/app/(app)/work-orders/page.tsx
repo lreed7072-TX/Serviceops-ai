@@ -1,12 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { AssetCriticality, AssetStatus, ExecutionMode, OrderType, WorkOrderStatus } from "@prisma/client";
 import type { Asset, Customer, Site, WorkOrder } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { exportToCSV } from "@/lib/export";
+import type { ExportColumn } from "@/lib/export";
+import { useAdvancedFilters } from "@/hooks/useAdvancedFilters";
+import type { FilterConfig } from "@/hooks/useAdvancedFilters";
+import AdvancedFilterPanel from "@/components/filters/AdvancedFilterPanel";
+import ExportButton from "@/components/filters/ExportButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import "./work-orders.css";
@@ -171,6 +176,60 @@ async function fetchList<T>(path: string): Promise<T[]> {
   return payload.data ?? [];
 }
 
+const advancedFilterConfigs: FilterConfig[] = [
+  {
+    key: "status",
+    label: "Status",
+    type: "multiSelect",
+    options: [
+      { value: "OPEN", label: "Open" },
+      { value: "IN_PROGRESS", label: "In Progress" },
+      { value: "COMPLETED", label: "Completed" },
+      { value: "CANCELED", label: "Canceled" },
+    ],
+  },
+  {
+    key: "orderType",
+    label: "Order Type",
+    type: "select",
+    options: [
+      { value: "WORK_ORDER", label: "Work Order" },
+      { value: "SALES_ORDER", label: "Sales Order" },
+      { value: "PROJECT", label: "Project" },
+    ],
+  },
+  {
+    key: "executionMode",
+    label: "Execution Mode",
+    type: "select",
+    options: [
+      { value: "UNIFIED", label: "Unified" },
+      { value: "MULTI_LANE", label: "Multi-lane" },
+    ],
+  },
+  {
+    key: "priority",
+    label: "Priority",
+    type: "select",
+    options: [
+      { value: "LOW", label: "Low" },
+      { value: "MEDIUM", label: "Medium" },
+      { value: "HIGH", label: "High" },
+      { value: "CRITICAL", label: "Critical" },
+    ],
+  },
+  {
+    key: "dateRange",
+    label: "Date Created",
+    type: "dateRange",
+  },
+  {
+    key: "search",
+    label: "Search",
+    type: "text",
+  },
+];
+
 export default function WorkOrdersPage() {
   const router = useRouter();
   
@@ -191,11 +250,8 @@ export default function WorkOrdersPage() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
-  // State - Search & Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterExecution, setFilterExecution] = useState<string>("all");
+  // State - Advanced Filters
+  const advFilters = useAdvancedFilters("work-orders", advancedFilterConfigs);
 
   // State - Delete
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -286,38 +342,61 @@ export default function WorkOrdersPage() {
     return assets;
   }, [assets, form.customerId, form.siteId]);
 
-  // Computed values - Filtered work orders
+  // Computed values - Filtered work orders (advanced filters)
   const filteredWorkOrders = useMemo(() => {
     let filtered = [...workOrders];
-    
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(wo => 
+    const f = advFilters.filters;
+
+    // Text search
+    const searchVal = (f.search as string) || "";
+    if (searchVal.trim()) {
+      const query = searchVal.toLowerCase();
+      filtered = filtered.filter(wo =>
         wo.title.toLowerCase().includes(query) ||
         wo.status.toLowerCase().includes(query) ||
         (wo as any).workOrderNumber?.toLowerCase().includes(query) ||
         (wo as any).description?.toLowerCase().includes(query)
       );
     }
-    
-    // Status filter
-    if (filterStatus && filterStatus !== "all") {
-      filtered = filtered.filter(wo => wo.status.toLowerCase() === filterStatus.toLowerCase());
+
+    // Status (multiSelect)
+    const statusArr = (f.status as string[]) || [];
+    if (statusArr.length > 0) {
+      filtered = filtered.filter(wo => statusArr.includes(wo.status));
     }
-    
-    // Type filter
-    if (filterType && filterType !== "all") {
-      filtered = filtered.filter(wo => (wo as any).orderType === filterType);
+
+    // Order type
+    const orderTypeVal = f.orderType as string;
+    if (orderTypeVal) {
+      filtered = filtered.filter(wo => (wo as any).orderType === orderTypeVal);
     }
-    
-    // Execution filter
-    if (filterExecution && filterExecution !== "all") {
-      filtered = filtered.filter(wo => wo.executionMode === filterExecution);
+
+    // Execution mode
+    const execVal = f.executionMode as string;
+    if (execVal) {
+      filtered = filtered.filter(wo => wo.executionMode === execVal);
     }
-    
+
+    // Priority
+    const priorityVal = f.priority as string;
+    if (priorityVal) {
+      filtered = filtered.filter(wo => (wo as any).priority === priorityVal);
+    }
+
+    // Date range
+    const dateRange = (f.dateRange as [string, string]) || ["", ""];
+    if (dateRange[0]) {
+      const from = new Date(dateRange[0]);
+      filtered = filtered.filter(wo => new Date(wo.createdAt) >= from);
+    }
+    if (dateRange[1]) {
+      const to = new Date(dateRange[1]);
+      to.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(wo => new Date(wo.createdAt) <= to);
+    }
+
     return filtered;
-  }, [workOrders, searchQuery, filterStatus, filterType, filterExecution]);
+  }, [workOrders, advFilters.filters]);
 
   // Computed values - Statistics
   const stats = useMemo(() => {
@@ -486,13 +565,41 @@ export default function WorkOrdersPage() {
 
   // Clear filters
   const clearFilters = () => {
-    setSearchQuery("");
-    setFilterStatus("all");
-    setFilterType("all");
-    setFilterExecution("all");
+    advFilters.clearAllFilters();
   };
 
-  const hasActiveFilters = searchQuery || filterStatus !== "all" || filterType !== "all" || filterExecution !== "all";
+  const hasActiveFilters = advFilters.hasActiveFilters;
+
+  // Export handler
+  const handleExportCSV = () => {
+    const columns: ExportColumn<WorkOrder>[] = [
+      { header: "WO Number", accessor: (wo) => (wo as any).workOrderNumber || "" },
+      { header: "Title", accessor: (wo) => wo.title },
+      { header: "Status", accessor: (wo) => wo.status },
+      { header: "Order Type", accessor: (wo) => (wo as any).orderType || "" },
+      { header: "Execution Mode", accessor: (wo) => wo.executionMode },
+      { header: "Priority", accessor: (wo) => (wo as any).priority || "" },
+      {
+        header: "Customer",
+        accessor: (wo) => customers.find((c) => c.id === wo.customerId)?.name || "",
+      },
+      {
+        header: "Site",
+        accessor: (wo) => sites.find((s) => s.id === wo.siteId)?.name || "",
+      },
+      { header: "Description", accessor: (wo) => (wo as any).description || "" },
+      {
+        header: "Created",
+        accessor: (wo) => new Date(wo.createdAt).toLocaleDateString(),
+      },
+      {
+        header: "Updated",
+        accessor: (wo) => new Date(wo.updatedAt).toLocaleDateString(),
+      },
+    ];
+    const timestamp = new Date().toISOString().slice(0, 10);
+    exportToCSV(filteredWorkOrders, columns, `work-orders-${timestamp}`);
+  };
 
   // Delete handlers
   const handleDeleteClick = (e: React.MouseEvent, wo: WorkOrder) => {
@@ -815,79 +922,38 @@ export default function WorkOrdersPage() {
         </div>
       )}
 
-      {/* Search and Filters */}
+      {/* Advanced Filters + Export */}
       {!loadError && !loading && (
-        <div className="search-filters-container">
-          <div className="search-bar-container">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search by title, number, status, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div />
+            <ExportButton
+              onClick={handleExportCSV}
+              disabled={filteredWorkOrders.length === 0}
+              label={`Export CSV (${filteredWorkOrders.length})`}
             />
           </div>
-
-          <div className="filters-row">
-            <div className="filter-group">
-              <label className="filter-label">
-                <span>📊</span> Status
-              </label>
-              <select
-                className="filter-select"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">All Statuses</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="canceled">Canceled</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">
-                <span>🏷️</span> Type
-              </label>
-              <select
-                className="filter-select"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="all">All Types</option>
-                <option value="WORK_ORDER">Work Order</option>
-                <option value="SALES_ORDER">Sales Order</option>
-                <option value="PROJECT">Project</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">
-                <span>⚡</span> Execution
-              </label>
-              <select
-                className="filter-select"
-                value={filterExecution}
-                onChange={(e) => setFilterExecution(e.target.value)}
-              >
-                <option value="all">All Modes</option>
-                <option value="UNIFIED">Unified</option>
-                <option value="MULTI_LANE">Multi-lane</option>
-              </select>
-            </div>
-          </div>
-
+          <AdvancedFilterPanel
+            configs={advFilters.configs}
+            filters={advFilters.filters}
+            setFilter={advFilters.setFilter}
+            clearAllFilters={advFilters.clearAllFilters}
+            activeFilterCount={advFilters.activeFilterCount}
+            hasActiveFilters={advFilters.hasActiveFilters}
+            presets={advFilters.presets}
+            savePreset={advFilters.savePreset}
+            loadPreset={advFilters.loadPreset}
+            deletePreset={advFilters.deletePreset}
+          />
           {hasActiveFilters && (
-            <div className="search-results-text">
+            <div className="search-results-text" style={{ marginBottom: 16 }}>
               Showing <strong>{filteredWorkOrders.length}</strong> of <strong>{workOrders.length}</strong> work orders
               <button className="clear-filters-btn" onClick={clearFilters}>
                 Clear filters
               </button>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Loading State */}
@@ -905,14 +971,14 @@ export default function WorkOrdersPage() {
             <div className="empty-state">
               <div className="empty-icon">📋</div>
               <div className="empty-title">
-                {searchQuery || hasActiveFilters ? "No matching work orders" : "No work orders yet"}
+                {hasActiveFilters ? "No matching work orders" : "No work orders yet"}
               </div>
               <div className="empty-message">
-                {searchQuery || hasActiveFilters
+                {hasActiveFilters
                   ? "Try adjusting your search or filters to find what you're looking for."
                   : "Create your first work order using the form below to get started with dispatching and tracking jobs."}
               </div>
-              {(searchQuery || hasActiveFilters) && (
+              {hasActiveFilters && (
                 <button className="empty-action" onClick={clearFilters}>
                   Clear filters
                 </button>

@@ -1,0 +1,480 @@
+/* ===================================================================
+   ADVANCED FILTER PANEL
+   =================================================================== */
+
+.afp-container {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+/* Toggle Header */
+.afp-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.afp-toggle:hover {
+  background: #f9fafb;
+}
+
+.afp-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.afp-toggle-icon {
+  color: #6b7280;
+  font-size: 16px;
+  transition: transform 0.2s;
+}
+
+.afp-toggle-icon.afp-expanded {
+  transform: rotate(180deg);
+}
+
+.afp-toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.afp-badge-count {
+  background: #3b82f6;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.afp-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Panel Body */
+.afp-body {
+  padding: 0 20px 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.afp-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.afp-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.afp-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.afp-filter-select,
+.afp-filter-input {
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  color: #374151;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.afp-filter-select:focus,
+.afp-filter-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.afp-filter-select.afp-has-value {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.afp-filter-input.afp-has-value {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+/* Date range */
+.afp-date-range {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.afp-date-range input {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #374151;
+  min-width: 0;
+}
+
+.afp-date-range input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.afp-date-sep {
+  color: #9ca3af;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Multi-select checkboxes */
+.afp-multi-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.afp-multi-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: white;
+}
+
+.afp-multi-option:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.afp-multi-option.afp-multi-selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.afp-multi-option input[type="checkbox"] {
+  display: none;
+}
+
+.afp-multi-check {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #d1d5db;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.afp-multi-selected .afp-multi-check {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.afp-multi-check-icon {
+  display: none;
+}
+
+.afp-multi-selected .afp-multi-check-icon {
+  display: block;
+  color: white;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Actions Bar */
+.afp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.afp-actions-left {
+  display: flex;
+  gap: 8px;
+}
+
+.afp-actions-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.afp-clear-btn {
+  padding: 7px 14px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.afp-clear-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.afp-save-btn {
+  padding: 7px 14px;
+  background: white;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3b82f6;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.afp-save-btn:hover {
+  background: #eff6ff;
+}
+
+/* Presets */
+.afp-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.afp-presets-label {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.afp-preset-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.afp-preset-chip:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.afp-preset-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.afp-preset-delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* Export Button */
+.afp-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.afp-export-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.afp-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.afp-export-icon {
+  display: flex;
+  align-items: center;
+}
+
+/* Save Preset Modal */
+.afp-save-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.afp-save-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.afp-save-modal-content h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.afp-save-modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  margin-bottom: 16px;
+}
+
+.afp-save-modal-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.afp-save-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.afp-modal-cancel {
+  padding: 8px 16px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.afp-modal-save {
+  padding: 8px 16px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.afp-modal-save:hover {
+  background: #2563eb;
+}
+
+.afp-modal-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .afp-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .afp-actions {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .afp-actions-left,
+  .afp-actions-right {
+    justify-content: center;
+  }
+
+  .afp-presets {
+    justify-content: center;
+  }
+
+  .afp-toggle {
+    padding: 12px 16px;
+  }
+
+  .afp-body {
+    padding: 0 16px 16px;
+  }
+}

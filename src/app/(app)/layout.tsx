@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { getAuthContextFromSupabase } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
+import SearchTrigger from "@/components/search/SearchTrigger";
+import SearchProvider from "@/components/search/SearchProvider";
 
 type NavLink = {
   href: string;
@@ -41,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <aside className="sidebar">
         <h1>Field Service AI</h1>
+        <SearchTrigger />
         <nav className="nav">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href}>
@@ -55,6 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main className="main">{children}</main>
+      <SearchProvider />
     </div>
   );
 }

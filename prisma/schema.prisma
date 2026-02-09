@@ -156,6 +156,27 @@ model Org {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Company information
+  contactEmail String?
+  contactPhone String?
+  address      String?
+  city         String?
+  state        String?
+  zipCode      String?
+  country      String?
+  website      String?
+  taxId        String?
+
+  // Organization preferences
+  currency String? @default("USD")
+  timezone String? @default("America/Chicago")
+  logoUrl  String?
+
+  // Email configuration
+  emailFromName    String?
+  emailFromAddress String?
+  emailReplyTo     String?
+
   users                  User[]
   invites                Invite[]
   customers              Customer[]

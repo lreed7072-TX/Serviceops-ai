@@ -1,0 +1,56 @@
+/* Settings Tabs */
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  position: sticky;
+  top: 20px;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.settings-tab:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.settings-tab.active {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+@media (max-width: 1024px) {
+  .settings-tabs {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 2px;
+    padding: 8px;
+  }
+
+  .settings-tab {
+    white-space: nowrap;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+}

@@ -117,6 +117,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ? parseFloat(body.estimatedHours)
         : null;
     if (body.priority) updateData.priority = body.priority;
+    if (body.procedureTemplateId !== undefined)
+      updateData.procedureTemplateId = body.procedureTemplateId || null;
 
     const updated = await prisma.workflowDefinition.update({
       where: { id },

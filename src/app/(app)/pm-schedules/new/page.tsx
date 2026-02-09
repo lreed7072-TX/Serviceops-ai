@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import PMScheduleForm from "@/components/pm/PMScheduleForm";
 
@@ -19,6 +20,8 @@ interface TemplateOption {
 }
 
 export default function NewPMSchedulePage() {
+  const searchParams = useSearchParams();
+  const preselectedAssetId = searchParams.get("assetId") || undefined;
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +84,7 @@ export default function NewPMSchedulePage() {
       <PMScheduleForm
         assets={assets}
         procedureTemplates={templates}
+        preselectedAssetId={preselectedAssetId}
       />
     </div>
   );

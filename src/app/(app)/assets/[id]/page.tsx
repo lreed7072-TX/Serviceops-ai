@@ -117,6 +117,9 @@ export default function AssetDetailPage() {
   const [savingNameplate, setSavingNameplate] = useState(false);
   const [notice, setNotice] = useState<ToastNotice | null>(null);
   const noticeTimeoutRef = useRef<number | null>(null);
+  const [pmSchedules, setPmSchedules] = useState<
+    { id: string; name: string; status: string; frequencyType: string; frequencyValue: number; nextScheduledDate: string | null }[]
+  >([]);
 
   useEffect(() => {
     if (!assetId) return;
@@ -161,6 +164,21 @@ export default function AssetDetailPage() {
           } catch (siteError) {
             console.error(siteError);
           }
+        }
+
+        // Fetch PM schedules for this asset
+        try {
+          const pmRes = await apiFetch(`/api/pm-schedules?assetId=${payload.data.id}`, {
+            cache: "no-store",
+          });
+          if (pmRes.ok) {
+            const pmJson = await pmRes.json();
+            if (!cancelled) {
+              setPmSchedules(pmJson.data ?? []);
+            }
+          }
+        } catch {
+          // Silently fail
         }
       } catch (err) {
         if (cancelled) return;
@@ -420,6 +438,68 @@ export default function AssetDetailPage() {
             </form>
           </div>
             <AttachmentsPanel entityType="asset" entityId={asset.id} />
+
+          {/* PM Schedules Section */}
+          <div className="card">
+            <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3>PM Schedules ({pmSchedules.length})</h3>
+              <Link
+                href={`/pm-schedules/new?assetId=${asset.id}`}
+                className="btn btn-sm btn-primary"
+                style={{ textDecoration: "none" }}
+              >
+                + Create PM Schedule
+              </Link>
+            </div>
+            {pmSchedules.length === 0 ? (
+              <p style={{ color: "#6b7280", fontStyle: "italic" }}>
+                No PM schedules configured for this equipment.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {pmSchedules.map((pm) => (
+                  <Link
+                    key={pm.id}
+                    href={`/pm-schedules/${pm.id}`}
+                    style={{
+                      display: "block",
+                      padding: "12px",
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      textDecoration: "none",
+                      color: "inherit",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <strong style={{ fontSize: "14px", color: "#111827" }}>{pm.name}</strong>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          background: pm.status === "ACTIVE" ? "#d1fae5" : "#f3f4f6",
+                          color: pm.status === "ACTIVE" ? "#065f46" : "#6b7280",
+                        }}
+                      >
+                        {pm.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                      Every {pm.frequencyValue}{" "}
+                      {pm.frequencyType.toLowerCase().replace("ly", pm.frequencyValue === 1 ? "" : "s")}
+                      {pm.nextScheduledDate && (
+                        <> &bull; Next: {new Date(pm.nextScheduledDate).toLocaleDateString()}</>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

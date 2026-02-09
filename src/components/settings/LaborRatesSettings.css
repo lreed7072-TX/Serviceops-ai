@@ -1,0 +1,186 @@
+/* Labor Rates Settings */
+
+.labor-rates-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.labor-rate-card {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.labor-rate-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.lr-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.lr-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.lr-description {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.lr-default-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lr-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.lr-unit {
+  font-size: 16px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-left: 4px;
+}
+
+.lr-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lr-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* Modal form */
+.lr-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.lr-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lr-form-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.lr-form-field input,
+.lr-form-field textarea {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.lr-form-field input:focus,
+.lr-form-field textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.lr-form-field small {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.lr-full-width {
+  grid-column: 1 / -1;
+}
+
+.lr-input-prefix-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lr-input-prefix {
+  position: absolute;
+  left: 14px;
+  font-size: 15px;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.lr-input-prefix-wrapper input {
+  padding-left: 32px;
+  width: 100%;
+}
+
+.lr-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500 !important;
+}
+
+.lr-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Shared button styles */
+.btn-danger-outline {
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  background: white;
+}
+
+.btn-danger-outline:hover {
+  background: #fef2f2;
+}
+
+@media (max-width: 768px) {
+  .labor-rates-list {
+    grid-template-columns: 1fr;
+  }
+
+  .lr-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lr-actions {
+    flex-direction: column;
+  }
+
+  .lr-actions button {
+    width: 100%;
+  }
+}

@@ -4,6 +4,8 @@ import { useState } from "react";
 import SettingsTabs from "@/components/settings/SettingsTabs";
 import CompanySettings from "@/components/settings/CompanySettings";
 import EmailSettings from "@/components/settings/EmailSettings";
+import LaborRatesSettings from "@/components/settings/LaborRatesSettings";
+import UserManagementSettings from "@/components/settings/UserManagementSettings";
 import "./settings.css";
 
 export default function SettingsPage() {
@@ -16,19 +18,9 @@ export default function SettingsPage() {
       case "email":
         return <EmailSettings />;
       case "labor-rates":
-        return (
-          <div className="settings-placeholder">
-            <h2>Labor Rates</h2>
-            <p>Labor rate management coming soon.</p>
-          </div>
-        );
+        return <LaborRatesSettings />;
       case "users":
-        return (
-          <div className="settings-placeholder">
-            <h2>User Management</h2>
-            <p>User invitation and role management coming soon.</p>
-          </div>
-        );
+        return <UserManagementSettings />;
       case "organization":
         return (
           <div className="settings-placeholder">

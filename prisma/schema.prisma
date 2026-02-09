@@ -215,14 +215,16 @@ model Org {
   aiTaskPlans            AITaskPlan[]
   billingConfig          BillingConfig?
   laborRates             LaborRateConfig[]
+  customLaborRates       LaborRate[]
 }
 
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   orgId     String   @db.Uuid
-  email     String
-  name      String?
-  role      Role     @default(TECH)
+  email    String
+  name     String?
+  role     Role     @default(TECH)
+  isActive Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1090,6 +1092,22 @@ model LaborRateConfig {
   org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, role])
+  @@index([orgId])
+}
+
+// Named Labor Rates (Settings)
+model LaborRate {
+  id          String   @id @default(uuid()) @db.Uuid
+  orgId       String   @db.Uuid
+  name        String
+  description String?
+  hourlyRate  Decimal  @db.Decimal(10, 2)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
   @@index([orgId])
 }
 

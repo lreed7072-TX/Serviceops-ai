@@ -6,6 +6,7 @@ import CompanySettings from "@/components/settings/CompanySettings";
 import EmailSettings from "@/components/settings/EmailSettings";
 import LaborRatesSettings from "@/components/settings/LaborRatesSettings";
 import UserManagementSettings from "@/components/settings/UserManagementSettings";
+import OrganizationSettings from "@/components/settings/OrganizationSettings";
 import "./settings.css";
 
 export default function SettingsPage() {
@@ -22,12 +23,7 @@ export default function SettingsPage() {
       case "users":
         return <UserManagementSettings />;
       case "organization":
-        return (
-          <div className="settings-placeholder">
-            <h2>Organization Preferences</h2>
-            <p>Timezone, currency, and other preferences coming soon.</p>
-          </div>
-        );
+        return <OrganizationSettings />;
       default:
         return <CompanySettings />;
     }

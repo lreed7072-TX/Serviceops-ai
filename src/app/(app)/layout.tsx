@@ -5,6 +5,7 @@ import { getAuthContextFromSupabase } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
 import SearchTrigger from "@/components/search/SearchTrigger";
 import SearchProvider from "@/components/search/SearchProvider";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type NavLink = {
   href: string;
@@ -35,7 +36,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/materials", label: "Materials" },
     ...(auth.role === Role.ADMIN ? [
       { href: "/users", label: "Users" },
-      { href: "/settings", label: "⚙️ Settings" }
+      { href: "/settings/audit-logs", label: "Audit Logs" },
+      { href: "/settings", label: "⚙️ Settings" },
     ] : []),
   ];
 
@@ -52,7 +54,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
-        <div style={{ marginTop: "auto" }}>
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          <NotificationBell />
           <LogoutButton />
         </div>
       </aside>

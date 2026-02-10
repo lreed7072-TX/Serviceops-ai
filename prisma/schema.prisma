@@ -216,6 +216,8 @@ model Org {
   billingConfig          BillingConfig?
   laborRates             LaborRateConfig[]
   customLaborRates       LaborRate[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
 }
 
 model User {
@@ -247,6 +249,8 @@ model User {
   createdWorkOrders          WorkOrder[]          @relation("WorkOrderCreatedBy")
   approvedAITaskPlans        AITaskPlan[]         @relation("AITaskPlanApprovedBy")
   performedStockMovements    StockMovement[]      @relation("StockMovementPerformedBy")
+  notifications              Notification[]       @relation("NotificationUser")
+  auditLogs                  AuditLog[]           @relation("AuditLogUser")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -1350,4 +1354,45 @@ model AITaskPlan {
   @@index([orgId, workOrderId])
   @@index([workOrderId])
   @@index([status])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @db.Uuid
+  orgId     String    @db.Uuid
+  type      String
+  title     String
+  message   String
+  actionUrl String?
+  metadata  String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation("NotificationUser", fields: [userId], references: [id])
+  org  Org  @relation(fields: [orgId], references: [id])
+
+  @@index([userId, readAt])
+  @@index([orgId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String   @db.Uuid
+  orgId      String   @db.Uuid
+  action     String
+  entityType String
+  entityId   String
+  entityName String?
+  changes    String?
+  metadata   String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation("AuditLogUser", fields: [userId], references: [id])
+  org  Org  @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([entityType, entityId])
+  @@index([userId])
 }

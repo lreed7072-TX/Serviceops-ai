@@ -47,30 +47,43 @@ export default function NewProcedureTemplatePage() {
     setError(null);
 
     try {
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        assetCategory: form.assetCategory,
+        assetFamily: form.assetFamily.trim() || undefined,
+        assetSubfamily: form.assetSubfamily.trim() || undefined,
+        context: form.context,
+        estimatedDurationMinutes: form.estimatedDurationMinutes
+          ? parseInt(form.estimatedDurationMinutes)
+          : undefined,
+      };
+
+      console.log("Sending payload:", payload);
+
       const res = await apiFetch("/api/procedure-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          description: form.description.trim() || undefined,
-          assetCategory: form.assetCategory,
-          assetFamily: form.assetFamily.trim() || undefined,
-          assetSubfamily: form.assetSubfamily.trim() || undefined,
-          context: form.context,
-          estimatedDurationMinutes: form.estimatedDurationMinutes
-            ? parseInt(form.estimatedDurationMinutes)
-            : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      console.log("Response status:", res.status);
+
       if (!res.ok) {
-        const json = await res.json();
-        throw new Error(json.error || "Failed to create template");
+        const text = await res.text();
+        console.error("Error response:", text);
+        try {
+          const json = JSON.parse(text);
+          throw new Error(json.error || "Failed to create template");
+        } catch {
+          throw new Error(`Server error (${res.status}): ${text.substring(0, 200)}`);
+        }
       }
 
       const json = await res.json();
       router.push(`/procedure-templates/${json.data.id}`);
     } catch (e: any) {
+      console.error("Template creation error:", e);
       setError(e?.message || "Failed to create template");
       setSubmitting(false);
     }

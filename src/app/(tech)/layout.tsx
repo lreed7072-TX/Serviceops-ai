@@ -7,7 +7,10 @@ import { TechLayoutClient } from "@/components/TechLayoutClient";
 
 type NavLink = { href: string; label: string };
 
-const navLinks: NavLink[] = [{ href: "/tech", label: "My Work" }];
+const navLinks: NavLink[] = [
+  { href: "/tech", label: "My Work" },
+  { href: "/tech/photos", label: "📷 Photo Library" },
+];
 
 export default async function TechLayout({ children }: { children: React.ReactNode }) {
   const auth = await getAuthContextFromSupabase();

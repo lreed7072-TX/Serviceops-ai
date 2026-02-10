@@ -244,6 +244,7 @@ model Org {
   taskFindings           TaskFinding[]
   siteCheckIns           SiteCheckIn[]
   workOrderPhotos        WorkOrderPhoto[]
+  techPhotos             TechPhoto[]
 }
 
 model User {
@@ -280,6 +281,7 @@ model User {
   taskFindings               TaskFinding[]        @relation("TaskFindingCreatedBy")
   siteCheckIns               SiteCheckIn[]        @relation("SiteCheckInUser")
   uploadedPhotos             WorkOrderPhoto[]     @relation("PhotoUploadedBy")
+  techPhotos                 TechPhoto[]          @relation("TechPhotoUser")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -434,6 +436,7 @@ model WorkOrder {
   pmLastGenFor   WorkflowDefinition[] @relation("PMLastGeneratedWO")
   siteCheckIns   SiteCheckIn[]
   photos         WorkOrderPhoto[]
+  techPhotos     TechPhoto[]
 
   @@unique([orgId, workOrderNumber])
   @@index([orgId])
@@ -1513,4 +1516,36 @@ model SiteCheckIn {
   @@index([orgId])
   @@index([orgId, workOrderId])
   @@index([userId])
+}
+
+// ============================================
+// TECH PHOTO LIBRARY - Free Camera Photos
+// ============================================
+
+model TechPhoto {
+  id              String    @id @default(uuid()) @db.Uuid
+  orgId           String    @db.Uuid
+  userId          String    @db.Uuid
+  photoType       PhotoType
+  caption         String?   @db.Text
+  fileName        String
+  fileUrl         String
+  fileSize        Int
+  mimeType        String
+  gpsLatitude     Float?
+  gpsLongitude    Float?
+  workOrderId     String?   @db.Uuid  // Can be attached to WO later
+  attachedAt      DateTime? // When attached to WO
+  capturedAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  org       Org        @relation(fields: [orgId], references: [id])
+  user      User       @relation("TechPhotoUser", fields: [userId], references: [id])
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, userId])
+  @@index([userId, capturedAt])
+  @@index([workOrderId])
 }

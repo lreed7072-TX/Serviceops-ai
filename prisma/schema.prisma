@@ -130,6 +130,13 @@ enum TaskEvidenceType {
   FILE
 }
 
+enum FindingPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum VisitStatus {
   PLANNED
   IN_PROGRESS
@@ -218,6 +225,8 @@ model Org {
   customLaborRates       LaborRate[]
   notifications          Notification[]
   auditLogs              AuditLog[]
+  taskFindings           TaskFinding[]
+  siteCheckIns           SiteCheckIn[]
 }
 
 model User {
@@ -251,6 +260,8 @@ model User {
   performedStockMovements    StockMovement[]      @relation("StockMovementPerformedBy")
   notifications              Notification[]       @relation("NotificationUser")
   auditLogs                  AuditLog[]           @relation("AuditLogUser")
+  taskFindings               TaskFinding[]        @relation("TaskFindingCreatedBy")
+  siteCheckIns               SiteCheckIn[]        @relation("SiteCheckInUser")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -403,6 +414,7 @@ model WorkOrder {
   invoices       Invoice[]
   aiTaskPlans    AITaskPlan[]
   pmLastGenFor   WorkflowDefinition[] @relation("PMLastGeneratedWO")
+  siteCheckIns   SiteCheckIn[]
 
   @@unique([orgId, workOrderNumber])
   @@index([orgId])
@@ -460,6 +472,7 @@ model TaskInstance {
   materialUsages         TaskMaterialUsage[]
   invoiceLineItems       InvoiceLineItem[]
   measurementDefinitions MeasurementDefinition[]
+  findings               TaskFinding[]
 
   @@index([orgId])
   @@index([orgId, workOrderId])
@@ -1402,5 +1415,55 @@ model AuditLog {
 
   @@index([orgId, createdAt])
   @@index([entityType, entityId])
+  @@index([userId])
+}
+
+// ============================================
+// TASK FINDINGS - Field Tech Observations
+// ============================================
+
+model TaskFinding {
+  id              String          @id @default(uuid()) @db.Uuid
+  orgId           String          @db.Uuid
+  taskInstanceId  String          @db.Uuid
+  category        String // SAFETY, DEFICIENCY, RECOMMENDATION, OBSERVATION
+  details         String          @db.Text
+  priority        FindingPriority @default(MEDIUM)
+  photoUrl        String?
+  createdByUserId String          @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  org           Org          @relation(fields: [orgId], references: [id])
+  taskInstance  TaskInstance @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
+  createdByUser User         @relation("TaskFindingCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, taskInstanceId])
+}
+
+// ============================================
+// SITE CHECK-IN/CHECK-OUT - GPS Tracking
+// ============================================
+
+model SiteCheckIn {
+  id          String    @id @default(uuid()) @db.Uuid
+  orgId       String    @db.Uuid
+  workOrderId String    @db.Uuid
+  userId      String    @db.Uuid
+  checkInAt   DateTime  @default(now())
+  checkOutAt  DateTime?
+  latitude    Float?
+  longitude   Float?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  org       Org       @relation(fields: [orgId], references: [id])
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
+  user      User      @relation("SiteCheckInUser", fields: [userId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, workOrderId])
   @@index([userId])
 }

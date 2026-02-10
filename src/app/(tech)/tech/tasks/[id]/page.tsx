@@ -72,6 +72,16 @@ type CatalogMaterial = {
   unit: string | null;
 };
 
+type FindingData = {
+  id: string;
+  category: string;
+  details: string;
+  priority: string;
+  photoUrl: string | null;
+  createdAt: string;
+  createdByUser: { id: string; name: string | null; email: string };
+};
+
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -108,6 +118,12 @@ export default function TechTaskPage() {
   const [matQty, setMatQty] = useState("1");
   const [matNotes, setMatNotes] = useState("");
   const [savingMaterial, setSavingMaterial] = useState(false);
+  const [findings, setFindings] = useState<FindingData[]>([]);
+  const [showAddFinding, setShowAddFinding] = useState(false);
+  const [findingCategory, setFindingCategory] = useState("OBSERVATION");
+  const [findingDetails, setFindingDetails] = useState("");
+  const [findingPriority, setFindingPriority] = useState("MEDIUM");
+  const [savingFinding, setSavingFinding] = useState(false);
 
   const loadTask = useCallback(async () => {
     if (!taskId) return;
@@ -159,11 +175,19 @@ export default function TechTaskPage() {
     } catch (e) { console.error(e); }
   }, []);
 
+  const loadFindings = useCallback(async () => {
+    if (!taskId) return;
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}/findings`, { cache: "no-store" });
+      if (res.ok) setFindings((await res.json()).data ?? []);
+    } catch (e) { console.error(e); }
+  }, [taskId]);
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements(), loadMaterials(), loadCatalog()])
+    Promise.all([loadTask(), loadTimer(), loadEvidence(), loadMeasurements(), loadMaterials(), loadCatalog(), loadFindings()])
       .finally(() => setLoading(false));
-  }, [loadTask, loadTimer, loadEvidence, loadMeasurements, loadMaterials, loadCatalog]);
+  }, [loadTask, loadTimer, loadEvidence, loadMeasurements, loadMaterials, loadCatalog, loadFindings]);
 
   useEffect(() => {
     if (!timer || timer.status !== "RUNNING") return;
@@ -313,6 +337,32 @@ export default function TechTaskPage() {
     try {
       await apiFetch(`/api/tasks/${taskId}/materials/${id}`, { method: "DELETE" });
       await loadMaterials();
+    } catch (e: any) { setErr(e?.message); }
+  };
+
+  const addFinding = async () => {
+    if (!taskId || !findingDetails.trim()) return;
+    setSavingFinding(true);
+    try {
+      const res = await apiFetch(`/api/tasks/${taskId}/findings`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: findingCategory,
+          details: findingDetails.trim(),
+          priority: findingPriority,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add finding");
+      setShowAddFinding(false); setFindingDetails(""); setFindingCategory("OBSERVATION"); setFindingPriority("MEDIUM");
+      await loadFindings();
+    } catch (e: any) { setErr(e?.message); } finally { setSavingFinding(false); }
+  };
+
+  const deleteFinding = async (id: string) => {
+    if (!taskId || !confirm("Delete this finding?")) return;
+    try {
+      await apiFetch(`/api/tasks/${taskId}/findings/${id}`, { method: "DELETE" });
+      await loadFindings();
     } catch (e: any) { setErr(e?.message); }
   };
 
@@ -467,6 +517,65 @@ export default function TechTaskPage() {
                 <div className="modal-actions">
                   <button className="btn btn-secondary" onClick={() => setShowAddMaterial(false)}>Cancel</button>
                   <button className="btn btn-primary" onClick={addMaterial} disabled={!selectedMaterial || savingMaterial}>{savingMaterial ? "Adding..." : "Add Material"}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Findings & Recommendations */}
+          <div className="tech-card">
+            <div className="tech-card-header">
+              <h3>Findings & Recommendations</h3>
+              <button className="tech-btn small" onClick={() => setShowAddFinding(true)}>+ Add Finding</button>
+            </div>
+            {findings.length === 0 ? <p className="muted">No findings recorded yet.</p> : (
+              <div className="tf-list">
+                {findings.map((f) => (
+                  <div key={f.id} className="tf-item">
+                    <div className="tf-item-header">
+                      <span className={`tf-priority ${f.priority.toLowerCase()}`}>{f.priority}</span>
+                      <span className="tf-category">{f.category.replace("_", " ")}</span>
+                      <button className="btn-icon danger" onClick={() => deleteFinding(f.id)}>×</button>
+                    </div>
+                    <p className="tf-details">{f.details}</p>
+                    <div className="tf-meta">
+                      {f.createdByUser.name || f.createdByUser.email} • {formatDateTime(f.createdAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {showAddFinding && (
+            <div className="modal-overlay" onClick={() => setShowAddFinding(false)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <h2>Add Finding</h2>
+                <div className="form-field">
+                  <label>Category</label>
+                  <select value={findingCategory} onChange={(e) => setFindingCategory(e.target.value)}>
+                    <option value="OBSERVATION">Observation</option>
+                    <option value="RECOMMENDATION">Recommendation</option>
+                    <option value="DEFICIENCY">Deficiency</option>
+                    <option value="SAFETY">Safety Concern</option>
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Priority</label>
+                  <select value={findingPriority} onChange={(e) => setFindingPriority(e.target.value)}>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Details</label>
+                  <textarea value={findingDetails} onChange={(e) => setFindingDetails(e.target.value)} rows={4} placeholder="Describe the finding, issue, or recommendation..." />
+                </div>
+                <div className="modal-actions">
+                  <button className="btn btn-secondary" onClick={() => setShowAddFinding(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={addFinding} disabled={!findingDetails.trim() || savingFinding}>{savingFinding ? "Saving..." : "Add Finding"}</button>
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { SignaturePad } from "@/components/SignaturePad";
+import { getDirectionsUrl, getCurrentPosition } from "@/lib/geolocation";
 
 type WorkOrderData = {
   id: string;
@@ -31,6 +32,25 @@ type SignatureData = {
   signatureData: string;
   signedAt: string;
   capturedBy?: { name: string | null; email: string };
+};
+type CheckInData = {
+  id: string;
+  checkInAt: string;
+  checkOutAt: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+type CompletionCheck = {
+  totalTasks: number;
+  completedTasks: number;
+  skippedTasks: number;
+  incompleteTasks: { id: string; title: string; status: string; isCritical: boolean }[];
+  criticalIncomplete: number;
+  hasCustomerSignature: boolean;
+  hasTechSignature: boolean;
+  hasActiveCheckIn: boolean;
+  hasRunningTimers: boolean;
+  canComplete: boolean;
 };
 
 function formatTime(seconds: number): string {
@@ -60,12 +80,26 @@ export default function TechWorkOrderPage() {
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  
+
   // Signature capture state
   const [showSignaturePad, setShowSignaturePad] = useState<"CUSTOMER" | "TECH" | "WITNESS" | null>(null);
   const [signerName, setSignerName] = useState("");
   const [signerTitle, setSignerTitle] = useState("");
   const [savingSignature, setSavingSignature] = useState(false);
+
+  // Check-in/check-out state
+  const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  // Completion flow state
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completionCheck, setCompletionCheck] = useState<CompletionCheck | null>(null);
+  const [completionNotes, setCompletionNotes] = useState("");
+  const [completing, setCompleting] = useState(false);
+
+  // Service report state
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   const loadTimer = useCallback(async () => {
     try {
@@ -86,29 +120,36 @@ export default function TechWorkOrderPage() {
     } catch (e) { console.error(e); }
   }, [workOrderId]);
 
-  useEffect(() => {
+  const loadCheckIn = useCallback(async () => {
     if (!workOrderId) return;
-    (async () => {
-      try {
-        setLoading(true);
-        const [woRes, pkgRes, taskRes] = await Promise.all([
-          apiFetch(`/api/work-orders/${workOrderId}`, { cache: "no-store" }),
-          apiFetch(`/api/work-orders/${workOrderId}/packages`, { cache: "no-store" }),
-          apiFetch(`/api/work-orders/${workOrderId}/tasks`, { cache: "no-store" }),
-        ]);
-        if (!woRes.ok) throw new Error("Failed to load work order");
-        setWorkOrder((await woRes.json()).data);
-        setPackages(pkgRes.ok ? (await pkgRes.json()).data ?? [] : []);
-        setTasks(taskRes.ok ? (await taskRes.json()).data ?? [] : []);
-        await loadTimer();
-        await loadSignatures();
-      } catch (e: any) {
-        setErr(e?.message ?? "Failed to load");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [workOrderId, loadTimer, loadSignatures]);
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/check-in`, { cache: "no-store" });
+      if (res.ok) setCheckIn((await res.json()).data ?? null);
+    } catch (e) { console.error(e); }
+  }, [workOrderId]);
+
+  const loadAll = useCallback(async () => {
+    if (!workOrderId) return;
+    try {
+      setLoading(true);
+      const [woRes, pkgRes, taskRes] = await Promise.all([
+        apiFetch(`/api/work-orders/${workOrderId}`, { cache: "no-store" }),
+        apiFetch(`/api/work-orders/${workOrderId}/packages`, { cache: "no-store" }),
+        apiFetch(`/api/work-orders/${workOrderId}/tasks`, { cache: "no-store" }),
+      ]);
+      if (!woRes.ok) throw new Error("Failed to load work order");
+      setWorkOrder((await woRes.json()).data);
+      setPackages(pkgRes.ok ? (await pkgRes.json()).data ?? [] : []);
+      setTasks(taskRes.ok ? (await taskRes.json()).data ?? [] : []);
+      await Promise.all([loadTimer(), loadSignatures(), loadCheckIn()]);
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }, [workOrderId, loadTimer, loadSignatures, loadCheckIn]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   useEffect(() => {
     if (!timer || timer.status !== "RUNNING") return;
@@ -152,6 +193,90 @@ export default function TechWorkOrderPage() {
     }
   };
 
+  // Check-in / Check-out
+  const handleCheckIn = async () => {
+    if (!workOrderId) return;
+    setCheckingIn(true); setErr(null);
+    try {
+      const pos = await getCurrentPosition();
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/check-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: pos?.latitude ?? null,
+          longitude: pos?.longitude ?? null,
+        }),
+      });
+      if (!res.ok) { const text = await res.text(); throw new Error(text || "Check-in failed"); }
+      await Promise.all([loadCheckIn(), loadAll()]);
+    } catch (e: any) { setErr(e?.message); } finally { setCheckingIn(false); }
+  };
+
+  const handleCheckOut = async () => {
+    if (!workOrderId) return;
+    setCheckingOut(true); setErr(null);
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/check-out`, { method: "POST" });
+      if (!res.ok) { const text = await res.text(); throw new Error(text || "Check-out failed"); }
+      await loadCheckIn();
+    } catch (e: any) { setErr(e?.message); } finally { setCheckingOut(false); }
+  };
+
+  // Completion flow
+  const openCompleteModal = async () => {
+    if (!workOrderId) return;
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/complete`, { cache: "no-store" });
+      if (res.ok) {
+        setCompletionCheck((await res.json()).data);
+        setShowCompleteModal(true);
+      }
+    } catch (e: any) { setErr(e?.message); }
+  };
+
+  const handleComplete = async () => {
+    if (!workOrderId) return;
+    setCompleting(true); setErr(null);
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completionNotes: completionNotes.trim() || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Failed to complete work order");
+      }
+      setShowCompleteModal(false);
+      setCompletionNotes("");
+      await loadAll();
+    } catch (e: any) { setErr(e?.message); } finally { setCompleting(false); }
+  };
+
+  // Service report download
+  const downloadServiceReport = async () => {
+    if (!workOrderId) return;
+    setDownloadingReport(true); setErr(null);
+    try {
+      const res = await apiFetch(`/api/work-orders/${workOrderId}/service-report`);
+      if (!res.ok) throw new Error("Failed to generate report");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ServiceReport-${workOrder?.workOrderNumber || workOrderId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) { setErr(e?.message); } finally { setDownloadingReport(false); }
+  };
+
+  // Build site address for directions
+  const siteAddress = workOrder?.site
+    ? [workOrder.site.address, workOrder.site.city, workOrder.site.state].filter(Boolean).join(", ")
+    : null;
+
   // Group and sort tasks
   const tasksByPackage: Record<string, TaskData[]> = {};
   tasks.forEach((t) => {
@@ -194,6 +319,7 @@ export default function TechWorkOrderPage() {
             <div className="wo-meta"><span>Created: {formatDate(workOrder.createdAt)}</span></div>
           </div>
 
+          {/* Location Details + Get Directions */}
           <div className="tech-card">
             <h3>Location Details</h3>
             <div className="info-grid">
@@ -201,8 +327,8 @@ export default function TechWorkOrderPage() {
               {workOrder.site && (
                 <>
                   <div className="info-row"><span className="info-label">Site</span><span className="info-value">{workOrder.site.name}</span></div>
-                  {(workOrder.site.address || workOrder.site.city) && (
-                    <div className="info-row"><span className="info-label">Address</span><span className="info-value">{[workOrder.site.address, workOrder.site.city, workOrder.site.state].filter(Boolean).join(", ")}</span></div>
+                  {siteAddress && (
+                    <div className="info-row"><span className="info-label">Address</span><span className="info-value">{siteAddress}</span></div>
                   )}
                 </>
               )}
@@ -214,6 +340,43 @@ export default function TechWorkOrderPage() {
                 </>
               )}
             </div>
+            {siteAddress && (
+              <a
+                href={getDirectionsUrl(siteAddress)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tech-btn primary large"
+                style={{ display: "block", textAlign: "center", marginTop: 16, textDecoration: "none" }}
+              >
+                Get Directions
+              </a>
+            )}
+          </div>
+
+          {/* Check-in / Check-out */}
+          <div className="tech-card ci-card">
+            <h3>Site Attendance</h3>
+            {checkIn ? (
+              <div className="ci-active">
+                <div className="ci-status">
+                  <span className="ci-dot active" />
+                  <span>Checked in since {formatDateTime(checkIn.checkInAt)}</span>
+                </div>
+                {checkIn.latitude && checkIn.longitude && (
+                  <div className="ci-coords">GPS: {checkIn.latitude.toFixed(5)}, {checkIn.longitude.toFixed(5)}</div>
+                )}
+                <button className="tech-btn warning large" onClick={handleCheckOut} disabled={checkingOut} style={{ width: "100%", marginTop: 12 }}>
+                  {checkingOut ? "Checking out..." : "Check Out"}
+                </button>
+              </div>
+            ) : (
+              <div className="ci-inactive">
+                <p className="muted">Not checked in to this site.</p>
+                <button className="tech-btn primary large" onClick={handleCheckIn} disabled={checkingIn || workOrder.status === "COMPLETED" || workOrder.status === "CANCELED"} style={{ width: "100%", marginTop: 8 }}>
+                  {checkingIn ? "Checking in..." : "Check In"}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="tech-card">
@@ -267,7 +430,7 @@ export default function TechWorkOrderPage() {
           {/* Signatures Section */}
           <div className="tech-card signatures-section">
             <h3>Signatures</h3>
-            
+
             {signatures.length > 0 && (
               <div className="signatures-list">
                 {signatures.map((sig) => (
@@ -279,7 +442,7 @@ export default function TechWorkOrderPage() {
                       {sig.signerTitle && <span className="muted">{sig.signerTitle}</span>}
                       <div className="signature-meta">{formatDateTime(sig.signedAt)}</div>
                     </div>
-                    <button className="btn-icon danger" onClick={() => handleDeleteSignature(sig.id)}>🗑️</button>
+                    <button className="btn-icon danger" onClick={() => handleDeleteSignature(sig.id)}>×</button>
                   </div>
                 ))}
               </div>
@@ -305,6 +468,113 @@ export default function TechWorkOrderPage() {
               />
             )}
           </div>
+
+          {/* Complete Work Order + Service Report */}
+          {workOrder.status !== "COMPLETED" && workOrder.status !== "CANCELED" && (
+            <div className="tech-card cm-card">
+              <h3>Complete Work Order</h3>
+              <p className="muted">Ensure all tasks are done and signatures collected before completing.</p>
+              <button className="tech-btn success large" onClick={openCompleteModal} style={{ width: "100%" }}>
+                Complete Work Order
+              </button>
+            </div>
+          )}
+
+          {workOrder.status === "COMPLETED" && (
+            <div className="tech-card cm-card">
+              <div className="cm-complete-banner">
+                <span style={{ fontSize: 28 }}>✓</span>
+                <div>
+                  <strong>Work Order Completed</strong>
+                  <p className="muted" style={{ margin: 0 }}>All work has been finalized.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="tech-card">
+            <h3>Service Report</h3>
+            <button className="tech-btn primary large" onClick={downloadServiceReport} disabled={downloadingReport} style={{ width: "100%" }}>
+              {downloadingReport ? "Generating PDF..." : "Download Service Report"}
+            </button>
+          </div>
+
+          {/* Completion Modal */}
+          {showCompleteModal && completionCheck && (
+            <div className="modal-overlay" onClick={() => setShowCompleteModal(false)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <h2>Complete Work Order</h2>
+
+                <div className="cm-checklist">
+                  <div className={`cm-check-item ${completionCheck.completedTasks + completionCheck.skippedTasks >= completionCheck.totalTasks ? "pass" : "warn"}`}>
+                    <span className="cm-check-icon">{completionCheck.completedTasks + completionCheck.skippedTasks >= completionCheck.totalTasks ? "✓" : "!"}</span>
+                    <span>Tasks: {completionCheck.completedTasks}/{completionCheck.totalTasks} complete{completionCheck.skippedTasks > 0 ? `, ${completionCheck.skippedTasks} skipped` : ""}</span>
+                  </div>
+                  <div className={`cm-check-item ${completionCheck.criticalIncomplete === 0 ? "pass" : "fail"}`}>
+                    <span className="cm-check-icon">{completionCheck.criticalIncomplete === 0 ? "✓" : "✗"}</span>
+                    <span>{completionCheck.criticalIncomplete === 0 ? "All critical tasks completed" : `${completionCheck.criticalIncomplete} critical task(s) incomplete`}</span>
+                  </div>
+                  <div className={`cm-check-item ${completionCheck.hasTechSignature ? "pass" : "fail"}`}>
+                    <span className="cm-check-icon">{completionCheck.hasTechSignature ? "✓" : "✗"}</span>
+                    <span>Tech signature {completionCheck.hasTechSignature ? "collected" : "missing"}</span>
+                  </div>
+                  <div className={`cm-check-item ${completionCheck.hasCustomerSignature ? "pass" : "info"}`}>
+                    <span className="cm-check-icon">{completionCheck.hasCustomerSignature ? "✓" : "—"}</span>
+                    <span>Customer signature {completionCheck.hasCustomerSignature ? "collected" : "(optional)"}</span>
+                  </div>
+                  {completionCheck.hasRunningTimers && (
+                    <div className="cm-check-item warn">
+                      <span className="cm-check-icon">!</span>
+                      <span>Running timers will be stopped</span>
+                    </div>
+                  )}
+                  {completionCheck.hasActiveCheckIn && (
+                    <div className="cm-check-item info">
+                      <span className="cm-check-icon">i</span>
+                      <span>You will be automatically checked out</span>
+                    </div>
+                  )}
+                </div>
+
+                {completionCheck.incompleteTasks.length > 0 && (
+                  <details style={{ marginTop: 12 }}>
+                    <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+                      {completionCheck.incompleteTasks.length} incomplete task(s)
+                    </summary>
+                    <ul style={{ margin: "8px 0", paddingLeft: 20, fontSize: 13 }}>
+                      {completionCheck.incompleteTasks.map((t) => (
+                        <li key={t.id} style={{ color: t.isCritical ? "#ef4444" : "#6b7280" }}>
+                          {t.title} ({t.status.replace("_", " ")}){t.isCritical ? " — CRITICAL" : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
+                <div className="form-field" style={{ marginTop: 16 }}>
+                  <label>Completion Notes (optional)</label>
+                  <textarea value={completionNotes} onChange={(e) => setCompletionNotes(e.target.value)} rows={3} placeholder="Any final notes about the work performed..." />
+                </div>
+
+                <div className="modal-actions">
+                  <button className="btn btn-secondary" onClick={() => setShowCompleteModal(false)}>Cancel</button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleComplete}
+                    disabled={!completionCheck.canComplete || completing}
+                  >
+                    {completing ? "Completing..." : "Complete Work Order"}
+                  </button>
+                </div>
+
+                {!completionCheck.canComplete && (
+                  <p style={{ color: "#ef4444", fontSize: 13, marginTop: 8 }}>
+                    Cannot complete: {completionCheck.criticalIncomplete > 0 ? "Critical tasks incomplete. " : ""}{!completionCheck.hasTechSignature ? "Tech signature required." : ""}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

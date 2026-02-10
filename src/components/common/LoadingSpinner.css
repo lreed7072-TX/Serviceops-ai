@@ -1,0 +1,56 @@
+/* Loading Spinner — namespaced ls-* */
+
+.ls-fullpage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.ls-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.ls-spinner {
+  border-radius: 50%;
+  border-style: solid;
+  border-color: #e5e7eb;
+  border-top-color: #3b82f6;
+  animation: lsSpin 0.8s linear infinite;
+}
+
+.ls-spinner-sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.ls-spinner-md {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+.ls-spinner-lg {
+  width: 60px;
+  height: 60px;
+  border-width: 5px;
+}
+
+@keyframes lsSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ls-message {
+  margin: 0;
+  font-size: 15px;
+  color: #6b7280;
+}

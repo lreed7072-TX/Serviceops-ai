@@ -302,6 +302,7 @@ model Customer {
   pmSchedules WorkflowDefinition[] @relation("PMScheduleCustomer")
 
   @@index([orgId])
+  @@index([orgId, name])
 }
 
 model Site {
@@ -327,6 +328,7 @@ model Site {
 
   @@index([orgId])
   @@index([orgId, customerId])
+  @@index([orgId, name])
 }
 
 model Asset {
@@ -360,6 +362,8 @@ model Asset {
   @@index([orgId])
   @@index([orgId, siteId])
   @@index([orgId, customerId])
+  @@index([orgId, name])
+  @@index([serialNumber])
 }
 
 model WorkOrder {
@@ -403,6 +407,9 @@ model WorkOrder {
   @@unique([orgId, workOrderNumber])
   @@index([orgId])
   @@index([orgId, customerId])
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@index([siteId])
 }
 
 model WorkPackage {
@@ -458,6 +465,7 @@ model TaskInstance {
   @@index([orgId, workOrderId])
   @@index([orgId, workPackageId])
   @@index([blockedById])
+  @@index([orgId, status])
 }
 
 model TaskEvidence {

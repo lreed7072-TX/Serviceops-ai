@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import SearchTrigger from "@/components/search/SearchTrigger";
 import SearchProvider from "@/components/search/SearchProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 type NavLink = {
   href: string;
@@ -60,7 +61,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <main className="main">{children}</main>
+      <main className="main">
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </main>
       <SearchProvider />
     </div>
   );

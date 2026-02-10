@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContextFromSupabase } from "@/lib/auth";
-import prisma from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // POST - Upload free camera photo to tech library
 export async function POST(request: NextRequest) {
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (lngStr) gpsLongitude = parseFloat(lngStr);
 
     // Upload to Supabase Storage
-    const supabase = createClient();
+    const supabase = await createSupabaseServerClient();
     const fileExt = file.name.split('.').pop();
     const fileName = `tech-photos/${auth.userId}/${Date.now()}.${fileExt}`;
 

@@ -630,10 +630,6 @@ export default function WorkOrderDetailPage() {
               )}
             </div>
           </div>
-
-          <div className={`wo-status-badge-large ${getStatusClass(workOrder.status)}`}>
-            {workOrder.status.replace("_", " ")}
-          </div>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-# Field Service AI (MVP)
+# ServiceOpsIQ
 
 AI-backed, multi-tenant field service management MVP built with Next.js App Router, Prisma, and Postgres.
 

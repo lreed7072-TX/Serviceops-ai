@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="shell">
       <aside className="sidebar">
-        <h1>Field Service AI</h1>
+        <h1>ServiceOpsIQ</h1>
         <SearchTrigger />
         <nav className="nav">
           {navLinks.map((link) => (

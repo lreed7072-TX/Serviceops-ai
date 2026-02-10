@@ -88,11 +88,26 @@ export default function EditWorkOrderPage() {
   const [addingTask, setAddingTask] = useState(false);
   const [taskError, setTaskError] = useState<string | null>(null);
 
+  // Template integration state
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [standardsPacks, setStandardsPacks] = useState<any[]>([]);
+  const [procedureTemplates, setProcedureTemplates] = useState<any[]>([]);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<"pack" | "procedure" | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [templateTasks, setTemplateTasks] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
   useEffect(() => {
     if (workOrderId) {
       loadData();
     }
   }, [workOrderId]);
+
+  useEffect(() => {
+    if (selectedTemplateId && selectedTemplateType) {
+      loadTemplateTasks();
+    }
+  }, [selectedTemplateId, selectedTemplateType]);
 
   const loadData = async () => {
     setLoading(true);
@@ -239,6 +254,106 @@ export default function EditWorkOrderPage() {
       setShowTaskForm(false);
     } catch (err) {
       setTaskError(err instanceof Error ? err.message : "Failed to create task");
+    } finally {
+      setAddingTask(false);
+    }
+  };
+
+  // Load templates when selector is opened
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const [packsRes, templatesRes] = await Promise.all([
+        fetch("/api/standards-packs?status=ACTIVE"),
+        fetch("/api/procedure-templates")
+      ]);
+
+      if (packsRes.ok) {
+        const packsData = await packsRes.json();
+        setStandardsPacks(packsData.data || []);
+      }
+
+      if (templatesRes.ok) {
+        const templatesData = await templatesRes.json();
+        setProcedureTemplates(templatesData.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to load templates:", err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Load tasks from selected template
+  const loadTemplateTasks = async () => {
+    if (!selectedTemplateType || !selectedTemplateId) return;
+
+    setLoadingTemplates(true);
+    try {
+      const endpoint = selectedTemplateType === "pack"
+        ? `/api/standards-packs/${selectedTemplateId}`
+        : `/api/procedure-templates/${selectedTemplateId}`;
+
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error("Failed to load template tasks");
+
+      const data = await res.json();
+      const tasks = selectedTemplateType === "pack"
+        ? data.data.tasks
+        : data.data.steps?.map((step: any) => ({
+            title: step.title,
+            description: step.description,
+            isCritical: step.isCritical || false,
+            sequenceNumber: step.sequenceNumber
+          }));
+
+      setTemplateTasks(tasks || []);
+    } catch (err) {
+      setTaskError("Failed to load template tasks");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Add all template tasks to work order
+  const addTemplateTasks = async () => {
+    if (templateTasks.length === 0) return;
+
+    setAddingTask(true);
+    setTaskError(null);
+
+    try {
+      const currentMaxSequence = Math.max(...tasks.map(t => t.sequenceNumber || 0), 0);
+
+      for (let i = 0; i < templateTasks.length; i++) {
+        const task = templateTasks[i];
+        const response = await fetch(`/api/work-orders/${workOrderId}/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: task.title,
+            description: task.description || null,
+            isCritical: task.isCritical || false,
+            sequenceNumber: currentMaxSequence + i + 1,
+            assignedToId: null,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to create task: ${task.title}`);
+        }
+
+        const data = await response.json();
+        setTasks(prev => [...prev, data.data]);
+      }
+
+      // Reset template selector
+      setShowTemplateSelector(false);
+      setSelectedTemplateType(null);
+      setSelectedTemplateId("");
+      setTemplateTasks([]);
+    } catch (err) {
+      setTaskError(err instanceof Error ? err.message : "Failed to add template tasks");
     } finally {
       setAddingTask(false);
     }
@@ -492,16 +607,189 @@ export default function EditWorkOrderPage() {
             <span className="section-icon">✓</span>
             Tasks ({tasks.length})
           </h2>
-          {!showTaskForm && (
-            <button
-              onClick={() => setShowTaskForm(true)}
-              className="action-button primary"
-              style={{ padding: "8px 16px", fontSize: "14px" }}
-            >
-              + Add Task
-            </button>
+          {!showTaskForm && !showTemplateSelector && (
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                onClick={() => {
+                  setShowTemplateSelector(true);
+                  loadTemplates();
+                }}
+                className="action-button secondary"
+                style={{ padding: "8px 16px", fontSize: "14px" }}
+              >
+                📋 Load from Template
+              </button>
+              <button
+                onClick={() => setShowTaskForm(true)}
+                className="action-button primary"
+                style={{ padding: "8px 16px", fontSize: "14px" }}
+              >
+                + Add Task
+              </button>
+            </div>
           )}
         </div>
+
+        {/* Template Selector */}
+        {showTemplateSelector && (
+          <div style={{
+            background: "#f0f9ff",
+            border: "2px solid #0284c7",
+            borderRadius: "12px",
+            padding: "24px",
+            marginBottom: "20px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#0c4a6e" }}>
+                📋 Load Tasks from Template
+              </h3>
+              <button
+                onClick={() => {
+                  setShowTemplateSelector(false);
+                  setSelectedTemplateType(null);
+                  setSelectedTemplateId("");
+                  setTemplateTasks([]);
+                }}
+                style={{ padding: "4px 12px", fontSize: "13px" }}
+                className="action-button secondary"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Template Type Selection */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ ...labelStyle, marginBottom: "8px" }}>Template Type</label>
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTemplateType("pack");
+                    setSelectedTemplateId("");
+                    setTemplateTasks([]);
+                  }}
+                  className={selectedTemplateType === "pack" ? "action-button primary" : "action-button secondary"}
+                  style={{ flex: 1, padding: "10px" }}
+                >
+                  Standards Packs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTemplateType("procedure");
+                    setSelectedTemplateId("");
+                    setTemplateTasks([]);
+                  }}
+                  className={selectedTemplateType === "procedure" ? "action-button primary" : "action-button secondary"}
+                  style={{ flex: 1, padding: "10px" }}
+                >
+                  Procedure Templates
+                </button>
+              </div>
+            </div>
+
+            {/* Template Selection */}
+            {selectedTemplateType && (
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ ...labelStyle, marginBottom: "8px" }}>
+                  Select {selectedTemplateType === "pack" ? "Standards Pack" : "Procedure Template"}
+                </label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => {
+                    setSelectedTemplateId(e.target.value);
+                    if (!e.target.value) {
+                      setTemplateTasks([]);
+                    }
+                  }}
+                  style={{ ...inputStyle, marginBottom: "12px" }}
+                >
+                  <option value="">Choose template...</option>
+                  {selectedTemplateType === "pack"
+                    ? standardsPacks.map((pack) => (
+                        <option key={pack.id} value={pack.id}>
+                          {pack.name} ({pack._count?.tasks || 0} tasks)
+                        </option>
+                      ))
+                    : procedureTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name} ({template._count?.steps || 0} steps)
+                        </option>
+                      ))
+                  }
+                </select>
+              </div>
+            )}
+
+            {/* Preview Template Tasks */}
+            {templateTasks.length > 0 && (
+              <div>
+                <div style={{ 
+                  fontSize: "14px", 
+                  fontWeight: 600, 
+                  marginBottom: "12px",
+                  color: "#0c4a6e"
+                }}>
+                  Preview: {templateTasks.length} task{templateTasks.length !== 1 ? "s" : ""} will be added
+                </div>
+                <div style={{ 
+                  maxHeight: "200px", 
+                  overflowY: "auto",
+                  background: "white",
+                  borderRadius: "8px",
+                  padding: "12px",
+                  marginBottom: "16px"
+                }}>
+                  {templateTasks.map((task, idx) => (
+                    <div key={idx} style={{ 
+                      padding: "8px",
+                      borderBottom: idx < templateTasks.length - 1 ? "1px solid #e5e7eb" : "none"
+                    }}>
+                      <div style={{ fontWeight: 500, fontSize: "14px" }}>
+                        {idx + 1}. {task.title}
+                        {task.isCritical && <span style={{ color: "#dc2626", marginLeft: "8px" }}>🔴 Critical</span>}
+                      </div>
+                      {task.description && (
+                        <div style={{ fontSize: "13px", color: "#6b7280", marginTop: "4px" }}>
+                          {task.description}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={addTemplateTasks}
+                  disabled={addingTask}
+                  className="action-button success"
+                  style={{ width: "100%", padding: "12px", fontSize: "14px", fontWeight: 600 }}
+                >
+                  {addingTask ? "Adding Tasks..." : `Add All ${templateTasks.length} Task${templateTasks.length !== 1 ? "s" : ""}`}
+                </button>
+              </div>
+            )}
+
+            {loadingTemplates && (
+              <div style={{ textAlign: "center", padding: "20px", color: "#6b7280" }}>
+                Loading templates...
+              </div>
+            )}
+
+            {taskError && (
+              <div style={{
+                padding: "12px 16px",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: "8px",
+                color: "#dc2626",
+                fontSize: "14px",
+                marginTop: "12px"
+              }}>
+                {taskError}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add Task Form */}
         {showTaskForm && (

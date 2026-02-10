@@ -7,6 +7,9 @@ import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import { SignaturePad } from "@/components/SignaturePad";
 import { getDirectionsUrl, getCurrentPosition } from "@/lib/geolocation";
+import { useCheckIn } from "@/contexts/CheckInContext";
+import { PhotoCapture } from "@/components/PhotoCapture";
+import { PhotoGallery } from "@/components/PhotoGallery";
 
 type WorkOrderData = {
   id: string;
@@ -71,6 +74,7 @@ function formatDateTime(iso: string): string {
 export default function TechWorkOrderPage() {
   const params = useParams();
   const workOrderId = params?.id as string | undefined;
+  const { refreshCheckIn } = useCheckIn();
 
   const [workOrder, setWorkOrder] = useState<WorkOrderData | null>(null);
   const [packages, setPackages] = useState<PackageData[]>([]);
@@ -100,6 +104,9 @@ export default function TechWorkOrderPage() {
 
   // Service report state
   const [downloadingReport, setDownloadingReport] = useState(false);
+
+  // Photo state
+  const [photoRefreshTrigger, setPhotoRefreshTrigger] = useState(0);
 
   const loadTimer = useCallback(async () => {
     try {
@@ -208,7 +215,7 @@ export default function TechWorkOrderPage() {
         }),
       });
       if (!res.ok) { const text = await res.text(); throw new Error(text || "Check-in failed"); }
-      await Promise.all([loadCheckIn(), loadAll()]);
+      await Promise.all([loadCheckIn(), loadAll(), refreshCheckIn()]);
     } catch (e: any) { setErr(e?.message); } finally { setCheckingIn(false); }
   };
 
@@ -218,7 +225,7 @@ export default function TechWorkOrderPage() {
     try {
       const res = await apiFetch(`/api/work-orders/${workOrderId}/check-out`, { method: "POST" });
       if (!res.ok) { const text = await res.text(); throw new Error(text || "Check-out failed"); }
-      await loadCheckIn();
+      await Promise.all([loadCheckIn(), refreshCheckIn()]);
     } catch (e: any) { setErr(e?.message); } finally { setCheckingOut(false); }
   };
 
@@ -425,6 +432,13 @@ export default function TechWorkOrderPage() {
           <div className="tech-card">
             <h3>Work Order Attachments</h3>
             <AttachmentsPanel entityType="workOrder" entityId={workOrderId} />
+          </div>
+
+          {/* Photo Management */}
+          <div className="tech-card">
+            <h3>Photos</h3>
+            <PhotoCapture workOrderId={workOrderId} onPhotoAdded={() => setPhotoRefreshTrigger((n) => n + 1)} />
+            <PhotoGallery workOrderId={workOrderId} refreshTrigger={photoRefreshTrigger} />
           </div>
 
           {/* Signatures Section */}

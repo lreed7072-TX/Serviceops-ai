@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { getAuthContextFromSupabase } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
+import { TechLayoutClient } from "@/components/TechLayoutClient";
 
 type NavLink = { href: string; label: string };
 
@@ -32,7 +33,9 @@ export default async function TechLayout({ children }: { children: React.ReactNo
         </div>
       </aside>
 
-      <main className="main">{children}</main>
+      <main className="main">
+          <TechLayoutClient>{children}</TechLayoutClient>
+        </main>
     </div>
   );
 }

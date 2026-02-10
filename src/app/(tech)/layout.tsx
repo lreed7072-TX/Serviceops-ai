@@ -12,8 +12,8 @@ export default async function TechLayout({ children }: { children: React.ReactNo
   const auth = await getAuthContextFromSupabase();
   if (!auth) redirect("/login");
 
-  // Non-tech should not use tech UI
-  if (auth.role !== Role.TECH) redirect("/dashboard");
+  // Allow TECH and ADMIN to access tech UI (ADMIN for testing/oversight)
+  if (auth.role !== Role.TECH && auth.role !== Role.ADMIN) redirect("/dashboard");
 
   return (
     <div className="shell">

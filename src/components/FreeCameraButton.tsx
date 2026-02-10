@@ -5,7 +5,7 @@
 
 import { useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const PHOTO_TYPE_LABELS: Record<string, string> = {
   BEFORE_WORK: "Before Work",
@@ -63,7 +63,7 @@ export function FreeCameraButton() {
       }
 
       // Upload to Supabase Storage
-      const supabase = createClient();
+      const supabase = createSupabaseBrowserClient();
       const fileExt = selectedFile.name.split(".").pop();
       const fileName = `free-camera/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 

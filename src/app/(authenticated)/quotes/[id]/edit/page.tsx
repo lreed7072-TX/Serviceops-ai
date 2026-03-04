@@ -104,9 +104,9 @@ export default function EditQuotePage() {
         const quoteData = result.data as Quote;
         setQuote(quoteData);
 
-        // Check if quote is editable
-        if (quoteData.status !== QuoteStatus.DRAFT) {
-          alert("Only DRAFT quotes can be edited.");
+        // Check if quote is editable (cannot edit APPROVED or CONVERTED)
+        if (quoteData.status === QuoteStatus.APPROVED || quoteData.status === QuoteStatus.CONVERTED) {
+          alert("Cannot edit APPROVED or CONVERTED quotes.");
           router.push(`/quotes/${quoteId}`);
           return;
         }

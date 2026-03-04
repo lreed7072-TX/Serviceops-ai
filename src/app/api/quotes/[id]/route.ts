@@ -112,6 +112,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return jsonError("Cannot edit APPROVED or CONVERTED quotes.", 400);
   }
 
+  // Build update data
+  const updateData: any = {};
+
   // If editing content on a non-DRAFT quote (e.g. SENT, REJECTED), revert to DRAFT
   const hasContentChanges = title || description || siteId !== undefined || taxRate !== undefined || lineItems;
   if (hasContentChanges && existingQuote.status !== QuoteStatus.DRAFT) {
@@ -120,9 +123,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     updateData.rejectedAt = null;
     updateData.rejectionReason = null;
   }
-
-  // Build update data
-  const updateData: any = {};
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
   if (siteId !== undefined) updateData.siteId = siteId;

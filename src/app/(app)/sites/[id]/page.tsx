@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import "./site-detail.css";
 
 type SingleResponse<T> = { data: T };
 type ListResponse<T> = { data?: T[] };
@@ -82,7 +83,7 @@ export default function SiteDetailPage() {
     ? [site.address, site.city, site.state, site.postalCode, site.country].filter(Boolean).join(", ")
     : "—";
 
-  
+
   async function saveSite(e: React.FormEvent) {
     e.preventDefault();
     if (!siteId) return;
@@ -126,170 +127,176 @@ export default function SiteDetailPage() {
     }
   }
 
-if (!siteId) {
+  if (!siteId) {
     return (
-      <div className="card">
-        <p>Missing site ID in URL.</p>
+      <div className="site-detail-page">
+        <div className="error-container">
+          <div className="error-icon">⚠️</div>
+          <h2>Missing site ID</h2>
+          <p>No site ID was found in the URL.</p>
+          <Link href="/sites" className="btn-primary">Back to Sites</Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="site-detail-page">
+      {/* Page Header */}
       <div className="page-header">
-        <div>
-          <h2>Site</h2>
-          <p>Facility profile and location details.</p>
-        </div>
-        <Link className="link-button" href="/sites">
-          ← Back to list
+        <Link className="back-link" href="/sites">
+          ← Back to Sites
         </Link>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>{site?.name ?? "Site"}</h1>
+            <p className="header-subtitle">Facility profile and location details</p>
+          </div>
+          <div className="header-right">
+            {site && (
+              <button type="button" className="btn-primary" onClick={() => setShowEdit(true)}>
+                Edit Site
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {error && <div className="page-alert error">{error}</div>}
-      {loading && !error && <div className="page-alert info">Loading site…</div>}
+      {/* Alerts */}
+      {error && <div className="alert-error">{error}</div>}
+      {loading && !error && <div className="alert-info">Loading site...</div>}
 
-        <AttachmentsPanel entityType="site" entityId={siteId as string} />
+      {/* Attachments */}
+      <AttachmentsPanel entityType="site" entityId={siteId as string} />
 
+      {/* Site Details */}
       {site && (
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-            <h3 style={{ margin: 0 }}>{site.name}</h3>
-            <button type="button" className="link-button" onClick={() => setShowEdit(true)}>
-              Edit
-            </button>
+        <div className="detail-card">
+          <div className="card-header">
+            <h2>Site Information</h2>
           </div>
+          <div className="card-body">
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="info-label">Customer</span>
+                <span className="info-value">{customer?.name ?? "—"}</span>
+              </div>
 
-          <dl className="detail-grid">
-            <div>
-              <dt>Customer</dt>
-              <dd>{customer?.name ?? "—"}</dd>
-            </div>
+              <div className="info-item full-width">
+                <span className="info-label">Address</span>
+                <span className="info-value">{addr || "—"}</span>
+              </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>Address</dt>
-              <dd>{addr || "—"}</dd>
-            </div>
+              <div className="info-item">
+                <span className="info-label">City</span>
+                <span className="info-value">{site.city ?? "—"}</span>
+              </div>
 
-            <div>
-              <dt>City</dt>
-              <dd>{site.city ?? "—"}</dd>
-            </div>
+              <div className="info-item">
+                <span className="info-label">State</span>
+                <span className="info-value">{site.state ?? "—"}</span>
+              </div>
 
-            <div>
-              <dt>State</dt>
-              <dd>{site.state ?? "—"}</dd>
+              <div className="info-item">
+                <span className="info-label">ZIP</span>
+                <span className="info-value">{site.postalCode ?? "—"}</span>
+              </div>
             </div>
-
-            <div>
-              <dt>ZIP</dt>
-              <dd>{site.postalCode ?? "—"}</dd>
-            </div>
-          </dl>
+          </div>
         </div>
       )}
+
+      {/* Edit Modal */}
       {showEdit && site && (
         <div
+          className="modal-overlay"
           role="dialog"
           aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-            zIndex: 50,
-          }}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowEdit(false);
           }}
         >
-          <div
-            style={{
-              width: "min(640px, 100%)",
-              background: "white",
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.12)",
-              padding: 16,
-              maxHeight: "80vh",
-              overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-              <h3 style={{ margin: 0 }}>Edit Site</h3>
-              <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
-                Close
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Edit Site</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowEdit(false)}
+                disabled={saving}
+              >
+                ✕
               </button>
             </div>
 
-            <form onSubmit={saveSite} style={{ marginTop: 12, display: "grid", gap: 12 }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Name</span>
-                <input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Address</span>
-                <input
-                  value={editAddress}
-                  onChange={(e) => setEditAddress(e.target.value)}
-                  placeholder="Street"
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>City</span>
-                <input
-                  value={editCity}
-                  onChange={(e) => setEditCity(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>State</span>
-                <input
-                  value={editState}
-                  onChange={(e) => setEditState(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>ZIP</span>
-                <input
-                  value={editPostalCode}
-                  onChange={(e) => setEditPostalCode(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
-
-              {saveError && (
-                <div style={{ padding: 12, border: "1px solid rgba(255,0,0,0.25)", borderRadius: 10 }}>
-                  <strong>Error:</strong> {saveError}
+            <form onSubmit={saveSite}>
+              <div className="modal-body">
+                <div className="form-field">
+                  <label className="field-label">Name</label>
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="field-input"
+                  />
                 </div>
-              )}
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
+                <div className="form-field">
+                  <label className="field-label">Address</label>
+                  <input
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    placeholder="Street"
+                    className="field-input"
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label className="field-label">City</label>
+                  <input
+                    value={editCity}
+                    onChange={(e) => setEditCity(e.target.value)}
+                    className="field-input"
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label className="field-label">State</label>
+                  <input
+                    value={editState}
+                    onChange={(e) => setEditState(e.target.value)}
+                    className="field-input"
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label className="field-label">ZIP</label>
+                  <input
+                    value={editPostalCode}
+                    onChange={(e) => setEditPostalCode(e.target.value)}
+                    className="field-input"
+                  />
+                </div>
+
+                {saveError && <div className="alert-error">{saveError}</div>}
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setShowEdit(false)}
+                  disabled={saving}
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={saving || !editName.trim()}>
-                  {saving ? "Saving…" : "Save changes"}
+                <button type="submit" className="btn-submit" disabled={saving || !editName.trim()}>
+                  {saving ? "Saving..." : "Save changes"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

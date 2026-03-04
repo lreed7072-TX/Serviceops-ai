@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Asset, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import "./asset-detail.css";
 
 type SingleResponse<T> = {
   data: T;
@@ -302,203 +303,196 @@ export default function AssetDetailPage() {
   };
 
   return (
-    <div>
+    <div className="asset-detail-page">
+      {/* Toast Notice */}
       {notice && (
-        <div
-          className="page-alert"
-          style={{
-            position: "fixed",
-            top: 24,
-            right: 24,
-            width: "min(360px, calc(100% - 48px))",
-            background: notice.type === "success" ? "#ecfdf3" : undefined,
-            borderColor: notice.type === "success" ? "#bbf7d0" : undefined,
-            color: notice.type === "success" ? "#166534" : undefined,
-            zIndex: 50,
-          }}
-        >
+        <div className={`toast-notice ${notice.type}`}>
           {notice.message}
         </div>
       )}
 
+      {/* Page Header */}
       <div className="page-header">
-        <div>
-          <h2>{asset?.name ?? "Asset detail"}</h2>
-          <p>Expanded asset detail with nameplate metadata.</p>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>{asset?.name ?? "Asset detail"}</h1>
+            <p className="header-subtitle">Expanded asset detail with nameplate metadata</p>
+          </div>
+          <div className="header-right">
+            <span className="btn-secondary">Org scoped</span>
+          </div>
         </div>
-        <span className="badge">Org scoped</span>
       </div>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <Link className="link-button" href="/assets">
+      {/* Navigation Links */}
+      <div className="nav-links">
+        <Link className="back-link" href="/assets">
           ← Back to assets
         </Link>
-        <Link className="link-button" href="/work-orders">
+        <Link className="back-link" href="/work-orders">
           Work orders
         </Link>
       </div>
 
-      {error && <div className="page-alert error">{error}</div>}
-      {loading && !error && <div className="page-alert info">Loading asset…</div>}
+      {/* Alerts */}
+      {error && <div className="alert-error">{error}</div>}
+      {loading && !error && <div className="alert-info">Loading asset...</div>}
 
       {!loading && !asset && !error && (
-        <div className="page-alert error">Not found or no access.</div>
+        <div className="alert-error">Not found or no access.</div>
       )}
 
       {asset && (
         <>
-          <div className="card">
-            <h3>Overview</h3>
-            <dl className="detail-grid">
-              <div>
-                <dt>Name</dt>
-                <dd>{formatValue(asset.name)}</dd>
-              </div>
-              <div>
-                <dt>Site</dt>
-                <dd>{site?.name ?? formatValue(asset.siteId)}</dd>
-              </div>
-              <div>
-                <dt>Manufacturer</dt>
-                <dd>{formatValue(asset.manufacturer)}</dd>
-              </div>
-              <div>
-                <dt>Model</dt>
-                <dd>{formatValue(asset.model)}</dd>
-              </div>
-              <div>
-                <dt>Serial</dt>
-                <dd>{formatValue(asset.serialNumber)}</dd>
-              </div>
-              <div>
-                <dt>Tag</dt>
-                <dd>{formatValue(asset.assetTag)}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{formatEnumValue(asset.status)}</dd>
-              </div>
-              <div>
-                <dt>Criticality</dt>
-                <dd>{formatEnumValue(asset.criticality ?? "")}</dd>
-              </div>
-              <div>
-                <dt>Location</dt>
-                <dd>{formatValue(asset.location)}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="card">
+          {/* Overview Card */}
+          <div className="detail-card">
             <div className="card-header">
-              <h3>Notes</h3>
+              <h2>Overview</h2>
             </div>
-            <p>{notesText ? notesText : "No notes yet."}</p>
+            <div className="card-body">
+              <div className="info-grid">
+                <div className="info-item">
+                  <span className="info-label">Name</span>
+                  <span className="info-value">{formatValue(asset.name)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Site</span>
+                  <span className="info-value">{site?.name ?? formatValue(asset.siteId)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Manufacturer</span>
+                  <span className="info-value">{formatValue(asset.manufacturer)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Model</span>
+                  <span className="info-value">{formatValue(asset.model)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Serial</span>
+                  <span className="info-value">{formatValue(asset.serialNumber)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Tag</span>
+                  <span className="info-value">{formatValue(asset.assetTag)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Status</span>
+                  <span className="info-value">{formatEnumValue(asset.status)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Criticality</span>
+                  <span className="info-value">{formatEnumValue(asset.criticality ?? "")}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Location</span>
+                  <span className="info-value">{formatValue(asset.location)}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="card">
+          {/* Notes Card */}
+          <div className="detail-card">
             <div className="card-header">
-              <h3>Nameplate</h3>
-              <span className="muted">
+              <h2>Notes</h2>
+            </div>
+            <div className="card-body">
+              {notesText ? (
+                <p className="notes-text">{notesText}</p>
+              ) : (
+                <p className="notes-empty">No notes yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Nameplate Card */}
+          <div className="detail-card">
+            <div className="card-header">
+              <h2>Nameplate</h2>
+              <span className="card-header-meta">
                 Schema v{asset.nameplateSchemaVersion ?? "—"}
               </span>
             </div>
-            <form
-              className="form-grid"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleNameplateSave();
-              }}
-              style={{
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              }}
-            >
-              {(Object.keys(nameplateLabels) as Array<keyof NameplateFormState>).map(
-                (field) => (
-                  <label className="form-field" key={field}>
-                    {nameplateLabels[field]}
-                    <input
-                      type={numericNameplateFields.includes(field) ? "number" : "text"}
-                      inputMode={
-                        numericNameplateFields.includes(field) ? "decimal" : undefined
-                      }
-                      step={numericNameplateFields.includes(field) ? "any" : undefined}
-                      value={nameplateForm[field]}
-                      onChange={(event) =>
-                        handleNameplateChange(field, event.target.value)
-                      }
-                      placeholder={nameplateLabels[field]}
-                    />
-                  </label>
-                )
-              )}
-              <button type="submit" disabled={savingNameplate}>
-                {savingNameplate ? "Saving..." : "Save nameplate"}
-              </button>
-            </form>
+            <div className="card-body">
+              <form
+                className="nameplate-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleNameplateSave();
+                }}
+              >
+                {(Object.keys(nameplateLabels) as Array<keyof NameplateFormState>).map(
+                  (field) => (
+                    <div className="form-field" key={field}>
+                      <label className="field-label">{nameplateLabels[field]}</label>
+                      <input
+                        type={numericNameplateFields.includes(field) ? "number" : "text"}
+                        inputMode={
+                          numericNameplateFields.includes(field) ? "decimal" : undefined
+                        }
+                        step={numericNameplateFields.includes(field) ? "any" : undefined}
+                        value={nameplateForm[field]}
+                        onChange={(event) =>
+                          handleNameplateChange(field, event.target.value)
+                        }
+                        placeholder={nameplateLabels[field]}
+                        className="field-input"
+                      />
+                    </div>
+                  )
+                )}
+                <button type="submit" className="btn-submit" disabled={savingNameplate}>
+                  {savingNameplate ? "Saving..." : "Save nameplate"}
+                </button>
+              </form>
+            </div>
           </div>
-            <AttachmentsPanel entityType="asset" entityId={asset.id} />
 
-          {/* PM Schedules Section */}
-          <div className="card">
-            <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3>PM Schedules ({pmSchedules.length})</h3>
+          {/* Attachments */}
+          <AttachmentsPanel entityType="asset" entityId={asset.id} />
+
+          {/* PM Schedules */}
+          <div className="detail-card">
+            <div className="card-header">
+              <h2>PM Schedules ({pmSchedules.length})</h2>
               <Link
                 href={`/pm-schedules/new?assetId=${asset.id}`}
-                className="btn btn-sm btn-primary"
-                style={{ textDecoration: "none" }}
+                className="btn-primary"
               >
                 + Create PM Schedule
               </Link>
             </div>
-            {pmSchedules.length === 0 ? (
-              <p style={{ color: "#6b7280", fontStyle: "italic" }}>
-                No PM schedules configured for this equipment.
-              </p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {pmSchedules.map((pm) => (
-                  <Link
-                    key={pm.id}
-                    href={`/pm-schedules/${pm.id}`}
-                    style={{
-                      display: "block",
-                      padding: "12px",
-                      background: "#f9fafb",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "6px",
-                      textDecoration: "none",
-                      color: "inherit",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                      <strong style={{ fontSize: "14px", color: "#111827" }}>{pm.name}</strong>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          padding: "2px 8px",
-                          borderRadius: "4px",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          background: pm.status === "ACTIVE" ? "#d1fae5" : "#f3f4f6",
-                          color: pm.status === "ACTIVE" ? "#065f46" : "#6b7280",
-                        }}
-                      >
-                        {pm.status}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                      Every {pm.frequencyValue}{" "}
-                      {pm.frequencyType.toLowerCase().replace("ly", pm.frequencyValue === 1 ? "" : "s")}
-                      {pm.nextScheduledDate && (
-                        <> &bull; Next: {new Date(pm.nextScheduledDate).toLocaleDateString()}</>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div className="card-body">
+              {pmSchedules.length === 0 ? (
+                <div className="empty-state">
+                  <p>No PM schedules configured for this equipment.</p>
+                </div>
+              ) : (
+                <div className="pm-list">
+                  {pmSchedules.map((pm) => (
+                    <Link
+                      key={pm.id}
+                      href={`/pm-schedules/${pm.id}`}
+                      className="pm-item"
+                    >
+                      <div className="pm-item-header">
+                        <span className="pm-item-name">{pm.name}</span>
+                        <span className={`status-badge ${pm.status?.toLowerCase() || "active"}`}>
+                          {pm.status}
+                        </span>
+                      </div>
+                      <div className="pm-item-detail">
+                        Every {pm.frequencyValue}{" "}
+                        {pm.frequencyType.toLowerCase().replace("ly", pm.frequencyValue === 1 ? "" : "s")}
+                        {pm.nextScheduledDate && (
+                          <> &bull; Next: {new Date(pm.nextScheduledDate).toLocaleDateString()}</>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}

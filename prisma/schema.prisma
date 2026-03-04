@@ -6,6 +6,8 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  // Limit connections per serverless instance to avoid exhausting the pool
+  // directUrl bypasses the pooler for migrations; url goes through PgBouncer
 }
 
 enum Role {

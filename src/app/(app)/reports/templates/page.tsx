@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReportTemplate } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import "../reports.css";
 
 type ListResponse<T> = {
   data?: T[];

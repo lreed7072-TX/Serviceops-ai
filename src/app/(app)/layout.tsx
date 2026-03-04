@@ -7,10 +7,12 @@ import SearchTrigger from "@/components/search/SearchTrigger";
 import SearchProvider from "@/components/search/SearchProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import "./shell.css";
 
 type NavLink = {
   href: string;
   label: string;
+  icon: string;
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -21,41 +23,49 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (auth.role === Role.TECH) redirect("/tech");
 
   const navLinks: NavLink[] = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/customers", label: "Customers" },
-    { href: "/sites", label: "Sites" },
-    { href: "/assets", label: "Assets" },
-    { href: "/work-orders", label: "Work Orders" },
-    { href: "/quotes", label: "Quotes" },
-    { href: "/invoices", label: "Invoices" },
-    { href: "/visits", label: "Visit Execution" },
-    { href: "/reports", label: "Reports" },
-    { href: "/pm-schedules", label: "PM Schedules" },
-    { href: "/knowledge-base", label: "Knowledge Base" },
-    { href: "/procedure-templates", label: "Procedure Templates" },
-    { href: "/standards-packs", label: "Standards Packs" },
-    { href: "/materials", label: "Materials" },
+    { href: "/dashboard", label: "Dashboard", icon: "D" },
+    { href: "/customers", label: "Customers", icon: "C" },
+    { href: "/sites", label: "Sites", icon: "S" },
+    { href: "/assets", label: "Assets", icon: "A" },
+    { href: "/work-orders", label: "Work Orders", icon: "W" },
+    { href: "/quotes", label: "Quotes", icon: "Q" },
+    { href: "/invoices", label: "Invoices", icon: "I" },
+    { href: "/visits", label: "Visit Execution", icon: "V" },
+    { href: "/reports", label: "Reports", icon: "R" },
+    { href: "/pm-schedules", label: "PM Schedules", icon: "P" },
+    { href: "/knowledge-base", label: "Knowledge Base", icon: "K" },
+    { href: "/procedure-templates", label: "Procedure Templates", icon: "T" },
+    { href: "/standards-packs", label: "Standards Packs", icon: "X" },
+    { href: "/materials", label: "Materials", icon: "M" },
     ...(auth.role === Role.ADMIN ? [
-      { href: "/users", label: "Users" },
-      { href: "/settings/audit-logs", label: "Audit Logs" },
-      { href: "/settings", label: "⚙️ Settings" },
+      { href: "/users", label: "Users", icon: "U" },
+      { href: "/settings/audit-logs", label: "Audit Logs", icon: "L" },
+      { href: "/settings", label: "Settings", icon: "G" },
     ] : []),
   ];
 
   return (
     <div className="shell">
       <aside className="sidebar">
-        <h1>ServiceOpsIQ</h1>
-        <SearchTrigger />
+        <div className="sidebar-brand">
+          <h1>ServiceOpsIQ</h1>
+          <p className="brand-tagline">Field Service Management</p>
+        </div>
+
+        <div className="sidebar-search">
+          <SearchTrigger />
+        </div>
+
         <nav className="nav">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href}>
-              {link.label}
+              <span className="nav-icon">{link.icon}</span>
+              <span className="nav-label">{link.label}</span>
             </Link>
           ))}
         </nav>
 
-        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="sidebar-footer">
           <NotificationBell />
           <LogoutButton />
         </div>

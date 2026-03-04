@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReportBlock, ReportTemplate } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import "../../reports.css";
 
 type TemplateWithBlocks = ReportTemplate & { blocks: ReportBlock[] };
 

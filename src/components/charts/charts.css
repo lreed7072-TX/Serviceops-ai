@@ -1,0 +1,138 @@
+/* ========================================
+   Chart Components - Shared Styles
+   ======================================== */
+
+.chart-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: border-color var(--transition-fast);
+}
+
+.chart-card:hover {
+  border-color: #93c5fd;
+}
+
+.chart-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chart-wrapper {
+  width: 100%;
+  min-height: 250px;
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Charts Grid Layout (used on analytics page) */
+.analytics-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.analytics-charts-grid .chart-card-wide {
+  grid-column: 1 / -1;
+}
+
+/* Recharts tooltip overrides */
+.chart-tooltip {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 10px 14px !important;
+  font-family: var(--font-sans) !important;
+}
+
+.chart-tooltip-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.chart-tooltip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-light);
+  padding: 2px 0;
+}
+
+.chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-tooltip-value {
+  font-weight: 600;
+  color: var(--text);
+  margin-left: auto;
+}
+
+/* Legend overrides */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .analytics-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-wrapper {
+    min-height: 200px;
+  }
+
+  .chart-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-wrapper {
+    min-height: 180px;
+  }
+
+  .chart-card-title {
+    font-size: 12px;
+  }
+}

@@ -1,6 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import RevenueChart from "@/components/charts/RevenueChart";
+import WorkOrderStatusChart from "@/components/charts/WorkOrderStatusChart";
+import MaterialUsageChart from "@/components/charts/MaterialUsageChart";
+import QuoteFunnelChart from "@/components/charts/QuoteFunnelChart";
+import CustomerRevenueChart from "@/components/charts/CustomerRevenueChart";
+import TechPerformanceChart from "@/components/charts/TechPerformanceChart";
+import "@/components/charts/charts.css";
 
 type DateRange = "7d" | "30d" | "90d" | "custom";
 
@@ -250,6 +257,19 @@ export default function AnalyticsPage() {
               {formatCurrency(materialData?.topMaterials?.[0]?.totalCost || 0)} cost
             </div>
           </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="analytics-charts-grid">
+          <RevenueChart data={revenueData?.monthlyTrend || []} />
+
+          <WorkOrderStatusChart data={workOrderData?.statusDistribution || {}} />
+          <QuoteFunnelChart data={quoteData?.statusDistribution || {}} />
+
+          <MaterialUsageChart data={materialData?.categoryDistribution || {}} />
+
+          <CustomerRevenueChart data={revenueData?.topCustomers || []} />
+          <TechPerformanceChart data={workOrderData?.technicianPerformance || []} />
         </div>
       </div>
     </div>

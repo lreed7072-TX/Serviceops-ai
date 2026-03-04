@@ -247,6 +247,8 @@ model Org {
   siteCheckIns           SiteCheckIn[]
   workOrderPhotos        WorkOrderPhoto[]
   techPhotos             TechPhoto[]
+  qboConnection          QboConnection?
+  customerPortalTokens   CustomerPortalToken[]
 }
 
 model User {
@@ -323,6 +325,7 @@ model Customer {
   billingPostalCode String?
   billingCountry    String?
   notes             String?
+  qboCustomerId     String?   // QuickBooks customer ID
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -332,7 +335,8 @@ model Customer {
   workOrders  WorkOrder[]
   quotes      Quote[]
   invoices    Invoice[]
-  pmSchedules WorkflowDefinition[] @relation("PMScheduleCustomer")
+  pmSchedules  WorkflowDefinition[] @relation("PMScheduleCustomer")
+  portalTokens CustomerPortalToken[]
 
   @@index([orgId])
   @@index([orgId, name])
@@ -1198,6 +1202,8 @@ model Invoice {
   paidAt          DateTime?
   notes           String?       @db.Text
   terms           String?       @db.Text
+  qboInvoiceId    String?       // QuickBooks invoice ID
+  qboSyncedAt     DateTime?     // Last synced to QBO
   createdByUserId String        @db.Uuid
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -1550,4 +1556,69 @@ model TechPhoto {
   @@index([orgId, userId])
   @@index([userId, capturedAt])
   @@index([workOrderId])
+}
+
+// ============================================
+// QUICKBOOKS ONLINE INTEGRATION
+// ============================================
+
+model QboConnection {
+  id                String    @id @default(uuid()) @db.Uuid
+  orgId             String    @unique @db.Uuid  // One QBO connection per org
+  realmId           String    // QBO Company ID
+  accessToken       String    @db.Text
+  refreshToken      String    @db.Text
+  accessTokenExpiry DateTime
+  companyName       String?
+  isActive          Boolean   @default(true)
+  connectedAt       DateTime  @default(now())
+  lastSyncAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  org               Org       @relation(fields: [orgId], references: [id])
+  syncLogs          QboSyncLog[]
+
+  @@index([orgId])
+}
+
+model QboSyncLog {
+  id              String        @id @default(uuid()) @db.Uuid
+  orgId           String        @db.Uuid
+  connectionId    String        @db.Uuid
+  entityType      String        // "customer", "invoice", "payment"
+  entityId        String        @db.Uuid  // ServiceOps entity ID
+  qboEntityId     String?       // QBO entity ID
+  action          String        // "push", "pull", "error"
+  status          String        // "success", "failed", "pending"
+  errorMessage    String?       @db.Text
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+
+  connection      QboConnection @relation(fields: [connectionId], references: [id])
+
+  @@index([orgId, entityType])
+  @@index([connectionId])
+}
+
+// ============================================
+// CUSTOMER PORTAL
+// ============================================
+
+model CustomerPortalToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  orgId       String    @db.Uuid
+  customerId  String    @db.Uuid
+  token       String    @unique @default(uuid())
+  email       String
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?  // null = never expires
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  org         Org       @relation(fields: [orgId], references: [id])
+  customer    Customer  @relation(fields: [customerId], references: [id])
+
+  @@index([token])
+  @@index([orgId, customerId])
 }

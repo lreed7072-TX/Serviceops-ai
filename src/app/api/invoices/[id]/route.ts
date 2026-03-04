@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { InvoiceStatus } from "@prisma/client";
 import { parseJson } from "@/lib/api-server";
+import { syncInvoiceToQbo, getActiveConnection } from "@/lib/qbo/qbo-sync";
 
 // GET /api/invoices/[id]
 export async function GET(
@@ -111,6 +112,17 @@ export async function PATCH(
       lineItems: { orderBy: { sortOrder: "asc" } },
     },
   });
+
+  // When status changes to SENT, trigger async QBO sync if connected
+  if (body?.status === InvoiceStatus.SENT && existing.status !== InvoiceStatus.SENT) {
+    getActiveConnection(orgId).then((conn) => {
+      if (conn) {
+        syncInvoiceToQbo(orgId, id).catch((err) => {
+          console.error("QBO invoice sync failed:", err);
+        });
+      }
+    });
+  }
 
   return NextResponse.json({ data: invoice });
 }

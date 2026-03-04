@@ -59,8 +59,8 @@ export default function AcceptInviteForm({
         }
       }
 
-      // Mark invite as accepted and activate user
-      const res = await fetch("/api/auth/accept-invite", {
+      // Mark invite as accepted and activate user (uses secure endpoint with session verification)
+      const res = await fetch("/api/invites/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),

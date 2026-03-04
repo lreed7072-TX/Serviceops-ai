@@ -13,6 +13,19 @@ function getResend(): Resend {
 const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@example.com";
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "ServiceOpsIQ";
 
+/**
+ * Escape HTML special characters to prevent XSS/injection in email templates.
+ */
+function escHtml(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 interface SendEmailOptions {
   to: string;
   subject: string;
@@ -115,22 +128,22 @@ export async function sendQuoteEmail(data: QuoteEmailData): Promise<EmailResult>
       <body>
         <div class="container">
           <div class="header">
-            <h1>${data.orgName}</h1>
-            <p>Quote ${data.quoteNumber}</p>
+            <h1>${escHtml(data.orgName)}</h1>
+            <p>Quote ${escHtml(data.quoteNumber)}</p>
           </div>
           <div class="content">
-            <p>Dear ${data.customerName},</p>
+            <p>Dear ${escHtml(data.customerName)},</p>
             <p>Thank you for your interest. Please find attached your quote for:</p>
-            <h2 style="margin: 20px 0 10px 0; color: #111827;">${data.title}</h2>
-            ${data.description ? `<p style="color: #6b7280;">${data.description}</p>` : ""}
+            <h2 style="margin: 20px 0 10px 0; color: #111827;">${escHtml(data.title)}</h2>
+            ${data.description ? `<p style="color: #6b7280;">${escHtml(data.description)}</p>` : ""}
             <div class="total">$${Number(data.total).toFixed(2)}</div>
-            ${data.quoteUrl ? `<a href="${data.quoteUrl}" class="cta">View Quote Online</a>` : ""}
+            ${data.quoteUrl ? `<a href="${escHtml(data.quoteUrl)}" class="cta">View Quote Online</a>` : ""}
             ${validUntilText ? `<div class="note">${validUntilText}</div>` : ""}
             <p style="margin-top: 30px;">If you have any questions, please don't hesitate to contact us.</p>
-            <p>Best regards,<br>${data.orgName}</p>
+            <p>Best regards,<br>${escHtml(data.orgName)}</p>
           </div>
           <div class="footer">
-            <p>This email was sent by ${data.orgName}</p>
+            <p>This email was sent by ${escHtml(data.orgName)}</p>
           </div>
         </div>
       </body>
@@ -220,23 +233,23 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<EmailRes
       <body>
         <div class="container">
           <div class="header">
-            <h1>${data.orgName}</h1>
-            <p>Invoice ${data.invoiceNumber}</p>
+            <h1>${escHtml(data.orgName)}</h1>
+            <p>Invoice ${escHtml(data.invoiceNumber)}</p>
           </div>
           <div class="content">
-            <p>Dear ${data.customerName},</p>
+            <p>Dear ${escHtml(data.customerName)},</p>
             <p>Please find attached your invoice for:</p>
-            <h2 style="margin: 20px 0 10px 0; color: #111827;">${data.title}</h2>
-            ${data.description ? `<p style="color: #6b7280;">${data.description}</p>` : ""}
+            <h2 style="margin: 20px 0 10px 0; color: #111827;">${escHtml(data.title)}</h2>
+            ${data.description ? `<p style="color: #6b7280;">${escHtml(data.description)}</p>` : ""}
             <div class="total">$${Number(data.total).toFixed(2)}</div>
-            ${data.invoiceUrl ? `<a href="${data.invoiceUrl}" class="cta">View Invoice Online</a>` : ""}
+            ${data.invoiceUrl ? `<a href="${escHtml(data.invoiceUrl)}" class="cta">View Invoice Online</a>` : ""}
             ${dueDateText ? `<div class="note">${dueDateText}</div>` : ""}
             <p style="margin-top: 30px;">If you have any questions about this invoice, please contact us.</p>
             <p>Thank you for your business.</p>
-            <p>Best regards,<br>${data.orgName}</p>
+            <p>Best regards,<br>${escHtml(data.orgName)}</p>
           </div>
           <div class="footer">
-            <p>This email was sent by ${data.orgName}</p>
+            <p>This email was sent by ${escHtml(data.orgName)}</p>
           </div>
         </div>
       </body>
@@ -329,37 +342,37 @@ export async function sendWorkOrderEmail(data: WorkOrderEmailData): Promise<Emai
       <body>
         <div class="container">
           <div class="header">
-            <h1>${data.orgName}</h1>
-            <p>Work Order ${data.workOrderNumber}</p>
+            <h1>${escHtml(data.orgName)}</h1>
+            <p>Work Order ${escHtml(data.workOrderNumber)}</p>
           </div>
           <div class="content">
-            <p>Dear ${data.customerName},</p>
+            <p>Dear ${escHtml(data.customerName)},</p>
             <p>Please find the details for your work order below:</p>
-            <h2 style="margin: 20px 0 10px 0; color: #111827;">${data.title}</h2>
-            ${data.description ? `<p style="color: #6b7280;">${data.description}</p>` : ""}
+            <h2 style="margin: 20px 0 10px 0; color: #111827;">${escHtml(data.title)}</h2>
+            ${data.description ? `<p style="color: #6b7280;">${escHtml(data.description)}</p>` : ""}
             <div style="margin: 20px 0; background: white; border-radius: 8px; padding: 16px; border: 1px solid #e5e7eb;">
               <div class="detail-row">
                 <span class="detail-label">Status</span>
-                <span class="detail-value"><span class="status-badge">${statusDisplay}</span></span>
+                <span class="detail-value"><span class="status-badge">${escHtml(statusDisplay)}</span></span>
               </div>
               ${data.siteName ? `
               <div class="detail-row">
                 <span class="detail-label">Service Location</span>
-                <span class="detail-value">${data.siteName}</span>
+                <span class="detail-value">${escHtml(data.siteName)}</span>
               </div>` : ""}
               ${data.technicianName ? `
               <div class="detail-row">
                 <span class="detail-label">Assigned Tech</span>
-                <span class="detail-value">${data.technicianName}</span>
+                <span class="detail-value">${escHtml(data.technicianName)}</span>
               </div>` : ""}
             </div>
-            ${data.workOrderUrl ? `<a href="${data.workOrderUrl}" class="cta">View Work Order Online</a>` : ""}
+            ${data.workOrderUrl ? `<a href="${escHtml(data.workOrderUrl)}" class="cta">View Work Order Online</a>` : ""}
             <p style="margin-top: 30px;">A PDF copy of this work order is attached for your records.</p>
             <p>If you have any questions, please don't hesitate to contact us.</p>
-            <p>Best regards,<br>${data.orgName}</p>
+            <p>Best regards,<br>${escHtml(data.orgName)}</p>
           </div>
           <div class="footer">
-            <p>This email was sent by ${data.orgName}</p>
+            <p>This email was sent by ${escHtml(data.orgName)}</p>
           </div>
         </div>
       </body>

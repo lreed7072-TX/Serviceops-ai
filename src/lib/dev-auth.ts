@@ -11,28 +11,17 @@ const DEV_SESSION_STORAGE_KEY = "devAuth";
 const truthy = (value?: string | null): boolean =>
   typeof value === "string" && value.toLowerCase() === "true";
 
-const rawBypassFlag =
-  process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS ??
-  process.env.DEV_AUTH_BYPASS ??
-  "";
+const rawBypassFlag = process.env.DEV_AUTH_BYPASS ?? "";
 
-const devBypassEnabled = truthy(rawBypassFlag);
+const devBypassEnabled =
+  truthy(rawBypassFlag) && process.env.NODE_ENV === "development";
 
 const envSession: DevAuthSession | null = (() => {
   if (!devBypassEnabled) return null;
 
-  const orgId =
-    process.env.NEXT_PUBLIC_DEV_ORG_ID ??
-    process.env.DEV_ORG_ID ??
-    "";
-  const userId =
-    process.env.NEXT_PUBLIC_DEV_USER_ID ??
-    process.env.DEV_USER_ID ??
-    "";
-  const role =
-    process.env.NEXT_PUBLIC_DEV_ROLE ??
-    process.env.DEV_ROLE ??
-    "";
+  const orgId = process.env.DEV_ORG_ID ?? "";
+  const userId = process.env.DEV_USER_ID ?? "";
+  const role = process.env.DEV_ROLE ?? "";
 
   if (orgId && userId && role) {
     return { orgId, userId, role };

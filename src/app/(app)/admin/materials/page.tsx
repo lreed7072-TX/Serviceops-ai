@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MaterialCategory } from "@prisma/client";
+import { useToast } from "@/components/ui/Toast";
 
 interface Material {
   id: string;
@@ -25,6 +26,7 @@ export default function MaterialsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<MaterialCategory | "ALL">("ALL");
   const [showInactive, setShowInactive] = useState(false);
+  const toast = useToast();
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -94,11 +96,11 @@ export default function MaterialsPage() {
         resetForm();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to save material");
+        toast.error(error.error || "Failed to save material");
       }
     } catch (error) {
       console.error("Failed to save material:", error);
-      alert("An error occurred while saving");
+      toast.error("An error occurred while saving");
     }
   };
 

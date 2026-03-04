@@ -14,6 +14,7 @@ import AdvancedFilterPanel from "@/components/filters/AdvancedFilterPanel";
 import ExportButton from "@/components/filters/ExportButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/Toast";
 import "./work-orders.css";
 
 type ListResponse<T> = {
@@ -232,7 +233,8 @@ const advancedFilterConfigs: FilterConfig[] = [
 
 export default function WorkOrdersPage() {
   const router = useRouter();
-  
+  const toast = useToast();
+
   // State - Data
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -623,11 +625,11 @@ export default function WorkOrdersPage() {
         setWorkOrderToDelete(null);
       } else {
         const error = await response.json() as { error?: string };
-        alert(error.error || "Failed to delete work order");
+        toast.error(error.error || "Failed to delete work order");
       }
     } catch (error) {
       console.error("Failed to delete work order:", error);
-      alert("An error occurred while deleting the work order");
+      toast.error("An error occurred while deleting the work order");
     } finally {
       setDeleting(false);
     }

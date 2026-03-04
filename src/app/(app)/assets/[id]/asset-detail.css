@@ -39,27 +39,6 @@
   flex-wrap: wrap;
 }
 
-/* Navigation Links */
-.nav-links {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.back-link:hover {
-  color: #2563eb;
-}
-
 /* Toast Notice */
 .toast-notice {
   position: fixed;
@@ -434,10 +413,6 @@
 
   .nameplate-form {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .nav-links {
-    flex-direction: column;
   }
 
   .toast-notice {

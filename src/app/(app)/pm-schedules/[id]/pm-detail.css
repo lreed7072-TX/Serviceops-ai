@@ -4,25 +4,6 @@
   max-width: 1400px;
 }
 
-/* Breadcrumb */
-.pm-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 16px;
-}
-
-.pm-breadcrumb a {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.pm-breadcrumb a:hover {
-  text-decoration: underline;
-}
-
 /* Header meta */
 .schedule-meta-header {
   display: flex;

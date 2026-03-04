@@ -87,8 +87,9 @@
 
 .nav-icon {
   width: 20px;
-  text-align: center;
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   color: #9ca3af;
   transition: color 0.15s ease;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteLineItemType, QuoteStatus } from "@prisma/client";
+import { useToast } from "@/components/ui/Toast";
 import "../../new/new-quote.css";
 
 interface Customer {
@@ -78,6 +79,7 @@ export default function EditQuotePage() {
     totalPrice: 0,
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (quoteId) {
@@ -106,7 +108,7 @@ export default function EditQuotePage() {
 
         // Check if quote is editable (cannot edit APPROVED or CONVERTED)
         if (quoteData.status === QuoteStatus.APPROVED || quoteData.status === QuoteStatus.CONVERTED) {
-          alert("Cannot edit APPROVED or CONVERTED quotes.");
+          toast.warning("Cannot edit APPROVED or CONVERTED quotes.");
           router.push(`/quotes/${quoteId}`);
           return;
         }
@@ -219,7 +221,7 @@ export default function EditQuotePage() {
 
   const handleSubmit = async () => {
     if (!formData.customerId || !formData.title || lineItems.length === 0) {
-      alert("Please fill in all required fields and add at least one line item");
+      toast.warning("Please fill in all required fields and add at least one line item");
       return;
     }
 
@@ -251,11 +253,11 @@ export default function EditQuotePage() {
         router.push(`/quotes/${quoteId}`);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to update quote");
+        toast.error(error.error || "Failed to update quote");
       }
     } catch (error) {
       console.error("Failed to update quote:", error);
-      alert("Failed to update quote");
+      toast.error("Failed to update quote");
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { InvoiceStatus, InvoiceLineItemType } from "@prisma/client";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import "./edit-invoice.css";
 
 interface InvoiceLineItem {
@@ -55,6 +56,7 @@ export default function EditInvoicePage() {
   const [saving, setSaving] = useState(false);
   const [showLineItemModal, setShowLineItemModal] = useState(false);
   const [addingLineItem, setAddingLineItem] = useState(false);
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -130,11 +132,11 @@ export default function EditInvoicePage() {
         router.push(`/invoices/${invoiceId}`);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to update invoice");
+        toast.error(error.error || "Failed to update invoice");
       }
     } catch (error) {
       console.error("Failed to update invoice:", error);
-      alert("Failed to update invoice");
+      toast.error("Failed to update invoice");
     } finally {
       setSaving(false);
     }
@@ -167,11 +169,11 @@ export default function EditInvoicePage() {
         await fetchInvoice();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to add line item");
+        toast.error(error.error || "Failed to add line item");
       }
     } catch (error) {
       console.error("Failed to add line item:", error);
-      alert("Failed to add line item");
+      toast.error("Failed to add line item");
     } finally {
       setAddingLineItem(false);
     }

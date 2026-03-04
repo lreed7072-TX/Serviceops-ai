@@ -4,25 +4,6 @@
   max-width: 1400px;
 }
 
-/* Breadcrumb */
-.td-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.td-breadcrumb a {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.td-breadcrumb a:hover {
-  text-decoration: underline;
-}
-
 /* Header */
 .td-header {
   display: flex;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QuoteLineItemType } from "@prisma/client";
+import { useToast } from "@/components/ui/Toast";
 import "./new-quote.css";
 
 interface Customer {
@@ -51,6 +52,7 @@ export default function NewQuotePage() {
     totalPrice: 0,
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetchCustomers();
@@ -137,7 +139,7 @@ export default function NewQuotePage() {
 
   const handleSubmit = async () => {
     if (!formData.customerId || !formData.title || lineItems.length === 0) {
-      alert("Please fill in all required fields and add at least one line item");
+      toast.warning("Please fill in all required fields and add at least one line item");
       return;
     }
 
@@ -157,11 +159,11 @@ export default function NewQuotePage() {
         const result = await response.json();
         router.push(`/quotes/${result.data.id}`);
       } else {
-        alert("Failed to create quote");
+        toast.error("Failed to create quote");
       }
     } catch (error) {
       console.error("Failed to create quote:", error);
-      alert("Failed to create quote");
+      toast.error("Failed to create quote");
     } finally {
       setLoading(false);
     }

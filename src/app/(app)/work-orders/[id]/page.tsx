@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { WorkOrderStatus, ExecutionMode, OrderType } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import TaskList from "@/components/tasks/TaskList";
 import SignaturePanel from "@/components/signatures/SignaturePanel";
 import "./work-order-detail.css";
@@ -167,6 +168,7 @@ export default function WorkOrderDetailPage() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timeEntries, setTimeEntries] = useState<TimeEntryRecord[]>([]);
   const [timerLoading, setTimerLoading] = useState(false);
+  const toast = useToast();
 
   const workOrderId = params?.id;
 
@@ -277,7 +279,7 @@ export default function WorkOrderDetailPage() {
         await fetchTimer();
       } else {
         const err = await response.json();
-        alert(err.error || "Failed to start timer");
+        toast.error(err.error || "Failed to start timer");
       }
     } catch (error) {
       console.error("Failed to start timer:", error);
@@ -366,11 +368,11 @@ export default function WorkOrderDetailPage() {
         await fetchWorkOrder();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to update status");
+        toast.error(error.error || "Failed to update status");
       }
     } catch (error) {
       console.error("Failed to update status:", error);
-      alert("An error occurred while updating status");
+      toast.error("An error occurred while updating status");
     }
   };
 
@@ -397,7 +399,7 @@ export default function WorkOrderDetailPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to download PDF:", error);
-      alert("Failed to download PDF");
+      toast.error("Failed to download PDF");
     } finally {
       setDownloadingPdf(false);
     }
@@ -450,11 +452,11 @@ export default function WorkOrderDetailPage() {
         await fetchWorkOrder();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to assign technician");
+        toast.error(error.error || "Failed to assign technician");
       }
     } catch (error) {
       console.error("Failed to assign tech:", error);
-      alert("An error occurred while assigning technician");
+      toast.error("An error occurred while assigning technician");
     } finally {
       setAssigning(false);
     }
@@ -477,11 +479,11 @@ export default function WorkOrderDetailPage() {
         await fetchWorkOrder();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to remove technician");
+        toast.error(error.error || "Failed to remove technician");
       }
     } catch (error) {
       console.error("Failed to unassign tech:", error);
-      alert("An error occurred while removing technician");
+      toast.error("An error occurred while removing technician");
     } finally {
       setUnassigning(null);
     }
@@ -500,11 +502,11 @@ export default function WorkOrderDetailPage() {
         router.push("/work-orders");
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to delete work order");
+        toast.error(error.error || "Failed to delete work order");
       }
     } catch (error) {
       console.error("Failed to delete work order:", error);
-      alert("An error occurred while deleting");
+      toast.error("An error occurred while deleting");
     } finally {
       setDeleting(false);
       setDeleteModalOpen(false);

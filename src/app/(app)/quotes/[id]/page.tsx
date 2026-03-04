@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteStatus, QuoteLineItemType } from "@prisma/client";
+import { useToast } from "@/components/ui/Toast";
 import "./quote-detail.css";
 
 interface QuoteLineItem {
@@ -60,6 +61,7 @@ export default function QuoteDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const toast = useToast();
 
   const quoteId = params?.id;
 
@@ -110,11 +112,11 @@ export default function QuoteDetailPage() {
         await fetchQuote();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to update status");
+        toast.error(error.error || "Failed to update status");
       }
     } catch (error) {
       console.error("Failed to update status:", error);
-      alert("An error occurred while updating status");
+      toast.error("An error occurred while updating status");
     }
   };
 
@@ -131,15 +133,15 @@ export default function QuoteDetailPage() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(result.data.message);
+        toast.success(result.data.message);
         router.push(`/work-orders/${result.data.workOrder.id}`);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to convert quote");
+        toast.error(error.error || "Failed to convert quote");
       }
     } catch (error) {
       console.error("Failed to convert quote:", error);
-      alert("An error occurred while converting");
+      toast.error("An error occurred while converting");
     } finally {
       setConverting(false);
     }
@@ -168,7 +170,7 @@ export default function QuoteDetailPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to download PDF:", error);
-      alert("Failed to download PDF");
+      toast.error("Failed to download PDF");
     } finally {
       setDownloadingPdf(false);
     }
@@ -191,15 +193,15 @@ export default function QuoteDetailPage() {
       });
 
       if (response.ok) {
-        alert(`Quote sent successfully to ${email}`);
+        toast.success(`Quote sent successfully to ${email}`);
         await fetchQuote(); // Refresh to update sentAt timestamp
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to send email");
+        toast.error(error.error || "Failed to send email");
       }
     } catch (error) {
       console.error("Failed to email quote:", error);
-      alert("An error occurred while sending email");
+      toast.error("An error occurred while sending email");
     } finally {
       setEmailing(false);
     }
@@ -221,11 +223,11 @@ export default function QuoteDetailPage() {
         router.push(`/quotes/${result.data.id}`);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to duplicate quote");
+        toast.error(error.error || "Failed to duplicate quote");
       }
     } catch (error) {
       console.error("Failed to duplicate quote:", error);
-      alert("An error occurred while duplicating");
+      toast.error("An error occurred while duplicating");
     } finally {
       setDuplicating(false);
     }
@@ -244,11 +246,11 @@ export default function QuoteDetailPage() {
         router.push("/quotes");
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to delete quote");
+        toast.error(error.error || "Failed to delete quote");
       }
     } catch (error) {
       console.error("Failed to delete quote:", error);
-      alert("An error occurred while deleting");
+      toast.error("An error occurred while deleting");
     } finally {
       setDeleting(false);
       setDeleteModalOpen(false);

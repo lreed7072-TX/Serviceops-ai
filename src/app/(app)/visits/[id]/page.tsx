@@ -7,6 +7,7 @@ import type { Visit, WorkOrder } from "@prisma/client";
 import { VisitStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import "./visit-detail.css";
 
@@ -225,6 +226,12 @@ export default function VisitDetailPage() {
 
   return (
     <div className="visit-detail-page">
+      {/* Breadcrumb */}
+      <Breadcrumbs items={[
+        { label: "Visits", href: "/visits" },
+        { label: "Visit Details" },
+      ]} />
+
       {/* Page Header */}
       <div className="visit-detail-header">
         <div className="visit-detail-header-left">
@@ -235,9 +242,6 @@ export default function VisitDetailPage() {
           <button type="button" className="btn-primary" onClick={() => setShowEdit(true)}>
             Edit
           </button>
-          <Link className="back-link" href="/visits">
-            ← Back to Visits
-          </Link>
         </div>
       </div>
 

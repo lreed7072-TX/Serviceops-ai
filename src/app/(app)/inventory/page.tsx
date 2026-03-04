@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { StockMovementType } from "@prisma/client";
+import { useToast } from "@/components/ui/Toast";
 
 interface Material {
   id: string;
@@ -46,6 +47,7 @@ export default function InventoryPage() {
     notes: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     fetchData();
@@ -91,7 +93,7 @@ export default function InventoryPage() {
     if (!selectedMaterial) return;
 
     if (stockMovement.quantity <= 0) {
-      alert("Please enter a valid quantity");
+      toast.warning("Please enter a valid quantity");
       return;
     }
 
@@ -107,16 +109,16 @@ export default function InventoryPage() {
       });
 
       if (response.ok) {
-        alert("Stock movement recorded successfully");
+        toast.success("Stock movement recorded successfully");
         setShowStockModal(false);
         fetchData(); // Refresh data
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to record stock movement");
+        toast.error(error.error || "Failed to record stock movement");
       }
     } catch (error) {
       console.error("Failed to record stock movement:", error);
-      alert("An error occurred");
+      toast.error("An error occurred");
     } finally {
       setSubmitting(false);
     }

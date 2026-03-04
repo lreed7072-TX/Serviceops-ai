@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QuoteStatus } from "@prisma/client";
+import { useToast } from "@/components/ui/Toast";
 import "./quotes.css";
 
 interface Quote {
@@ -34,6 +35,7 @@ export default function QuotesPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     fetchQuotes();
@@ -78,11 +80,11 @@ export default function QuotesPage() {
         setQuoteToDelete(null);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to delete quote");
+        toast.error(error.error || "Failed to delete quote");
       }
     } catch (error) {
       console.error("Failed to delete quote:", error);
-      alert("An error occurred while deleting the quote");
+      toast.error("An error occurred while deleting the quote");
     } finally {
       setDeleting(false);
     }

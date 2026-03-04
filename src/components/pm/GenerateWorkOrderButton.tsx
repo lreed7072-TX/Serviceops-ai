@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 interface GenerateWorkOrderButtonProps {
   scheduleId: string;
@@ -16,6 +17,7 @@ export default function GenerateWorkOrderButton({
   onGenerated,
 }: GenerateWorkOrderButtonProps) {
   const router = useRouter();
+  const toast = useToast();
   const [generating, setGenerating] = useState(false);
 
   const handleGenerate = async () => {
@@ -40,11 +42,11 @@ export default function GenerateWorkOrderButton({
       }
 
       const data = await res.json();
-      alert(data.message);
+      toast.success(data.message);
       onGenerated?.();
       router.push(`/work-orders/${data.data.id}`);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to generate work order");
+      toast.error(err instanceof Error ? err.message : "Failed to generate work order");
     } finally {
       setGenerating(false);
     }

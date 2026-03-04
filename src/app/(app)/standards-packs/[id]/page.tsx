@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import "../standards-detail.css";
 
 type MeasurementDef = {
@@ -322,9 +323,13 @@ export default function StandardsPackDetailPage() {
 
   return (
     <div className="standards-detail-page">
+      <Breadcrumbs items={[
+        { label: "Standards Packs", href: "/standards-packs" },
+        { label: pack.name },
+      ]} />
+
       <div className="sd-page-header">
         <div className="sd-page-header-left">
-          <Link href="/standards-packs" className="sd-back-link">&larr; Standards Packs</Link>
           <h1>{pack.name}</h1>
         </div>
         <div className="sd-header-actions">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import "../procedure-detail.css";
 
 type ProcedureStep = {
@@ -159,17 +160,21 @@ export default function ProcedureTemplateDetailPage() {
   if (error || !template) {
     return (
       <div className="procedure-detail-page">
+        <Breadcrumbs items={[
+          { label: "Procedure Templates", href: "/procedure-templates" },
+          { label: "Template" },
+        ]} />
         <div className="pd-alert-error">{error || "Template not found"}</div>
-        <Link href="/procedure-templates" className="pd-back-link">&larr; Back to Templates</Link>
       </div>
     );
   }
 
   return (
     <div className="procedure-detail-page">
-      <Link href="/procedure-templates" className="pd-back-link">
-        &larr; Back to Templates
-      </Link>
+      <Breadcrumbs items={[
+        { label: "Procedure Templates", href: "/procedure-templates" },
+        { label: template.name },
+      ]} />
 
       {/* Template Header */}
       <div className="pd-header-card">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import GenerateWorkOrderButton from "@/components/pm/GenerateWorkOrderButton";
 import PMHistoryList from "@/components/pm/PMHistoryList";
 import EditPMScheduleButton from "@/components/pm/EditPMScheduleButton";
@@ -135,11 +136,10 @@ export default function PMScheduleDetailPage() {
   return (
     <div className="page-container pm-detail-page">
       {/* Breadcrumb */}
-      <div className="pm-breadcrumb">
-        <Link href="/pm-schedules">PM Schedules</Link>
-        <span>/</span>
-        <span>{schedule.name}</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: "PM Schedules", href: "/pm-schedules" },
+        { label: schedule.name },
+      ]} />
 
       {/* Header */}
       <div className="page-header">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import FileUploader from "@/components/knowledge-base/FileUploader";
 import DocumentViewer from "@/components/knowledge-base/DocumentViewer";
 import "./knowledge-base.css";
@@ -52,6 +53,7 @@ export default function KnowledgeBasePage() {
   const [showUploader, setShowUploader] = useState(false);
   const [viewingFile, setViewingFile] = useState<KbFileItem | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const toast = useToast();
 
   const loadFiles = async () => {
     setLoading(true);
@@ -99,7 +101,7 @@ export default function KnowledgeBasePage() {
       if (!res.ok) throw new Error("Failed to delete");
       await loadFiles();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Failed to delete");
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
     } finally {
       setDeleting(null);
     }

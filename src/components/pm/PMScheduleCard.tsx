@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import "./PMScheduleCard.css";
 
 interface PMScheduleCardProps {
@@ -43,6 +44,7 @@ const FREQ_LABELS: Record<string, string> = {
 
 export default function PMScheduleCard({ schedule, onRefresh }: PMScheduleCardProps) {
   const router = useRouter();
+  const toast = useToast();
   const [generating, setGenerating] = useState(false);
 
   const generateWorkOrder = async (e: React.MouseEvent) => {
@@ -64,11 +66,11 @@ export default function PMScheduleCard({ schedule, onRefresh }: PMScheduleCardPr
       }
 
       const data = await res.json();
-      alert(data.message);
+      toast.success(data.message);
       onRefresh();
       router.push(`/work-orders/${data.data.id}`);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to generate work order");
+      toast.error(err instanceof Error ? err.message : "Failed to generate work order");
     } finally {
       setGenerating(false);
     }

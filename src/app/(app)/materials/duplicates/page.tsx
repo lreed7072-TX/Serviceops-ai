@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import "./materials-duplicates.css";
 
 interface DuplicateGroup {
@@ -24,6 +25,7 @@ export default function MaterialDuplicatesPage() {
   const [merging, setMerging] = useState<string | null>(null);
   const [selectedPrimary, setSelectedPrimary] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadDuplicates();
@@ -94,7 +96,7 @@ export default function MaterialDuplicatesPage() {
       setSuccess(data.message || "Duplicates merged successfully");
       await loadDuplicates();
     } catch (e: any) {
-      alert(e?.message || "Failed to merge");
+      toast.error(e?.message || "Failed to merge");
     } finally {
       setMerging(null);
     }

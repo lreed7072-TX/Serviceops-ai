@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import TaskStatusChanger from "@/components/tasks/TaskStatusChanger";
 import EvidenceCapture from "@/components/tasks/EvidenceCapture";
 import MeasurementEntry from "@/components/tasks/MeasurementEntry";
@@ -169,15 +170,11 @@ export default function TaskDetailPage() {
   return (
     <div className="page-container task-detail-page">
       {/* Breadcrumb */}
-      <div className="td-breadcrumb">
-        <Link href="/work-orders">Work Orders</Link>
-        <span>/</span>
-        <Link href={`/work-orders/${task.workOrder.id}`}>
-          {task.workOrder.workOrderNumber || "Work Order"}
-        </Link>
-        <span>/</span>
-        <span>Task #{task.sequenceNumber ?? "---"}</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: "Work Orders", href: "/work-orders" },
+        { label: task.workOrder.workOrderNumber || "Work Order", href: `/work-orders/${task.workOrder.id}` },
+        { label: `Task #${task.sequenceNumber ?? "---"}` },
+      ]} />
 
       {/* Header */}
       <div className="td-header">

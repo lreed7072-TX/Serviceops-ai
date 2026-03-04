@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import EvidenceCapture from "./EvidenceCapture";
 import MeasurementEntry from "./MeasurementEntry";
 import "./TaskList.css";
@@ -90,6 +91,7 @@ export default function TaskList({ packages, workOrderId, onRefresh }: TaskListP
   );
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
+  const toast = useToast();
 
   const togglePkg = (id: string) => {
     const next = new Set(expandedPkgs);
@@ -116,7 +118,7 @@ export default function TaskList({ packages, workOrderId, onRefresh }: TaskListP
       if (!res.ok) throw new Error("Failed to update");
       onRefresh();
     } catch {
-      alert("Failed to update task status");
+      toast.error("Failed to update task status");
     } finally {
       setChangingStatus(null);
     }

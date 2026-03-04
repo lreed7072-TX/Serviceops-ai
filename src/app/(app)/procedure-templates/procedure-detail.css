@@ -7,22 +7,6 @@
   min-height: 100vh;
 }
 
-/* Back Link */
-.pd-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-  margin-bottom: 1.5rem;
-  transition: color 0.2s;
-}
-
-.pd-back-link:hover {
-  color: #2563eb;
-}
-
 /* Template Header Card */
 .pd-header-card {
   background: white;

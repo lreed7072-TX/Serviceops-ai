@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 const PHOTO_TYPE_LABELS: Record<string, string> = {
   BEFORE_WORK: "Before Work",
@@ -26,6 +27,7 @@ export function FreeCameraModal({ isOpen, onClose }: { isOpen: boolean; onClose:
   const [caption, setCaption] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const toast = useToast();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,14 +60,14 @@ export function FreeCameraModal({ isOpen, onClose }: { isOpen: boolean; onClose:
         setSelectedFile(null);
         setCaption("");
         setPhotoType("GENERAL");
-        alert("Photo saved to your library!");
+        toast.success("Photo saved to your library!");
         onClose();
       } else {
         throw new Error("Upload failed");
       }
     } catch (error) {
       console.error("Upload failed:", error);
-      alert("Failed to upload photo. Please try again.");
+      toast.error("Failed to upload photo. Please try again.");
     } finally {
       setUploading(false);
     }

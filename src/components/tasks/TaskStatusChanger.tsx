@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 interface TaskStatusChangerProps {
   taskId: string;
@@ -23,6 +24,7 @@ export default function TaskStatusChanger({
   onStatusChanged,
 }: TaskStatusChangerProps) {
   const [changing, setChanging] = useState(false);
+  const toast = useToast();
 
   const changeStatus = async (newStatus: string) => {
     if (newStatus === currentStatus) return;
@@ -36,7 +38,7 @@ export default function TaskStatusChanger({
       if (!res.ok) throw new Error("Failed to update status");
       onStatusChanged();
     } catch {
-      alert("Failed to update task status");
+      toast.error("Failed to update task status");
     } finally {
       setChanging(false);
     }

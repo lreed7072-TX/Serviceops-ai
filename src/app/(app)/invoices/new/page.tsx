@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { InvoiceLineItemType } from "@prisma/client";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import "./new-invoice.css";
 
 interface Customer {
@@ -64,6 +65,7 @@ export default function NewInvoicePage() {
     totalPrice: 0,
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetchData();
@@ -182,7 +184,7 @@ export default function NewInvoicePage() {
 
   const handleSubmit = async () => {
     if (!formData.customerId || !formData.title) {
-      alert("Please select a customer and enter a title");
+      toast.warning("Please select a customer and enter a title");
       return;
     }
 
@@ -230,7 +232,7 @@ export default function NewInvoicePage() {
       router.push(`/invoices/${invoiceId}`);
     } catch (error) {
       console.error("Failed to create invoice:", error);
-      alert(error instanceof Error ? error.message : "Failed to create invoice");
+      toast.error(error instanceof Error ? error.message : "Failed to create invoice");
     } finally {
       setSubmitting(false);
     }

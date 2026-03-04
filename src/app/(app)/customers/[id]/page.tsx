@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import "./customer-detail.css";
 
 interface Customer {
@@ -103,6 +104,7 @@ export default function CustomerDetailPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [portalCopied, setPortalCopied] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (customerId) {
@@ -228,7 +230,7 @@ export default function CustomerDetailPage() {
 
       router.push("/customers");
     } catch (err: any) {
-      alert(err?.message ?? "Failed to delete customer");
+      toast.error(err?.message ?? "Failed to delete customer");
     } finally {
       setDeleting(false);
       setShowDelete(false);

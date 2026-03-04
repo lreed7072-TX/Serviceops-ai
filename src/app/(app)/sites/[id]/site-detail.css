@@ -12,21 +12,6 @@
   margin-bottom: 2rem;
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-  margin-bottom: 1rem;
-  transition: color 0.2s;
-}
-
-.back-link:hover {
-  color: #2563eb;
-}
-
 .header-content {
   display: flex;
   justify-content: space-between;

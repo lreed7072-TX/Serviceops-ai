@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Asset, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import "./asset-detail.css";
 
@@ -324,15 +325,11 @@ export default function AssetDetailPage() {
         </div>
       </div>
 
-      {/* Navigation Links */}
-      <div className="nav-links">
-        <Link className="back-link" href="/assets">
-          ← Back to assets
-        </Link>
-        <Link className="back-link" href="/work-orders">
-          Work orders
-        </Link>
-      </div>
+      {/* Breadcrumb */}
+      <Breadcrumbs items={[
+        { label: "Assets", href: "/assets" },
+        { label: asset?.name || asset?.assetTag || "Asset" },
+      ]} />
 
       {/* Alerts */}
       {error && <div className="alert-error">{error}</div>}

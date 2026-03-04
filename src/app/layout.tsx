@@ -4,6 +4,7 @@ import "@fontsource/jetbrains-mono/index.css";
 import "./globals.css";
 import { isDevAuthBypassEnabled } from "@/lib/dev-auth";
 import { ServiceWorkerRegistration } from "@/components/common/ServiceWorkerRegistration";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -41,7 +42,9 @@ export default function RootLayout({
         {devBypassActive && (
           <div className="dev-auth-banner">DEV AUTH BYPASS ACTIVE</div>
         )}
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

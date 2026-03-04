@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 type InvoiceLineItem = {
   id: string;
@@ -54,6 +55,7 @@ export default function InvoiceDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (!invoiceId) return;
@@ -92,7 +94,7 @@ export default function InvoiceDetailPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (e: any) {
-      alert(e?.message ?? "Failed to download PDF");
+      toast.error(e?.message ?? "Failed to download PDF");
     } finally {
       setDownloadingPdf(false);
     }
@@ -120,7 +122,7 @@ export default function InvoiceDetailPage() {
       }
 
       const data = await res.json();
-      alert(data.data.message);
+      toast.success(data.data.message);
 
       // Refresh invoice to get updated status
       const refreshRes = await apiFetch(`/api/invoices/${invoiceId}`, { cache: "no-store" });
@@ -129,7 +131,7 @@ export default function InvoiceDetailPage() {
         setInvoice(refreshData.data);
       }
     } catch (e: any) {
-      alert(e?.message ?? "Failed to send email");
+      toast.error(e?.message ?? "Failed to send email");
     } finally {
       setEmailing(false);
     }
@@ -151,7 +153,7 @@ export default function InvoiceDetailPage() {
       const data = await res.json();
       setInvoice(data.data);
     } catch (e: any) {
-      alert(e?.message ?? "Failed to update status");
+      toast.error(e?.message ?? "Failed to update status");
     } finally {
       setUpdating(false);
     }

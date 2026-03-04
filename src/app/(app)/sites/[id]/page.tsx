@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Customer, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 import "./site-detail.css";
 
@@ -142,11 +143,14 @@ export default function SiteDetailPage() {
 
   return (
     <div className="site-detail-page">
+      {/* Breadcrumb */}
+      <Breadcrumbs items={[
+        { label: "Sites", href: "/sites" },
+        { label: site?.name ?? "Site" },
+      ]} />
+
       {/* Page Header */}
       <div className="page-header">
-        <Link className="back-link" href="/sites">
-          ← Back to Sites
-        </Link>
         <div className="header-content">
           <div className="header-left">
             <h1>{site?.name ?? "Site"}</h1>

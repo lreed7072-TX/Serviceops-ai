@@ -21,22 +21,6 @@
   flex: 1;
 }
 
-.sd-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-  transition: color 0.2s;
-  font-size: 0.9rem;
-}
-
-.sd-back-link:hover {
-  color: #2563eb;
-}
-
 .sd-page-header h1 {
   font-size: 2rem;
   font-weight: 700;

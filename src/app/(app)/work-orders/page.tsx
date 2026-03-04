@@ -922,6 +922,150 @@ export default function WorkOrdersPage() {
         </div>
       )}
 
+      {/* Create Work Order Form */}
+      <div className="create-wo-section">
+        <h3 className="section-title">
+          <span className="section-title-icon">➕</span>
+          Create New Work Order
+        </h3>
+
+        <form className="work-order-form" onSubmit={handleSubmit}>
+          <label className="form-field">
+            <span>Order Type</span>
+            <select
+              value={form.orderType}
+              onChange={(event) => handleFieldChange("orderType", event.target.value)}
+              disabled={loading || submitting}
+            >
+              {orderTypeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {orderTypeLabels[type]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Title</span>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(event) => handleFieldChange("title", event.target.value)}
+              placeholder="Short summary"
+              disabled={loading || submitting}
+              required
+            />
+          </label>
+
+          <label className="form-field">
+            <span>Description</span>
+            <textarea
+              value={form.description}
+              onChange={(event) => handleFieldChange("description", event.target.value)}
+              placeholder="Optional context for technicians"
+              rows={3}
+              disabled={loading || submitting}
+            />
+          </label>
+
+          <label className="form-field">
+            <span>Customer</span>
+            <select
+              value={form.customerId}
+              onChange={(event) => handleCustomerSelectChange(event.target.value)}
+              disabled={loading || submitting}
+              required
+            >
+              <option value="">Select a customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+              <option value={NEW_CUSTOMER_VALUE}>➕ Add new customer…</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Site</span>
+            <select
+              value={form.siteId}
+              onChange={(event) => handleSiteSelectChange(event.target.value)}
+              disabled={loading || submitting}
+              required
+            >
+              <option value="">Select a site</option>
+              {filteredSites.map((site) => (
+                <option key={site.id} value={site.id}>
+                  {site.name}
+                </option>
+              ))}
+              <option value={NEW_SITE_VALUE}>➕ Add new site…</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Asset (optional)</span>
+            <select
+              value={form.assetId}
+              onChange={(event) => handleAssetSelectChange(event.target.value)}
+              disabled={loading || submitting}
+            >
+              <option value="">No linked asset</option>
+              {filteredAssets.map((asset) => (
+                <option key={asset.id} value={asset.id}>
+                  {formatAssetOptionLabel(asset)}
+                </option>
+              ))}
+              <option value={NEW_ASSET_VALUE}>➕ Add new asset…</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Execution mode</span>
+            <select
+              value={form.executionMode}
+              onChange={(event) => handleFieldChange("executionMode", event.target.value)}
+              disabled={loading || submitting}
+            >
+              {executionModeOptions.map((mode) => (
+                <option key={mode} value={mode}>
+                  {executionModeLabels[mode]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Standards Pack (optional)</span>
+            <select
+              value={form.standardsPackId}
+              onChange={(event) => setForm((prev) => ({ ...prev, standardsPackId: event.target.value }))}
+              disabled={loading || submitting}
+            >
+              <option value="">No pack - create tasks manually</option>
+              {standardsPacks.map((pack) => (
+                <option key={pack.id} value={pack.id}>
+                  {pack.name} ({pack._count.tasks} tasks){pack.equipmentType ? ` - ${pack.equipmentType}` : ""}
+                </option>
+              ))}
+            </select>
+            {standardsPacks.length === 0 && (
+              <small style={{ color: "var(--muted)", marginTop: 4 }}>
+                No active packs. <a href="/standards-packs">Create one</a>
+              </small>
+            )}
+          </label>
+
+          <button type="submit" disabled={!canSubmit || submitting}>
+            {submitting ? "Saving..." : "Create work order"}
+          </button>
+
+          {submitError && <p className="form-feedback error">{submitError}</p>}
+          {submitSuccess && <p className="form-feedback success">{submitSuccess}</p>}
+        </form>
+      </div>
+
       {/* Advanced Filters + Export */}
       {!loadError && !loading && (
         <>
@@ -1067,150 +1211,6 @@ export default function WorkOrdersPage() {
           )}
         </>
       )}
-
-      {/* Create Work Order Form */}
-      <div className="create-wo-section">
-        <h3 className="section-title">
-          <span className="section-title-icon">➕</span>
-          Create New Work Order
-        </h3>
-        
-        <form className="work-order-form" onSubmit={handleSubmit}>
-          <label className="form-field">
-            <span>Order Type</span>
-            <select
-              value={form.orderType}
-              onChange={(event) => handleFieldChange("orderType", event.target.value)}
-              disabled={loading || submitting}
-            >
-              {orderTypeOptions.map((type) => (
-                <option key={type} value={type}>
-                  {orderTypeLabels[type]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Title</span>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(event) => handleFieldChange("title", event.target.value)}
-              placeholder="Short summary"
-              disabled={loading || submitting}
-              required
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Description</span>
-            <textarea
-              value={form.description}
-              onChange={(event) => handleFieldChange("description", event.target.value)}
-              placeholder="Optional context for technicians"
-              rows={3}
-              disabled={loading || submitting}
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Customer</span>
-            <select
-              value={form.customerId}
-              onChange={(event) => handleCustomerSelectChange(event.target.value)}
-              disabled={loading || submitting}
-              required
-            >
-              <option value="">Select a customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-              <option value={NEW_CUSTOMER_VALUE}>➕ Add new customer…</option>
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Site</span>
-            <select
-              value={form.siteId}
-              onChange={(event) => handleSiteSelectChange(event.target.value)}
-              disabled={loading || submitting}
-              required
-            >
-              <option value="">Select a site</option>
-              {filteredSites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-              <option value={NEW_SITE_VALUE}>➕ Add new site…</option>
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Asset (optional)</span>
-            <select
-              value={form.assetId}
-              onChange={(event) => handleAssetSelectChange(event.target.value)}
-              disabled={loading || submitting}
-            >
-              <option value="">No linked asset</option>
-              {filteredAssets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {formatAssetOptionLabel(asset)}
-                </option>
-              ))}
-              <option value={NEW_ASSET_VALUE}>➕ Add new asset…</option>
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Execution mode</span>
-            <select
-              value={form.executionMode}
-              onChange={(event) => handleFieldChange("executionMode", event.target.value)}
-              disabled={loading || submitting}
-            >
-              {executionModeOptions.map((mode) => (
-                <option key={mode} value={mode}>
-                  {executionModeLabels[mode]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Standards Pack (optional)</span>
-            <select
-              value={form.standardsPackId}
-              onChange={(event) => setForm((prev) => ({ ...prev, standardsPackId: event.target.value }))}
-              disabled={loading || submitting}
-            >
-              <option value="">No pack - create tasks manually</option>
-              {standardsPacks.map((pack) => (
-                <option key={pack.id} value={pack.id}>
-                  {pack.name} ({pack._count.tasks} tasks){pack.equipmentType ? ` - ${pack.equipmentType}` : ""}
-                </option>
-              ))}
-            </select>
-            {standardsPacks.length === 0 && (
-              <small style={{ color: "var(--muted)", marginTop: 4 }}>
-                No active packs. <a href="/standards-packs">Create one</a>
-              </small>
-            )}
-          </label>
-
-          <button type="submit" disabled={!canSubmit || submitting}>
-            {submitting ? "Saving..." : "Create work order"}
-          </button>
-
-          {submitError && <p className="form-feedback error">{submitError}</p>}
-          {submitSuccess && <p className="form-feedback success">{submitSuccess}</p>}
-        </form>
-      </div>
 
       {/* Customer Modal */}
       {showCustomerModal && (

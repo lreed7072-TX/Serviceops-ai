@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthSessionFirst } from "@/lib/auth";
-import { generateWorkOrderPDF } from "@/lib/pdf/work-order-pdf";
+import { generateWorkOrderReportPdf } from "@/lib/pdf/pdf-generator";
 
 // GET /api/work-orders/[id]/pdf
 export async function GET(
@@ -89,7 +89,7 @@ export async function GET(
 
   try {
     // Generate PDF
-    const pdfBuffer = await generateWorkOrderPDF({
+    const pdfBuffer = await generateWorkOrderReportPdf({
       workOrderNumber: workOrder.workOrderNumber,
       title: workOrder.title,
       description: workOrder.description,
@@ -140,7 +140,7 @@ export async function GET(
         completedTasks,
         completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
         totalLaborHours,
-        totalMaterialCost: 0, // Could calculate from material usages if needed
+        totalMaterialCost: 0,
       },
       orgName: org?.name || "Company",
     });
@@ -148,7 +148,7 @@ export async function GET(
     const fileName = workOrder.workOrderNumber || `WO-${id.slice(0, 8).toUpperCase()}`;
 
     // Return PDF as downloadable file
-    return new NextResponse(new Uint8Array(pdfBuffer), {
+    return new NextResponse(new Uint8Array(pdfBuffer) as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

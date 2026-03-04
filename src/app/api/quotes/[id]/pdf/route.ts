@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthSessionFirst } from "@/lib/auth";
-import { generateQuotePDF } from "@/lib/pdf/quote-pdf";
+import { generateQuotePdf } from "@/lib/pdf/pdf-generator";
 
 // GET /api/quotes/[id]/pdf
 export async function GET(
@@ -50,7 +50,7 @@ export async function GET(
 
   try {
     // Generate PDF
-    const pdfBuffer = await generateQuotePDF({
+    const pdfBuffer = await generateQuotePdf({
       quoteNumber: quote.quoteNumber,
       title: quote.title,
       description: quote.description,
@@ -91,7 +91,7 @@ export async function GET(
     });
 
     // Return PDF as downloadable file
-    return new NextResponse(new Uint8Array(pdfBuffer), {
+    return new NextResponse(new Uint8Array(pdfBuffer) as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

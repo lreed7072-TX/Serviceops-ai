@@ -8,6 +8,7 @@ import { VisitStatus } from "@prisma/client";
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import "./visit-detail.css";
 
 type SingleResponse<T> = { data: T };
 
@@ -207,8 +208,10 @@ export default function VisitDetailPage() {
 
   if (!visitId) {
     return (
-      <div className="card">
-        <p>Missing visit ID in URL.</p>
+      <div className="visit-detail-page">
+        <div className="missing-id-card">
+          <p>Missing visit ID in URL.</p>
+        </div>
       </div>
     );
   }
@@ -217,235 +220,221 @@ export default function VisitDetailPage() {
     workOrder
       ? `${(workOrder as any).workOrderNumber ?? "WO—"} — ${workOrder.title}`
       : visit?.workOrderId
-        ? `Work order ${visit.workOrderId.slice(0, 8)}…`
+        ? `Work order ${visit.workOrderId.slice(0, 8)}...`
         : "—";
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
+    <div className="visit-detail-page">
+      {/* Page Header */}
+      <div className="visit-detail-header">
+        <div className="visit-detail-header-left">
           <h2>Visit {(visit as any)?.visitNumber ?? ""}</h2>
           <p>Review visit details and closeout readiness.</p>
         </div>
-
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button type="button" className="link-button" onClick={() => setShowEdit(true)}>
+        <div className="visit-detail-header-right">
+          <button type="button" className="btn-primary" onClick={() => setShowEdit(true)}>
             Edit
           </button>
-          <Link className="link-button" href="/visits">
-            ← Back to visits
+          <Link className="back-link" href="/visits">
+            ← Back to Visits
           </Link>
         </div>
       </div>
 
-      {error && <div className="page-alert error">{error}</div>}
-      {loading && !error && <div className="page-alert info">Loading visit…</div>}
+      {/* Alerts */}
+      {error && <div className="alert-error">{error}</div>}
+      {loading && !error && <div className="alert-info">Loading visit...</div>}
 
+      {/* Visit Details */}
       {visit && (
-        <div className="card">
-          <h3>Visit details</h3>
-          <dl className="detail-grid">
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>ID</dt>
-              <dd style={{ wordBreak: "break-word" }}>{visit.id}</dd>
-            </div>
+        <div className="detail-card">
+          <div className="card-header">
+            <h3>Visit Details</h3>
+          </div>
+          <div className="card-body">
+            <div className="info-grid">
+              <div className="info-item full-width">
+                <span className="info-label">ID</span>
+                <span className="info-value">{visit.id}</span>
+              </div>
 
+              <div className="info-item">
+                <span className="info-label">Status</span>
+                <span className="info-value">{visit.status}</span>
+              </div>
 
-            <div>
-              <dt>Status</dt>
-              <dd>{visit.status}</dd>
-            </div>
+              <div className="info-item full-width">
+                <span className="info-label">Work Order</span>
+                <span className="info-value">
+                  <Link href={`/work-orders/${visit.workOrderId}`}>
+                    {woLabel}
+                  </Link>
+                </span>
+              </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>Work order</dt>
-              <dd>
-                <Link className="link-button" href={`/work-orders/${visit.workOrderId}`}>
-                  {woLabel}
-                </Link>
-              </dd>
-            </div>
+              <div className="info-item">
+                <span className="info-label">Scheduled</span>
+                <span className="info-value">{formatDate(visit.scheduledFor)}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Started</span>
+                <span className="info-value">{formatDate(visit.startedAt)}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Completed</span>
+                <span className="info-value">{formatDate(visit.completedAt)}</span>
+              </div>
 
-            <div>
-              <dt>Scheduled</dt>
-              <dd>{formatDate(visit.scheduledFor)}</dd>
-            </div>
-            <div>
-              <dt>Started</dt>
-              <dd>{formatDate(visit.startedAt)}</dd>
-            </div>
-            <div>
-              <dt>Completed</dt>
-              <dd>{formatDate(visit.completedAt)}</dd>
-            </div>
+              <div className="info-item full-width">
+                <span className="info-label">Summary</span>
+                <span className="info-value">{safe((visit as any).summary)}</span>
+              </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>Summary</dt>
-              <dd>{safe((visit as any).summary)}</dd>
+              <div className="info-item full-width">
+                <span className="info-label">Outcome</span>
+                <span className="info-value">{safe((visit as any).outcome)}</span>
+              </div>
             </div>
-
-            <div style={{ gridColumn: "1 / -1" }}>
-              <dt>Outcome</dt>
-              <dd>{safe((visit as any).outcome)}</dd>
-            </div>
-          </dl>
+          </div>
         </div>
       )}
 
+      {/* Attachments */}
+      <AttachmentsPanel entityType="visit" entityId={visitId as string} />
 
-        <AttachmentsPanel entityType="visit" entityId={visitId as string} />
-
-      <div className="card">
+      {/* Closeout Gate */}
+      <div className="detail-card">
         <div className="card-header">
           <h3>Closeout Gate</h3>
-          <button type="button" className="link-button" onClick={fetchCloseoutGate}>
+          <button type="button" className="btn-secondary" onClick={fetchCloseoutGate}>
             Refresh
           </button>
         </div>
-
-        {gateLoading && <p>Loading closeout gate…</p>}
-        {gateError && <p className="form-feedback error">{gateError}</p>}
-        {!gateLoading && !gateError && gateData && (
-          <>
-            <p>{gateData.canCloseout ? "✅ Ready to closeout" : "❌ Blocked"}</p>
-            {gateData.blockers.length > 0 ? (
-              <ul className="task-list">
-                {gateData.blockers.map((b, i) => (
-                  <li key={`${b.message}-${i}`} className="task-item">
-                    {b.message}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted">No blockers.</p>
-            )}
-          </>
-        )}
+        <div className="card-body">
+          {gateLoading && (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <span>Loading closeout gate...</span>
+            </div>
+          )}
+          {gateError && <div className="alert-error">{gateError}</div>}
+          {!gateLoading && !gateError && gateData && (
+            <>
+              <p className={gateData.canCloseout ? "closeout-ready" : "closeout-blocked"}>
+                {gateData.canCloseout ? "Ready to closeout" : "Blocked"}
+              </p>
+              {gateData.blockers.length > 0 ? (
+                <ul className="blockers-list">
+                  {gateData.blockers.map((b, i) => (
+                    <li key={`${b.message}-${i}`} className="blocker-item">
+                      {b.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="no-blockers">No blockers.</p>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Edit Modal */}
       {showEdit && visit && (
         <div
           role="dialog"
           aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-            zIndex: 50,
-          }}
+          className="modal-overlay"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowEdit(false);
           }}
         >
-          <div
-            style={{
-              width: "min(720px, 100%)",
-              background: "white",
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.12)",
-              padding: 16,
-              maxHeight: "80vh",
-              overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-              <h3 style={{ margin: 0 }}>Edit Visit</h3>
-              <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
-                Close
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Edit Visit</h3>
+              <button type="button" className="modal-close" onClick={() => setShowEdit(false)} disabled={saving}>
+                ✕
               </button>
             </div>
 
-            <form onSubmit={saveVisit} style={{ marginTop: 12, display: "grid", gap: 12 }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Status</span>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as VisitStatus)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                >
-                  {Object.values(VisitStatus).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <form onSubmit={saveVisit}>
+              <div className="modal-body">
+                <div className="edit-form">
+                  <div className="form-field">
+                    <label className="field-label">Status</label>
+                    <select
+                      className="field-select"
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value as VisitStatus)}
+                    >
+                      {Object.values(VisitStatus).map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Scheduled for</span>
-                <input
-                  type="datetime-local"
-                  value={editScheduledFor}
-                  onChange={(e) => setEditScheduledFor(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
+                  <div className="form-field">
+                    <label className="field-label">Scheduled For</label>
+                    <input
+                      type="datetime-local"
+                      className="field-input"
+                      value={editScheduledFor}
+                      onChange={(e) => setEditScheduledFor(e.target.value)}
+                    />
+                  </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Started at</span>
-                <input
-                  type="datetime-local"
-                  value={editStartedAt}
-                  onChange={(e) => setEditStartedAt(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
+                  <div className="form-field">
+                    <label className="field-label">Started At</label>
+                    <input
+                      type="datetime-local"
+                      className="field-input"
+                      value={editStartedAt}
+                      onChange={(e) => setEditStartedAt(e.target.value)}
+                    />
+                  </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Completed at</span>
-                <input
-                  type="datetime-local"
-                  value={editCompletedAt}
-                  onChange={(e) => setEditCompletedAt(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.18)" }}
-                />
-              </label>
+                  <div className="form-field">
+                    <label className="field-label">Completed At</label>
+                    <input
+                      type="datetime-local"
+                      className="field-input"
+                      value={editCompletedAt}
+                      onChange={(e) => setEditCompletedAt(e.target.value)}
+                    />
+                  </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Summary</span>
-                <textarea
-                  value={editSummary}
-                  onChange={(e) => setEditSummary(e.target.value)}
-                  rows={3}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.18)",
-                    resize: "vertical",
-                  }}
-                />
-              </label>
+                  <div className="form-field">
+                    <label className="field-label">Summary</label>
+                    <textarea
+                      className="field-textarea"
+                      value={editSummary}
+                      onChange={(e) => setEditSummary(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>Outcome</span>
-                <textarea
-                  value={editOutcome}
-                  onChange={(e) => setEditOutcome(e.target.value)}
-                  rows={3}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.18)",
-                    resize: "vertical",
-                  }}
-                />
-              </label>
+                  <div className="form-field">
+                    <label className="field-label">Outcome</label>
+                    <textarea
+                      className="field-textarea"
+                      value={editOutcome}
+                      onChange={(e) => setEditOutcome(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
 
-              {saveError && (
-                <div style={{ padding: 12, border: "1px solid rgba(255,0,0,0.25)", borderRadius: 10 }}>
-                  <strong>Error:</strong> {saveError}
+                  {saveError && <div className="save-error"><strong>Error:</strong> {saveError}</div>}
                 </div>
-              )}
+              </div>
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="link-button" onClick={() => setShowEdit(false)} disabled={saving}>
+              <div className="modal-footer">
+                <button type="button" className="btn-cancel" onClick={() => setShowEdit(false)} disabled={saving}>
                   Cancel
                 </button>
-                <button type="submit" disabled={saving}>
-                  {saving ? "Saving…" : "Save changes"}
+                <button type="submit" className="btn-submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

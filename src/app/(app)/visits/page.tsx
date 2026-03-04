@@ -9,6 +9,7 @@ import { VisitStatus } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
+import "./visits.css";
 
 
 type ListResponse<T> = { data?: T[] };
@@ -165,8 +166,8 @@ export default function VisitsPage() {
   };
 
   return (
-    <div>
-            <PageHeader
+    <div className="visits-page">
+      <PageHeader
         title="Visit Execution"
         subtitle="Track arrival, checklist completion, and closeout status."
         right={
@@ -176,13 +177,15 @@ export default function VisitsPage() {
         }
       />
 
-      <div className="card">
-        <h3>Create visit</h3>
+      {/* Create Visit */}
+      <div className="visits-create-card">
+        <h3>Create Visit</h3>
 
-        <form className="form-grid" onSubmit={handleCreate}>
-          <label className="form-field">
-            <span>Work order</span>
+        <form className="visits-form-grid" onSubmit={handleCreate}>
+          <div className="form-field">
+            <label className="field-label">Work Order</label>
             <select
+              className="field-select"
               value={workOrderId}
               onChange={(e) => setWorkOrderId(e.target.value)}
               disabled={loading || creating}
@@ -198,11 +201,12 @@ export default function VisitsPage() {
                 );
               })}
             </select>
-          </label>
+          </div>
 
-          <label className="form-field">
-            <span>Status</span>
+          <div className="form-field">
+            <label className="field-label">Status</label>
             <select
+              className="field-select"
               value={status}
               onChange={(e) => setStatus(e.target.value as VisitStatus)}
               disabled={loading || creating}
@@ -213,11 +217,12 @@ export default function VisitsPage() {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="form-field">
-            <span>Technician</span>
+          <div className="form-field">
+            <label className="field-label">Technician</label>
             <select
+              className="field-select"
               value={assignedTechId}
               onChange={(e) => setAssignedTechId(e.target.value)}
               disabled={loading || creating}
@@ -229,87 +234,96 @@ export default function VisitsPage() {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="form-field">
-            <span>Scheduled for</span>
+          <div className="form-field">
+            <label className="field-label">Scheduled For</label>
             <input
               type="datetime-local"
+              className="field-input"
               value={scheduledFor}
               onChange={(e) => setScheduledFor(e.target.value)}
               disabled={loading || creating}
             />
-          </label>
+          </div>
 
-          {createError && <p className="form-feedback error">{createError}</p>}
-          {createSuccess && <p className="form-feedback success">{createSuccess}</p>}
+          {createError && <p className="form-feedback-error">{createError}</p>}
+          {createSuccess && <p className="form-feedback-success">{createSuccess}</p>}
 
-          <div className="form-actions" style={{ gridColumn: "1 / -1" }}>
-            <button type="submit" disabled={!canCreate}>
-              {creating ? "Creating…" : "Create visit"}
+          <div className="form-actions-row">
+            <button type="submit" className="btn-primary" disabled={!canCreate}>
+              {creating ? "Creating..." : "Create Visit"}
             </button>
           </div>
         </form>
       </div>
 
-      <div className="card">
-        <div className="card-header">
+      {/* Visits List */}
+      <div className="visits-list-card">
+        <div className="visits-list-header">
           <h3>Visits</h3>
-          <button type="button" className="link-button" onClick={load} disabled={loading}>
+          <button type="button" className="btn-secondary" onClick={load} disabled={loading}>
             Refresh
           </button>
         </div>
 
-        {loadError && <p className="form-feedback error">{loadError}</p>}
+        <div className="visits-list-body">
+          {loadError && <div className="alert-error">{loadError}</div>}
 
-        {loading ? (
-          <p>Loading visits…</p>
-        ) : visits.length === 0 ? (
-          <p>No visits yet.</p>
-        ) : (
-          <ul className="task-list">
-            {visits.map((visit) => {
-              const wo = workOrderLookup.get(visit.workOrderId);
-              const woNumber = (wo as any)?.workOrderNumber ?? "WO—";
-              const woTitle = wo?.title ?? `Work order ${shortId(visit.workOrderId)}…`;
-              const woLabel = wo ? `${woNumber} — ${woTitle}` : woTitle;
+          {loading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <span>Loading visits...</span>
+            </div>
+          ) : visits.length === 0 ? (
+            <div className="empty-state">
+              <p>No visits yet.</p>
+            </div>
+          ) : (
+            <ul className="visits-list">
+              {visits.map((visit) => {
+                const wo = workOrderLookup.get(visit.workOrderId);
+                const woNumber = (wo as any)?.workOrderNumber ?? "WO—";
+                const woTitle = wo?.title ?? `Work order ${shortId(visit.workOrderId)}...`;
+                const woLabel = wo ? `${woNumber} — ${woTitle}` : woTitle;
 
-              const when =
-                (visit as any).scheduledFor
-                  ? ` • Scheduled ${formatDate((visit as any).scheduledFor)}`
-                  : "";
+                const when =
+                  (visit as any).scheduledFor
+                    ? ` | Scheduled ${formatDate((visit as any).scheduledFor)}`
+                    : "";
 
-              const summary = ((visit as any).summary ?? "").toString().trim();
-              const summarySnippet =
-                summary.length > 0 ? (summary.length > 90 ? summary.slice(0, 90) + "…" : summary) : "";
+                const summary = ((visit as any).summary ?? "").toString().trim();
+                const summarySnippet =
+                  summary.length > 0 ? (summary.length > 90 ? summary.slice(0, 90) + "..." : summary) : "";
 
-              const visitLabel = (visit as any).visitNumber ?? shortId(visit.id);
+                const visitLabel = (visit as any).visitNumber ?? shortId(visit.id);
 
-              return (
-                <li key={visit.id} className="task-item">
-                  <div className="task-meta-row">
-                    <div>
-                      <strong>Visit {visitLabel}</strong>
-                      <p className="muted">
-                        <Link className="link-button" href={`/work-orders/${visit.workOrderId}`}>
+                return (
+                  <li key={visit.id} className="visit-item">
+                    <div className="visit-info">
+                      <div className="visit-number">Visit {visitLabel}</div>
+                      <div>
+                        <Link className="visit-wo-link" href={`/work-orders/${visit.workOrderId}`}>
                           {woLabel}
                         </Link>
-                      </p>
-                      <p className="muted">
+                      </div>
+                      <div className="visit-meta">
                         {(visit as any).status ?? "—"}
                         {when}
-                      </p>
-                      {summarySnippet ? <p className="muted">Summary: {summarySnippet}</p> : null}
+                      </div>
+                      {summarySnippet && <div className="visit-summary">Summary: {summarySnippet}</div>}
                     </div>
-                    <Link className="link-button" href={`/visits/${visit.id}`}>
-                      View
-                    </Link>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    <div className="visit-action">
+                      <Link className="visit-view-link" href={`/visits/${visit.id}`}>
+                        View →
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

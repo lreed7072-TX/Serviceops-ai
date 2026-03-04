@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import "./materials-duplicates.css";
 
 interface DuplicateGroup {
   normalized_name: string;
@@ -100,89 +101,35 @@ export default function MaterialDuplicatesPage() {
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
-      <div style={{ marginBottom: 24 }}>
-        <Link
-          href="/materials"
-          style={{
-            color: "#6b7280",
-            textDecoration: "none",
-            fontSize: 14,
-            display: "inline-block",
-            marginBottom: 16,
-          }}
-        >
+    <div className="duplicates-page">
+      {/* Page Header */}
+      <div className="duplicates-page-header">
+        <Link href="/materials" className="back-link">
           ← Back to Materials
         </Link>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", margin: 0 }}>
-          Duplicate Materials
-        </h1>
-        <p style={{ color: "#6b7280", marginTop: 8 }}>
-          Review and merge duplicate material entries to maintain data quality
-        </p>
+        <h1>Duplicate Materials</h1>
+        <p>Review and merge duplicate material entries to maintain data quality</p>
       </div>
 
-      {error && (
-        <div
-          style={{
-            padding: "14px 20px",
-            background: "#fee2e2",
-            color: "#991b1b",
-            borderRadius: 8,
-            marginBottom: 20,
-            border: "1px solid #fca5a5",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {/* Alerts */}
+      {error && <div className="alert-error">{error}</div>}
+      {success && <div className="alert-success">{success}</div>}
 
-      {success && (
-        <div
-          style={{
-            padding: "14px 20px",
-            background: "#d1fae5",
-            color: "#065f46",
-            borderRadius: 8,
-            marginBottom: 20,
-            border: "1px solid #6ee7b7",
-          }}
-        >
-          {success}
-        </div>
-      )}
-
+      {/* Content */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "80px 20px", color: "#6b7280" }}>
-          Loading duplicates...
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <span>Loading duplicates...</span>
         </div>
       ) : groups.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "80px 20px",
-            background: "#d1fae5",
-            borderRadius: 16,
-            border: "1px solid #6ee7b7",
-          }}
-        >
-          <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-          <h2 style={{ color: "#065f46", marginBottom: 8 }}>No Duplicates Found</h2>
-          <p style={{ color: "#059669" }}>Your materials catalog is clean!</p>
+        <div className="clean-state">
+          <div className="clean-state-icon">✓</div>
+          <h2>No Duplicates Found</h2>
+          <p>Your materials catalog is clean!</p>
         </div>
       ) : (
         <div>
-          <div
-            style={{
-              padding: "14px 20px",
-              background: "#fef3c7",
-              color: "#92400e",
-              borderRadius: 8,
-              marginBottom: 24,
-              border: "1px solid #fcd34d",
-              fontWeight: 500,
-            }}
-          >
+          <div className="alert-warning">
             Found {groups.length} duplicate group{groups.length !== 1 ? "s" : ""} ({groups.reduce((s, g) => s + g.count, 0)} total records)
           </div>
 
@@ -191,90 +138,37 @@ export default function MaterialDuplicatesPage() {
             const isMerging = merging === key;
 
             return (
-              <div
-                key={key}
-                style={{
-                  background: "white",
-                  borderRadius: 12,
-                  border: "1px solid #e5e7eb",
-                  padding: 24,
-                  marginBottom: 20,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 16,
-                  }}
-                >
+              <div key={key} className="duplicate-group">
+                <div className="duplicate-group-header">
                   <div>
-                    <h3 style={{ margin: 0, fontSize: 18, color: "#111827" }}>
-                      {group.names[0]}
-                    </h3>
+                    <h3 className="duplicate-group-title">{group.names[0]}</h3>
                     {group.part_number && (
-                      <span style={{ fontSize: 13, color: "#6b7280" }}>
-                        Part #: {group.part_number}
-                      </span>
+                      <div className="duplicate-group-part">Part #: {group.part_number}</div>
                     )}
                   </div>
-                  <span
-                    style={{
-                      background: "#fee2e2",
-                      color: "#991b1b",
-                      padding: "4px 12px",
-                      borderRadius: 12,
-                      fontSize: 13,
-                      fontWeight: 600,
-                    }}
-                  >
+                  <span className="duplicate-count-badge">
                     {group.count} duplicates
                   </span>
                 </div>
 
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: 14,
-                    marginBottom: 16,
-                  }}
-                >
+                <table className="duplicate-table">
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                      <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 600 }}>
-                        Primary
-                      </th>
-                      <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 600 }}>
-                        Name
-                      </th>
-                      <th style={{ textAlign: "right", padding: "8px 12px", fontWeight: 600 }}>
-                        Unit Cost
-                      </th>
-                      <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 600 }}>
-                        Manufacturer
-                      </th>
-                      <th style={{ textAlign: "right", padding: "8px 12px", fontWeight: 600 }}>
-                        Qty on Hand
-                      </th>
-                      <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 600 }}>
-                        Active
-                      </th>
+                    <tr>
+                      <th className="text-left">Primary</th>
+                      <th className="text-left">Name</th>
+                      <th className="text-right">Unit Cost</th>
+                      <th className="text-left">Manufacturer</th>
+                      <th className="text-right">Qty on Hand</th>
+                      <th className="text-center">Active</th>
                     </tr>
                   </thead>
                   <tbody>
                     {group.ids.map((id, idx) => (
                       <tr
                         key={id}
-                        style={{
-                          borderBottom: "1px solid #f3f4f6",
-                          background:
-                            selectedPrimary[key] === id ? "#f0fdf4" : "transparent",
-                        }}
+                        className={selectedPrimary[key] === id ? "selected-row" : ""}
                       >
-                        <td style={{ padding: "10px 12px" }}>
+                        <td>
                           <input
                             type="radio"
                             name={`primary-${key}`}
@@ -282,28 +176,22 @@ export default function MaterialDuplicatesPage() {
                             onChange={() =>
                               setSelectedPrimary({ ...selectedPrimary, [key]: id })
                             }
-                            style={{ width: 18, height: 18, cursor: "pointer" }}
+                            className="radio-input"
                           />
                         </td>
-                        <td style={{ padding: "10px 12px", fontWeight: 500 }}>
-                          {group.names[idx]}
-                        </td>
-                        <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                        <td className="name-cell">{group.names[idx]}</td>
+                        <td className="text-right">
                           {group.costs[idx] != null
                             ? `$${Number(group.costs[idx]).toFixed(2)}`
                             : "—"}
                         </td>
-                        <td style={{ padding: "10px 12px", color: "#6b7280" }}>
-                          {group.manufacturers[idx] || "—"}
-                        </td>
-                        <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                          {group.quantities[idx] ?? 0}
-                        </td>
-                        <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                        <td className="muted">{group.manufacturers[idx] || "—"}</td>
+                        <td className="text-right">{group.quantities[idx] ?? 0}</td>
+                        <td className="text-center">
                           {group.active_flags[idx] ? (
-                            <span style={{ color: "#10b981" }}>Yes</span>
+                            <span className="active-yes">Yes</span>
                           ) : (
-                            <span style={{ color: "#ef4444" }}>No</span>
+                            <span className="active-no">No</span>
                           )}
                         </td>
                       </tr>
@@ -311,29 +199,14 @@ export default function MaterialDuplicatesPage() {
                   </tbody>
                 </table>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ fontSize: 13, color: "#6b7280" }}>
+                <div className="duplicate-group-footer">
+                  <span className="duplicate-group-hint">
                     Select the primary record to keep. Duplicates will be merged into it.
                   </span>
                   <button
                     onClick={() => handleMerge(group)}
                     disabled={isMerging}
-                    style={{
-                      padding: "10px 20px",
-                      background: isMerging ? "#9ca3af" : "#dc2626",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 8,
-                      fontWeight: 600,
-                      fontSize: 14,
-                      cursor: isMerging ? "not-allowed" : "pointer",
-                    }}
+                    className="btn-danger"
                   >
                     {isMerging ? "Merging..." : `Merge ${group.count - 1} Duplicate${group.count > 2 ? "s" : ""}`}
                   </button>

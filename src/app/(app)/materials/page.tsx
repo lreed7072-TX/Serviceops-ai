@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import "./materials.css";
 
 type Material = {
   id: string;
@@ -119,39 +120,48 @@ export default function MaterialsPage() {
   };
 
   return (
-    <div className="page-container">
+    <div className="materials-page">
+      {/* Page Header */}
       <div className="page-header">
-        <div>
+        <div className="page-header-left">
           <h1>Materials Catalog</h1>
           <p className="page-subtitle">Parts and materials for work orders</p>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/materials/duplicates" className="btn btn-secondary" style={{ textDecoration: "none" }}>
+        <div className="page-header-right">
+          <Link href="/materials/duplicates" className="btn-secondary">
             Find Duplicates
           </Link>
-          <button className="btn btn-primary" onClick={openCreate}>+ Add Material</button>
+          <button className="btn-primary" onClick={openCreate}>+ Add Material</button>
         </div>
       </div>
 
-      <div className="filter-bar">
-        <label className="checkbox-label">
+      {/* Filter Bar */}
+      <div className="materials-filter-bar">
+        <label className="materials-checkbox-label">
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
           Show inactive
         </label>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {/* Error Alert */}
+      {error && <div className="alert-error">{error}</div>}
 
+      {/* Content */}
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <span>Loading materials...</span>
+        </div>
       ) : materials.length === 0 ? (
         <div className="empty-state">
-          <p>No materials found.</p>
-          <button className="btn btn-primary" onClick={openCreate}>Add your first material</button>
+          <div className="empty-icon">📦</div>
+          <h3>No materials found</h3>
+          <p>Add your first material to get started</p>
+          <button className="btn-primary" onClick={openCreate}>+ Add Material</button>
         </div>
       ) : (
-        <div className="table-container">
-          <table className="data-table">
+        <div className="materials-table-container">
+          <table className="materials-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -166,15 +176,17 @@ export default function MaterialsPage() {
             <tbody>
               {materials.map((m) => (
                 <tr key={m.id} className={!m.isActive ? "inactive-row" : ""}>
-                  <td><strong>{m.name}</strong></td>
+                  <td><span className="material-name">{m.name}</span></td>
                   <td>{m.partNumber || "—"}</td>
                   <td>{m.manufacturer || "—"}</td>
                   <td>{m.unitCost ? `$${Number(m.unitCost).toFixed(2)}` : "—"}</td>
                   <td>{m.unit || "—"}</td>
-                  <td><span className={`badge ${m.category.toLowerCase()}`}>{m.category}</span></td>
+                  <td><span className={`category-badge ${m.category.toLowerCase()}`}>{m.category}</span></td>
                   <td>
-                    <button className="btn-icon" onClick={() => openEdit(m)}>✏️</button>
-                    <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
+                    <div className="materials-actions">
+                      <button className="btn-icon" onClick={() => openEdit(m)}>✏️</button>
+                      <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -183,47 +195,52 @@ export default function MaterialsPage() {
         </div>
       )}
 
+      {/* Create/Edit Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{editing ? "Edit Material" : "Add Material"}</h2>
-            <div className="form-grid">
-              <div className="form-field">
-                <label>Name *</label>
-                <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Material name" />
-              </div>
-              <div className="form-field">
-                <label>Part Number</label>
-                <input type="text" value={formPartNumber} onChange={(e) => setFormPartNumber(e.target.value)} placeholder="Part #" />
-              </div>
-              <div className="form-field">
-                <label>Manufacturer</label>
-                <input type="text" value={formManufacturer} onChange={(e) => setFormManufacturer(e.target.value)} placeholder="Manufacturer" />
-              </div>
-              <div className="form-field">
-                <label>Category</label>
-                <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)}>
-                  {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>Unit Cost ($)</label>
-                <input type="number" step="0.01" value={formUnitCost} onChange={(e) => setFormUnitCost(e.target.value)} placeholder="0.00" />
-              </div>
-              <div className="form-field">
-                <label>Unit</label>
-                <input type="text" value={formUnit} onChange={(e) => setFormUnit(e.target.value)} placeholder="each, ft, gal" />
-              </div>
-              <div className="form-field">
-                <label className="checkbox-label">
-                  <input type="checkbox" checked={formActive} onChange={(e) => setFormActive(e.target.checked)} />
-                  Active
-                </label>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editing ? "Edit Material" : "Add Material"}</h2>
+            </div>
+            <div className="modal-body">
+              <div className="materials-form-grid">
+                <div className="form-field">
+                  <label className="field-label">Name *</label>
+                  <input type="text" className="field-input" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Material name" />
+                </div>
+                <div className="form-field">
+                  <label className="field-label">Part Number</label>
+                  <input type="text" className="field-input" value={formPartNumber} onChange={(e) => setFormPartNumber(e.target.value)} placeholder="Part #" />
+                </div>
+                <div className="form-field">
+                  <label className="field-label">Manufacturer</label>
+                  <input type="text" className="field-input" value={formManufacturer} onChange={(e) => setFormManufacturer(e.target.value)} placeholder="Manufacturer" />
+                </div>
+                <div className="form-field">
+                  <label className="field-label">Category</label>
+                  <select className="field-select" value={formCategory} onChange={(e) => setFormCategory(e.target.value)}>
+                    {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label className="field-label">Unit Cost ($)</label>
+                  <input type="number" step="0.01" className="field-input" value={formUnitCost} onChange={(e) => setFormUnitCost(e.target.value)} placeholder="0.00" />
+                </div>
+                <div className="form-field">
+                  <label className="field-label">Unit</label>
+                  <input type="text" className="field-input" value={formUnit} onChange={(e) => setFormUnit(e.target.value)} placeholder="each, ft, gal" />
+                </div>
+                <div className="form-field">
+                  <label className="materials-checkbox-label">
+                    <input type="checkbox" checked={formActive} onChange={(e) => setFormActive(e.target.checked)} />
+                    Active
+                  </label>
+                </div>
               </div>
             </div>
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveMaterial} disabled={!formName.trim() || saving}>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={closeModal}>Cancel</button>
+              <button className="btn-submit" onClick={saveMaterial} disabled={!formName.trim() || saving}>
                 {saving ? "Saving..." : editing ? "Update" : "Add Material"}
               </button>
             </div>

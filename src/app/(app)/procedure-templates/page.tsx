@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import "./procedure-templates.css";
 
 type ProcedureTemplate = {
   id: string;
@@ -73,116 +74,97 @@ export default function ProcedureTemplatesPage() {
   const categories = Array.from(new Set(templates.map((t) => t.assetCategory))).sort();
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1>Procedure Templates</h1>
-        <Link href="/procedure-templates/new" className="btn btn-primary">
+    <div className="procedure-templates-page">
+      <div className="pt-page-header">
+        <div>
+          <h1>Procedure Templates</h1>
+          <p className="pt-page-subtitle">Create and manage reusable procedure workflows</p>
+        </div>
+        <Link href="/procedure-templates/new" className="pt-btn-primary">
           + Create Template
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-              Asset Category
-            </label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
-            >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="pt-filters">
+        <div className="pt-filter-group">
+          <label className="pt-filter-label">Asset Category</label>
+          <select
+            className="pt-filter-select"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-              Context
-            </label>
-            <select
-              value={contextFilter}
-              onChange={(e) => setContextFilter(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
-            >
-              <option value="">All Contexts</option>
-              {Object.entries(contextLabels).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="pt-filter-group">
+          <label className="pt-filter-label">Context</label>
+          <select
+            className="pt-filter-select"
+            value={contextFilter}
+            onChange={(e) => setContextFilter(e.target.value)}
+          >
+            <option value="">All Contexts</option>
+            {Object.entries(contextLabels).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
       {/* Templates List */}
-      <div className="card">
-        {error && <div className="alert alert-error">{error}</div>}
+      <div className="pt-templates-card">
+        <div className="pt-templates-body">
+          {error && <div className="pt-alert-error">{error}</div>}
 
-        {loading ? (
-          <p className="muted">Loading templates...</p>
-        ) : templates.length === 0 ? (
-          <p className="muted">No templates found. Create your first procedure template!</p>
-        ) : (
-          <div style={{ display: "grid", gap: 16 }}>
-            {templates.map((template) => (
-              <Link
-                key={template.id}
-                href={`/procedure-templates/${template.id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div
-                  className="card"
-                  style={{
-                    padding: 16,
-                    cursor: "pointer",
-                    transition: "box-shadow 0.2s",
-                    border: "1px solid var(--border)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+          {loading ? (
+            <p className="pt-loading">Loading templates...</p>
+          ) : templates.length === 0 ? (
+            <p className="pt-empty">No templates found. Create your first procedure template!</p>
+          ) : (
+            <div className="pt-grid">
+              {templates.map((template) => (
+                <Link
+                  key={template.id}
+                  href={`/procedure-templates/${template.id}`}
+                  className="pt-template-card"
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                  <div className="pt-template-header">
                     <div>
-                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{template.name}</h3>
+                      <h3 className="pt-template-name">{template.name}</h3>
                       {template.description && (
-                        <p style={{ margin: "6px 0", fontSize: 14, color: "var(--text-muted)" }}>
-                          {template.description}
-                        </p>
+                        <p className="pt-template-desc">{template.description}</p>
                       )}
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-                        <span className="badge">{template.assetCategory}</span>
-                        {template.assetFamily && <span className="badge">{template.assetFamily}</span>}
-                        <span className="badge" style={{ background: "#3b82f6", color: "white" }}>
+                      <div className="pt-template-badges">
+                        <span className="pt-badge">{template.assetCategory}</span>
+                        {template.assetFamily && <span className="pt-badge">{template.assetFamily}</span>}
+                        <span className="pt-badge context">
                           {contextLabels[template.context] || template.context}
                         </span>
-                        <span className="badge">{template._count.steps} steps</span>
+                        <span className="pt-badge steps">{template._count.steps} steps</span>
                         {template.estimatedDurationMinutes && (
-                          <span className="badge">~{template.estimatedDurationMinutes} min</span>
+                          <span className="pt-badge duration">~{template.estimatedDurationMinutes} min</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-muted)" }}>
-                    Created by {template.createdBy.name || template.createdBy.email} • Version {template.version}
+                  <div className="pt-template-meta">
+                    Created by {template.createdBy.name || template.createdBy.email} &bull; Version {template.version}
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import "./standards-packs.css";
 
 type StandardsPack = {
   id: string;
@@ -31,8 +32,8 @@ export default function StandardsPacksPage() {
     try {
       setLoading(true);
       setError(null);
-      const url = filter === "ALL" 
-        ? "/api/standards-packs" 
+      const url = filter === "ALL"
+        ? "/api/standards-packs"
         : `/api/standards-packs?status=${filter}`;
       const res = await apiFetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load packs");
@@ -76,30 +77,34 @@ export default function StandardsPacksPage() {
     }
   };
 
-  const statusColor = (status: string) => {
+  const statusClass = (status: string) => {
     switch (status) {
-      case "ACTIVE": return "status-active";
-      case "DRAFT": return "status-draft";
-      case "ARCHIVED": return "status-archived";
+      case "ACTIVE": return "active";
+      case "DRAFT": return "draft";
+      case "ARCHIVED": return "archived";
       default: return "";
     }
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div>
+    <div className="standards-packs-page">
+      <div className="sp-page-header">
+        <div className="sp-page-header-left">
           <h1>Standards Packs</h1>
-          <p className="page-subtitle">Reusable task templates for equipment types</p>
+          <p className="sp-page-subtitle">Reusable task templates for equipment types</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+        <button className="sp-btn-primary" onClick={() => setShowCreate(true)}>
           + New Pack
         </button>
       </div>
 
       {/* Filter */}
-      <div className="filter-bar">
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+      <div className="sp-filter-bar">
+        <select
+          className="sp-filter-select"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
           <option value="ALL">All Statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="DRAFT">Draft</option>
@@ -107,37 +112,37 @@ export default function StandardsPacksPage() {
         </select>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="sp-alert-error">{error}</div>}
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="sp-loading">Loading...</div>
       ) : packs.length === 0 ? (
-        <div className="empty-state">
+        <div className="sp-empty">
           <p>No standards packs found.</p>
-          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          <button className="sp-btn-primary" onClick={() => setShowCreate(true)}>
             Create your first pack
           </button>
         </div>
       ) : (
-        <div className="card-grid">
+        <div className="sp-grid">
           {packs.map((pack) => (
-            <Link href={`/standards-packs/${pack.id}`} key={pack.id} className="pack-card">
-              <div className="pack-card-header">
-                <h3>{pack.name}</h3>
-                <span className={`status-badge ${statusColor(pack.status)}`}>
+            <Link href={`/standards-packs/${pack.id}`} key={pack.id} className="sp-pack-card">
+              <div className="sp-pack-header">
+                <h3 className="sp-pack-name">{pack.name}</h3>
+                <span className={`sp-status-badge ${statusClass(pack.status)}`}>
                   {pack.status}
                 </span>
               </div>
               {pack.description && (
-                <p className="pack-description">{pack.description}</p>
+                <p className="sp-pack-desc">{pack.description}</p>
               )}
-              <div className="pack-meta">
+              <div className="sp-pack-meta">
                 {pack.equipmentType && (
-                  <span className="pack-equipment">{pack.equipmentType}</span>
+                  <span className="sp-meta-tag">{pack.equipmentType}</span>
                 )}
-                <span className="pack-tasks">{pack._count.tasks} tasks</span>
+                <span className="sp-meta-tag">{pack._count.tasks} tasks</span>
                 {pack.estimatedHours && (
-                  <span className="pack-hours">{pack.estimatedHours}h est.</span>
+                  <span className="sp-meta-tag">{pack.estimatedHours}h est.</span>
                 )}
               </div>
             </Link>
@@ -147,43 +152,50 @@ export default function StandardsPacksPage() {
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Create Standards Pack</h2>
-            <div className="form-field">
-              <label>Pack Name *</label>
-              <input
-                type="text"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                placeholder="e.g., Centrifugal Pump Overhaul"
-                autoFocus
-              />
+        <div className="sp-modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="sp-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sp-modal-header">
+              <h2>Create Standards Pack</h2>
             </div>
-            <div className="form-field">
-              <label>Equipment Type</label>
-              <input
-                type="text"
-                value={createEquipType}
-                onChange={(e) => setCreateEquipType(e.target.value)}
-                placeholder="e.g., Centrifugal Pump"
-              />
+            <div className="sp-modal-body">
+              <div className="sp-form-field">
+                <label className="sp-form-label">Pack Name *</label>
+                <input
+                  className="sp-form-input"
+                  type="text"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  placeholder="e.g., Centrifugal Pump Overhaul"
+                  autoFocus
+                />
+              </div>
+              <div className="sp-form-field">
+                <label className="sp-form-label">Equipment Type</label>
+                <input
+                  className="sp-form-input"
+                  type="text"
+                  value={createEquipType}
+                  onChange={(e) => setCreateEquipType(e.target.value)}
+                  placeholder="e.g., Centrifugal Pump"
+                />
+              </div>
+              <div className="sp-form-field">
+                <label className="sp-form-label">Description</label>
+                <textarea
+                  className="sp-form-textarea"
+                  value={createDesc}
+                  onChange={(e) => setCreateDesc(e.target.value)}
+                  placeholder="Describe when this pack should be used..."
+                  rows={3}
+                />
+              </div>
             </div>
-            <div className="form-field">
-              <label>Description</label>
-              <textarea
-                value={createDesc}
-                onChange={(e) => setCreateDesc(e.target.value)}
-                placeholder="Describe when this pack should be used..."
-                rows={3}
-              />
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>
+            <div className="sp-modal-footer">
+              <button className="sp-btn-cancel" onClick={() => setShowCreate(false)}>
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="sp-btn-submit"
                 onClick={createPack}
                 disabled={!createName.trim() || creating}
               >

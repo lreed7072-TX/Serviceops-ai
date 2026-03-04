@@ -1,0 +1,245 @@
+/* Procedure Templates Page Styles */
+
+.procedure-templates-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* Page Header */
+.pt-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pt-page-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.pt-page-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Filter Card */
+.pt-filters {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.pt-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.pt-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pt-filter-select {
+  padding: 0.625rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 180px;
+}
+
+.pt-filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Templates Grid */
+.pt-templates-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pt-templates-body {
+  padding: 1.5rem;
+}
+
+.pt-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Template Card */
+.pt-template-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pt-template-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+  transform: translateY(-1px);
+}
+
+.pt-template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pt-template-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.pt-template-desc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.375rem 0 0;
+}
+
+.pt-template-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.875rem;
+}
+
+.pt-badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.pt-badge.context {
+  background: #3b82f6;
+  color: white;
+}
+
+.pt-badge.steps {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pt-badge.duration {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pt-template-meta {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* Alert */
+.pt-alert-error {
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  margin-bottom: 1rem;
+}
+
+/* Empty & Loading */
+.pt-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6b7280;
+}
+
+.pt-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+/* Buttons */
+.pt-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.pt-btn-primary:hover {
+  background: #2563eb;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .procedure-templates-page {
+    padding: 1rem;
+  }
+
+  .pt-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pt-page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .pt-filters {
+    flex-direction: column;
+  }
+
+  .pt-filter-select {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .pt-template-card {
+    padding: 1rem;
+  }
+
+  .pt-template-badges {
+    gap: 0.375rem;
+  }
+}

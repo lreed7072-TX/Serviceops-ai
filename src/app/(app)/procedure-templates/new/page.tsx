@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import "../procedure-detail.css";
 
 const assetCategories = [
   "PUMP",
@@ -90,58 +91,56 @@ export default function NewProcedureTemplatePage() {
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <Link href="/procedure-templates" style={{ color: "var(--primary)", textDecoration: "none" }}>
-          ← Back to Templates
-        </Link>
-      </div>
+    <div className="procedure-detail-page">
+      <Link href="/procedure-templates" className="pd-back-link">
+        &larr; Back to Templates
+      </Link>
 
-      <h1>Create Procedure Template</h1>
+      <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#111827", margin: "0 0 1.5rem" }}>
+        Create Procedure Template
+      </h1>
 
-      <div className="card" style={{ maxWidth: 800 }}>
-        {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+      <div className="pd-create-card">
+        {error && <div className="pd-alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           {/* Name */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Template Name <span style={{ color: "red" }}>*</span>
+          <div className="pd-form-field">
+            <label className="pd-form-label">
+              Template Name <span className="required">*</span>
             </label>
             <input
+              className="pd-form-input"
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g., Submersible Pump Seal Replacement"
               required
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             />
           </div>
 
           {/* Description */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Description
-            </label>
+          <div className="pd-form-field">
+            <label className="pd-form-label">Description</label>
             <textarea
+              className="pd-form-textarea"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Brief description of this procedure..."
               rows={3}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             />
           </div>
 
           {/* Asset Category */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Asset Category <span style={{ color: "red" }}>*</span>
+          <div className="pd-form-field">
+            <label className="pd-form-label">
+              Asset Category <span className="required">*</span>
             </label>
             <select
+              className="pd-form-select"
               value={form.assetCategory}
               onChange={(e) => setForm({ ...form, assetCategory: e.target.value })}
               required
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             >
               <option value="">Select category...</option>
               {assetCategories.map((cat) => (
@@ -153,43 +152,39 @@ export default function NewProcedureTemplatePage() {
           </div>
 
           {/* Asset Family */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Asset Family (optional)
-            </label>
+          <div className="pd-form-field">
+            <label className="pd-form-label">Asset Family (optional)</label>
             <input
+              className="pd-form-input"
               type="text"
               value={form.assetFamily}
               onChange={(e) => setForm({ ...form, assetFamily: e.target.value })}
               placeholder="e.g., SUBMERSIBLE_WASTEWATER"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             />
           </div>
 
           {/* Asset Subfamily */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Asset Subfamily (optional)
-            </label>
+          <div className="pd-form-field">
+            <label className="pd-form-label">Asset Subfamily (optional)</label>
             <input
+              className="pd-form-input"
               type="text"
               value={form.assetSubfamily}
               onChange={(e) => setForm({ ...form, assetSubfamily: e.target.value })}
               placeholder="e.g., GRINDER_PUMP"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             />
           </div>
 
           {/* Context */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Context <span style={{ color: "red" }}>*</span>
+          <div className="pd-form-field">
+            <label className="pd-form-label">
+              Context <span className="required">*</span>
             </label>
             <select
+              className="pd-form-select"
               value={form.context}
               onChange={(e) => setForm({ ...form, context: e.target.value })}
               required
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             >
               <option value="">Select context...</option>
               {contexts.map((ctx) => (
@@ -201,26 +196,24 @@ export default function NewProcedureTemplatePage() {
           </div>
 
           {/* Estimated Duration */}
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-              Estimated Duration (minutes)
-            </label>
+          <div className="pd-form-field">
+            <label className="pd-form-label">Estimated Duration (minutes)</label>
             <input
+              className="pd-form-input"
               type="number"
               value={form.estimatedDurationMinutes}
               onChange={(e) => setForm({ ...form, estimatedDurationMinutes: e.target.value })}
               placeholder="e.g., 120"
               min="1"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)" }}
             />
           </div>
 
           {/* Actions */}
-          <div style={{ display: "flex", gap: 12 }}>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <div className="pd-create-actions">
+            <button type="submit" className="pd-btn-primary" disabled={submitting}>
               {submitting ? "Creating..." : "Create Template"}
             </button>
-            <Link href="/procedure-templates" className="btn btn-outline">
+            <Link href="/procedure-templates" className="pd-btn-secondary">
               Cancel
             </Link>
           </div>

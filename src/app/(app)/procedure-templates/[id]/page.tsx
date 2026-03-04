@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import "../procedure-detail.css";
 
 type ProcedureStep = {
   id: string;
@@ -149,212 +150,199 @@ export default function ProcedureTemplateDetailPage() {
 
   if (loading) {
     return (
-      <div>
-        <p className="muted">Loading template...</p>
+      <div className="procedure-detail-page">
+        <p className="pd-loading">Loading template...</p>
       </div>
     );
   }
 
   if (error || !template) {
     return (
-      <div>
-        <div className="alert alert-error">{error || "Template not found"}</div>
-        <Link href="/procedure-templates">← Back to Templates</Link>
+      <div className="procedure-detail-page">
+        <div className="pd-alert-error">{error || "Template not found"}</div>
+        <Link href="/procedure-templates" className="pd-back-link">&larr; Back to Templates</Link>
       </div>
     );
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <Link href="/procedure-templates" style={{ color: "var(--primary)", textDecoration: "none" }}>
-          ← Back to Templates
-        </Link>
-      </div>
+    <div className="procedure-detail-page">
+      <Link href="/procedure-templates" className="pd-back-link">
+        &larr; Back to Templates
+      </Link>
 
       {/* Template Header */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+      <div className="pd-header-card">
+        <div className="pd-header-top">
           <div>
-            <h1 style={{ margin: 0 }}>{template.name}</h1>
+            <h1>{template.name}</h1>
             {template.description && (
-              <p style={{ margin: "8px 0 0", color: "var(--text-muted)" }}>{template.description}</p>
+              <p className="pd-header-desc">{template.description}</p>
             )}
           </div>
-          <button onClick={handleDelete} className="btn btn-danger btn-sm">
+          <button onClick={handleDelete} className="pd-btn-danger">
             Archive
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
-          <span className="badge">{template.assetCategory}</span>
-          {template.assetFamily && <span className="badge">{template.assetFamily}</span>}
-          <span className="badge" style={{ background: "#3b82f6", color: "white" }}>
+        <div className="pd-header-badges">
+          <span className="pd-badge">{template.assetCategory}</span>
+          {template.assetFamily && <span className="pd-badge">{template.assetFamily}</span>}
+          <span className="pd-badge context">
             {contextLabels[template.context] || template.context}
           </span>
           {template.estimatedDurationMinutes && (
-            <span className="badge">~{template.estimatedDurationMinutes} min</span>
+            <span className="pd-badge">~{template.estimatedDurationMinutes} min</span>
           )}
-          <span className="badge">{template.steps.length} steps</span>
-          <span className="badge">v{template.version}</span>
+          <span className="pd-badge">{template.steps.length} steps</span>
+          <span className="pd-badge">v{template.version}</span>
         </div>
 
-        <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-muted)" }}>
+        <div className="pd-header-meta">
           Created by {template.createdBy.name || template.createdBy.email}
         </div>
       </div>
 
       {/* Steps Section */}
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ margin: 0 }}>Procedure Steps ({template.steps.length})</h2>
+      <div className="pd-steps-card">
+        <div className="pd-steps-header">
+          <h2>Procedure Steps ({template.steps.length})</h2>
           <button
             onClick={() => setShowAddStep(!showAddStep)}
-            className="btn btn-primary btn-sm"
+            className="pd-btn-primary"
           >
             {showAddStep ? "Cancel" : "+ Add Step"}
           </button>
         </div>
 
-        {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+        <div className="pd-steps-body">
+          {error && <div className="pd-alert-error">{error}</div>}
 
-        {/* Add Step Form */}
-        {showAddStep && (
-          <div className="card" style={{ marginBottom: 24, background: "#f9fafb", padding: 16 }}>
-            <h3 style={{ margin: "0 0 16px" }}>New Step</h3>
-            <form onSubmit={handleAddStep}>
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: 13 }}>
-                  Title <span style={{ color: "red" }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={stepForm.title}
-                  onChange={(e) => setStepForm({ ...stepForm, title: e.target.value })}
-                  placeholder="e.g., Disconnect power supply"
-                  required
-                  style={{ width: "100%", padding: "6px 10px", borderRadius: 4, border: "1px solid var(--border)" }}
-                />
-              </div>
-
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: 13 }}>
-                  Description
-                </label>
-                <textarea
-                  value={stepForm.description}
-                  onChange={(e) => setStepForm({ ...stepForm, description: e.target.value })}
-                  placeholder="Detailed instructions..."
-                  rows={2}
-                  style={{ width: "100%", padding: "6px 10px", borderRadius: 4, border: "1px solid var(--border)" }}
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: 13 }}>
-                    Domain
-                  </label>
-                  <select
-                    value={stepForm.domain}
-                    onChange={(e) => setStepForm({ ...stepForm, domain: e.target.value })}
-                    style={{ width: "100%", padding: "6px 10px", borderRadius: 4, border: "1px solid var(--border)" }}
-                  >
-                    <option value="">None</option>
-                    <option value="MECHANICAL">Mechanical</option>
-                    <option value="ELECTRICAL">Electrical</option>
-                    <option value="CONTROLS">Controls</option>
-                    <option value="INSTRUMENTATION">Instrumentation</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: 13 }}>
-                    Est. Minutes
+          {/* Add Step Form */}
+          {showAddStep && (
+            <div className="pd-add-step-form">
+              <h3>New Step</h3>
+              <form onSubmit={handleAddStep}>
+                <div className="pd-form-field">
+                  <label className="pd-form-label">
+                    Title <span className="required">*</span>
                   </label>
                   <input
-                    type="number"
-                    value={stepForm.estimatedMinutes}
-                    onChange={(e) => setStepForm({ ...stepForm, estimatedMinutes: e.target.value })}
-                    placeholder="e.g., 15"
-                    min="1"
-                    style={{ width: "100%", padding: "6px 10px", borderRadius: 4, border: "1px solid var(--border)" }}
+                    className="pd-form-input"
+                    type="text"
+                    value={stepForm.title}
+                    onChange={(e) => setStepForm({ ...stepForm, title: e.target.value })}
+                    placeholder="e.g., Disconnect power supply"
+                    required
                   />
                 </div>
-              </div>
 
-              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  <input
-                    type="checkbox"
-                    checked={stepForm.isCritical}
-                    onChange={(e) => setStepForm({ ...stepForm, isCritical: e.target.checked })}
+                <div className="pd-form-field">
+                  <label className="pd-form-label">Description</label>
+                  <textarea
+                    className="pd-form-textarea"
+                    value={stepForm.description}
+                    onChange={(e) => setStepForm({ ...stepForm, description: e.target.value })}
+                    placeholder="Detailed instructions..."
+                    rows={2}
                   />
-                  Critical Step
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  <input
-                    type="checkbox"
-                    checked={stepForm.requiresEvidence}
-                    onChange={(e) => setStepForm({ ...stepForm, requiresEvidence: e.target.checked })}
-                  />
-                  Requires Evidence
-                </label>
-              </div>
+                </div>
 
-              <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
-                {submitting ? "Adding..." : "Add Step"}
-              </button>
-            </form>
-          </div>
-        )}
+                <div className="pd-form-row">
+                  <div className="pd-form-field">
+                    <label className="pd-form-label">Domain</label>
+                    <select
+                      className="pd-form-select"
+                      value={stepForm.domain}
+                      onChange={(e) => setStepForm({ ...stepForm, domain: e.target.value })}
+                    >
+                      <option value="">None</option>
+                      <option value="MECHANICAL">Mechanical</option>
+                      <option value="ELECTRICAL">Electrical</option>
+                      <option value="CONTROLS">Controls</option>
+                      <option value="INSTRUMENTATION">Instrumentation</option>
+                    </select>
+                  </div>
 
-        {/* Steps List */}
-        {template.steps.length === 0 ? (
-          <p className="muted">No steps yet. Add your first step above!</p>
-        ) : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {template.steps.map((step, idx) => (
-              <div
-                key={step.id}
-                style={{
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  padding: 12,
-                  background: step.isCritical ? "#fff3f3" : "white",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, color: "#6b7280" }}>#{idx + 1}</span>
-                      <strong>{step.title}</strong>
-                      {step.isCritical && (
-                        <span className="badge critical">Critical</span>
-                      )}
-                      {step.domain && (
-                        <span
-                          className="badge"
-                          style={{ background: domainColors[step.domain], color: "white" }}
-                        >
-                          {step.domain}
-                        </span>
-                      )}
-                      {step.estimatedMinutes && (
-                        <span className="badge">~{step.estimatedMinutes} min</span>
-                      )}
-                    </div>
-                    {step.description && (
-                      <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--text-muted)" }}>
-                        {step.description}
-                      </p>
-                    )}
+                  <div className="pd-form-field">
+                    <label className="pd-form-label">Est. Minutes</label>
+                    <input
+                      className="pd-form-input"
+                      type="number"
+                      value={stepForm.estimatedMinutes}
+                      onChange={(e) => setStepForm({ ...stepForm, estimatedMinutes: e.target.value })}
+                      placeholder="e.g., 15"
+                      min="1"
+                    />
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+
+                <div className="pd-checkbox-row">
+                  <label className="pd-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={stepForm.isCritical}
+                      onChange={(e) => setStepForm({ ...stepForm, isCritical: e.target.checked })}
+                    />
+                    Critical Step
+                  </label>
+                  <label className="pd-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={stepForm.requiresEvidence}
+                      onChange={(e) => setStepForm({ ...stepForm, requiresEvidence: e.target.checked })}
+                    />
+                    Requires Evidence
+                  </label>
+                </div>
+
+                <button type="submit" className="pd-btn-primary" disabled={submitting}>
+                  {submitting ? "Adding..." : "Add Step"}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Steps List */}
+          {template.steps.length === 0 ? (
+            <p className="pd-empty">No steps yet. Add your first step above!</p>
+          ) : (
+            <div className="pd-steps-grid">
+              {template.steps.map((step, idx) => (
+                <div
+                  key={step.id}
+                  className={`pd-step-item${step.isCritical ? " critical" : ""}`}
+                >
+                  <div className="pd-step-top">
+                    <div className="pd-step-info">
+                      <div className="pd-step-title-row">
+                        <span className="pd-step-number">#{idx + 1}</span>
+                        <span className="pd-step-title">{step.title}</span>
+                        {step.isCritical && (
+                          <span className="pd-badge critical">Critical</span>
+                        )}
+                        {step.domain && (
+                          <span
+                            className="pd-badge"
+                            style={{ background: domainColors[step.domain], color: "white" }}
+                          >
+                            {step.domain}
+                          </span>
+                        )}
+                        {step.estimatedMinutes && (
+                          <span className="pd-badge">~{step.estimatedMinutes} min</span>
+                        )}
+                      </div>
+                      {step.description && (
+                        <p className="pd-step-desc">{step.description}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

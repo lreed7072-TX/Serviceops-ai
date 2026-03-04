@@ -1,0 +1,641 @@
+/* Standards Pack Detail Page Styles */
+
+.standards-detail-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* Page Header */
+.sd-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sd-page-header-left {
+  flex: 1;
+}
+
+.sd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  transition: color 0.2s;
+  font-size: 0.9rem;
+}
+
+.sd-back-link:hover {
+  color: #2563eb;
+}
+
+.sd-page-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.sd-header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Alert */
+.sd-alert-error {
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  margin-bottom: 1.5rem;
+}
+
+/* Detail Card */
+.sd-detail-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.sd-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.sd-card-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sd-card-body {
+  padding: 1.5rem;
+}
+
+/* Form Grid */
+.sd-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.sd-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sd-form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.sd-form-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.sd-form-input,
+.sd-form-select,
+.sd-form-textarea {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.sd-form-input:focus,
+.sd-form-select:focus,
+.sd-form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sd-form-textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.sd-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Tasks Section */
+.sd-tasks-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.sd-tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.sd-tasks-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sd-tasks-body {
+  padding: 1.5rem;
+}
+
+/* Task Groups */
+.sd-task-group {
+  margin-bottom: 1.5rem;
+}
+
+.sd-task-group:last-child {
+  margin-bottom: 0;
+}
+
+.sd-task-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sd-task-count {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+/* Task List */
+.sd-task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sd-task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.sd-task-item:hover {
+  background: #f3f4f6;
+}
+
+.sd-task-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.sd-task-number {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.85rem;
+  min-width: 1.5rem;
+}
+
+.sd-task-title {
+  font-weight: 500;
+  color: #111827;
+  font-size: 0.925rem;
+}
+
+.sd-task-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sd-task-badge.critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sd-task-badge.evidence {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sd-task-time {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.sd-task-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.sd-btn-icon {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+}
+
+.sd-btn-icon:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.sd-btn-icon.danger:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+/* Modal */
+.sd-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.sd-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.sd-modal.wide {
+  max-width: 700px;
+}
+
+.sd-modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sd-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sd-modal-body {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sd-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Checkbox Row */
+.sd-checkbox-row {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.sd-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+/* Measurement List */
+.sd-measurement-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sd-measurement-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.sd-measurement-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sd-measurement-info strong {
+  color: #111827;
+  font-size: 0.9rem;
+}
+
+.sd-measurement-unit {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.sd-measurement-range {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.sd-meas-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sd-meas-badge.numeric {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sd-meas-badge.pass_fail {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.sd-meas-badge.text {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.sd-meas-badge.required {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Add Measurement Form */
+.sd-add-measurement-form {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.sd-add-measurement-form h4 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sd-meas-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.sd-meas-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Empty */
+.sd-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.sd-modal-note {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.sd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.sd-btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.sd-btn-primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.sd-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sd-btn-secondary:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.sd-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: white;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sd-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.sd-btn-cancel {
+  padding: 0.625rem 1rem;
+  background: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sd-btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.sd-btn-submit {
+  padding: 0.625rem 1.25rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sd-btn-submit:hover:not(:disabled) {
+  background: #059669;
+}
+
+.sd-btn-submit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Loading */
+.sd-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .standards-detail-page {
+    padding: 1rem;
+  }
+
+  .sd-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sd-page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .sd-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sd-meas-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sd-checkbox-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .sd-task-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .sd-task-actions {
+    align-self: flex-end;
+  }
+
+  .sd-modal {
+    margin: 0.5rem;
+  }
+
+  .sd-modal-header,
+  .sd-modal-body,
+  .sd-modal-footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .sd-header-actions {
+    justify-content: flex-start;
+  }
+}

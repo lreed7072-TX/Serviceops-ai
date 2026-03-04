@@ -1,0 +1,402 @@
+/* Procedure Template Detail Page Styles */
+
+.procedure-detail-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* Back Link */
+.pd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.pd-back-link:hover {
+  color: #2563eb;
+}
+
+/* Template Header Card */
+.pd-header-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pd-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.pd-header-card h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.pd-header-desc {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0;
+}
+
+.pd-header-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.pd-badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.pd-badge.context {
+  background: #3b82f6;
+  color: white;
+}
+
+.pd-badge.critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pd-header-meta {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* Steps Card */
+.pd-steps-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pd-steps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.pd-steps-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.pd-steps-body {
+  padding: 1.5rem;
+}
+
+.pd-steps-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* Step Item */
+.pd-step-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  background: white;
+  transition: background 0.15s;
+}
+
+.pd-step-item.critical {
+  background: #fff5f5;
+  border-color: #fecaca;
+}
+
+.pd-step-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pd-step-info {
+  flex: 1;
+}
+
+.pd-step-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.pd-step-number {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.pd-step-title {
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.pd-step-desc {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0.375rem 0 0;
+  line-height: 1.4;
+}
+
+/* Add Step Form */
+.pd-add-step-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.pd-add-step-form h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pd-form-field {
+  margin-bottom: 0.875rem;
+}
+
+.pd-form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.pd-form-label .required {
+  color: #ef4444;
+}
+
+.pd-form-input,
+.pd-form-select,
+.pd-form-textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.pd-form-input:focus,
+.pd-form-select:focus,
+.pd-form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.pd-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
+.pd-checkbox-row {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.pd-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.85rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+/* Create Template Form (new page) */
+.pd-create-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 800px;
+}
+
+.pd-create-card .pd-form-field {
+  margin-bottom: 1.25rem;
+}
+
+.pd-create-card .pd-form-label {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.pd-create-card .pd-form-input,
+.pd-create-card .pd-form-select,
+.pd-create-card .pd-form-textarea {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
+.pd-create-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Alert */
+.pd-alert-error {
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  margin-bottom: 1rem;
+}
+
+/* Empty & Loading */
+.pd-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.pd-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+/* Buttons */
+.pd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.pd-btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.pd-btn-primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.pd-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.pd-btn-secondary:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.pd-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: white;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pd-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .procedure-detail-page {
+    padding: 1rem;
+  }
+
+  .pd-header-top {
+    flex-direction: column;
+  }
+
+  .pd-header-card h1 {
+    font-size: 1.5rem;
+  }
+
+  .pd-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-checkbox-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pd-create-card {
+    padding: 1.25rem;
+  }
+
+  .pd-create-actions {
+    flex-direction: column;
+  }
+
+  .pd-steps-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}

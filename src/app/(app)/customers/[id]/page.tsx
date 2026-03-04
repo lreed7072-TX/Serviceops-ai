@@ -95,6 +95,15 @@ export default function CustomerDetailPage() {
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Portal access state
+  const [portalAccess, setPortalAccess] = useState<{
+    hasAccess: boolean;
+    portalToken: any;
+  } | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
+  const [portalCopied, setPortalCopied] = useState(false);
+
   useEffect(() => {
     if (customerId) {
       loadData();
@@ -134,6 +143,14 @@ export default function CustomerDetailPage() {
       // Load activity timeline
       const actData = actRes.ok ? await actRes.json() : { data: [] };
       setActivities(actData.data ?? []);
+
+      // Load portal access status
+      apiFetch(`/api/customers/${customerId}/portal-access`, { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.data) setPortalAccess(data.data);
+        })
+        .catch(() => {});
 
       // Populate form
       setFormData({
@@ -215,6 +232,56 @@ export default function CustomerDetailPage() {
     } finally {
       setDeleting(false);
       setShowDelete(false);
+    }
+  };
+
+  const handleGrantPortalAccess = async () => {
+    if (portalLoading) return;
+    setPortalLoading(true);
+    try {
+      const res = await apiFetch(`/api/customers/${customerId}/portal-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setPortalAccess({ hasAccess: true, portalToken: data.data.portalToken });
+        setPortalUrl(data.data.portalUrl);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleRevokePortalAccess = async () => {
+    if (portalLoading) return;
+    setPortalLoading(true);
+    try {
+      const res = await apiFetch(`/api/customers/${customerId}/portal-access`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setPortalAccess({ hasAccess: false, portalToken: null });
+        setPortalUrl(null);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleCopyPortalLink = () => {
+    const url = portalUrl || (portalAccess?.portalToken?.token
+      ? `${window.location.origin}/portal/login?token=${portalAccess.portalToken.token}`
+      : null);
+    if (url) {
+      navigator.clipboard.writeText(url);
+      setPortalCopied(true);
+      setTimeout(() => setPortalCopied(false), 2000);
     }
   };
 
@@ -401,6 +468,49 @@ export default function CustomerDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Portal Access Section */}
+      <div className="detail-card" style={{ marginTop: "1.5rem" }}>
+        <div className="card-header">
+          <h2>🌐 Portal Access</h2>
+        </div>
+        <div className="card-body">
+          {portalAccess?.hasAccess ? (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+                <span style={{ color: "#10b981", fontWeight: 600 }}>Active</span>
+                <span style={{ color: "#6b7280", fontSize: "0.8125rem" }}>
+                  {portalAccess.portalToken?.email && `(${portalAccess.portalToken.email})`}
+                </span>
+              </div>
+              {portalAccess.portalToken?.lastUsedAt && (
+                <p style={{ fontSize: "0.8125rem", color: "#6b7280", marginBottom: "1rem" }}>
+                  Last accessed: {new Date(portalAccess.portalToken.lastUsedAt).toLocaleString()}
+                </p>
+              )}
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button onClick={handleCopyPortalLink} className="btn-secondary" style={{ fontSize: "0.8125rem" }}>
+                  {portalCopied ? "Copied!" : "Copy Portal Link"}
+                </button>
+                <button onClick={handleRevokePortalAccess} className="btn-danger" disabled={portalLoading}
+                  style={{ fontSize: "0.8125rem", background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5" }}>
+                  {portalLoading ? "Revoking..." : "Revoke Access"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1rem" }}>
+                Grant this customer access to view their quotes, invoices, and work orders through a secure portal.
+              </p>
+              <button onClick={handleGrantPortalAccess} className="btn-primary" disabled={portalLoading}
+                style={{ fontSize: "0.875rem" }}>
+                {portalLoading ? "Generating..." : "Grant Portal Access"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

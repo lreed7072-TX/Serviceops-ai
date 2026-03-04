@@ -442,3 +442,35 @@
     align-items: flex-start;
   }
 }
+
+@media (max-width: 480px) {
+  .users-page {
+    padding: 0.75rem;
+  }
+
+  .users-page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .users-page-header-right {
+    flex-direction: column;
+  }
+
+  .users-btn-primary,
+  .users-btn-secondary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .users-modal-header,
+  .users-modal-body,
+  .users-modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .users-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

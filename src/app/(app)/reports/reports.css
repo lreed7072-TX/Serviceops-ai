@@ -532,3 +532,32 @@
     min-width: 600px;
   }
 }
+
+@media (max-width: 480px) {
+  .reports-page {
+    padding: 0.75rem;
+  }
+
+  .reports-page .page-header-left h1 {
+    font-size: 1.5rem;
+  }
+
+  .reports-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-stat-card {
+    padding: 1rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .reports-table-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+}

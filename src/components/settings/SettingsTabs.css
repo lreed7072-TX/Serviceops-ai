@@ -54,3 +54,15 @@
     font-size: 14px;
   }
 }
+
+@media (max-width: 480px) {
+  .settings-tabs {
+    padding: 6px;
+  }
+
+  .settings-tab {
+    padding: 10px 12px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+}

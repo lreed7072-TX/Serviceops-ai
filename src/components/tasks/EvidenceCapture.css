@@ -169,3 +169,13 @@
     max-height: 200px;
   }
 }
+
+@media (max-width: 480px) {
+  .ec-btn {
+    min-height: 44px;
+  }
+
+  .ec-card {
+    padding: 0.75rem;
+  }
+}

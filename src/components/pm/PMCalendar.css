@@ -219,3 +219,23 @@
     font-size: 12px;
   }
 }
+
+@media (max-width: 480px) {
+  .pm-calendar {
+    padding: 0.75rem;
+  }
+
+  .calendar-day {
+    min-height: 44px;
+    padding: 2px;
+  }
+
+  .day-number {
+    font-size: 11px;
+  }
+
+  .calendar-nav-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

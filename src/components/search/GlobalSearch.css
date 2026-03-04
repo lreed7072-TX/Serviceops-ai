@@ -312,3 +312,19 @@
     gap: 8px;
   }
 }
+
+@media (max-width: 480px) {
+  .gs-modal {
+    width: 100%;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .gs-header {
+    padding: 12px;
+  }
+
+  .gs-result-item {
+    padding: 12px;
+  }
+}

@@ -306,4 +306,30 @@
     width: 100%;
     justify-content: center;
   }
+
+  .duplicate-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .duplicates-page {
+    padding: 0.75rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .duplicate-group {
+    padding: 0.75rem;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    min-height: 44px;
+  }
 }

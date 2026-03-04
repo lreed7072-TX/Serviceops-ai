@@ -488,3 +488,35 @@
     justify-content: space-between;
   }
 }
+
+@media (max-width: 480px) {
+  .td-page {
+    padding: 0.75rem;
+  }
+
+  .td-page h1 {
+    font-size: 1.5rem;
+  }
+
+  .td-header-actions {
+    flex-direction: column;
+  }
+
+  .td-header-actions select,
+  .td-header-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .td-card-header {
+    padding: 1rem;
+  }
+
+  .td-card-body {
+    padding: 1rem;
+  }
+
+  .td-sidebar-card {
+    padding: 1rem;
+  }
+}

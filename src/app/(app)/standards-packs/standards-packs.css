@@ -382,3 +382,31 @@
     padding-right: 1.25rem;
   }
 }
+
+@media (max-width: 480px) {
+  .standards-packs-page {
+    padding: 0.75rem;
+  }
+
+  .sp-btn-primary,
+  .sp-btn-secondary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .sp-pack-card {
+    padding: 1rem;
+  }
+
+  .sp-modal-header,
+  .sp-modal-body,
+  .sp-modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .sp-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

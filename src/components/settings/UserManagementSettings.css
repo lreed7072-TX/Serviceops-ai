@@ -209,3 +209,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .um-user-card {
+    padding: 0.75rem;
+  }
+
+  .um-user-actions button {
+    min-height: 44px;
+  }
+}

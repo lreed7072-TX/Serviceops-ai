@@ -335,3 +335,18 @@
     gap: 0.5rem;
   }
 }
+
+@media (max-width: 480px) {
+  .me-item {
+    padding: 0.75rem;
+  }
+
+  .me-pf-btn {
+    min-height: 44px;
+  }
+
+  .me-numeric-input,
+  .me-text-input {
+    min-height: 44px;
+  }
+}

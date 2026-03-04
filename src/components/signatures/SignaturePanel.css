@@ -230,3 +230,16 @@
     margin: 0.5rem;
   }
 }
+
+@media (max-width: 480px) {
+  .sp-capture-btn {
+    min-height: 44px;
+  }
+
+  .sp-modal-header,
+  .sp-modal-body,
+  .sp-modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

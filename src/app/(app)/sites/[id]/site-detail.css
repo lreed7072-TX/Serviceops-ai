@@ -400,5 +400,42 @@
 
   .modal-content {
     max-width: 100%;
+    max-height: 90vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-detail-page {
+    padding: 0.75rem;
+  }
+
+  .header-left h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-right {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .card-header {
+    padding: 1rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }

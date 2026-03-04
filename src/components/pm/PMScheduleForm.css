@@ -148,3 +148,13 @@
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .pm-schedule-form {
+    padding: 1rem;
+  }
+
+  .form-actions button {
+    min-height: 44px;
+  }
+}

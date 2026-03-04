@@ -184,3 +184,13 @@
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .lr-actions button {
+    min-height: 44px;
+  }
+
+  .labor-rate-card {
+    padding: 1rem;
+  }
+}

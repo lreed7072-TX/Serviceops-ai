@@ -158,3 +158,9 @@
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .settings-form-actions button {
+    min-height: 44px;
+  }
+}

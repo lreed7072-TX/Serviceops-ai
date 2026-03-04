@@ -446,3 +446,44 @@
     max-height: 90vh;
   }
 }
+
+@media (max-width: 480px) {
+  .visit-detail-page {
+    padding: 0.75rem;
+  }
+
+  .visit-detail-header-left h2 {
+    font-size: 1.5rem;
+  }
+
+  .visit-detail-header-right {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .card-header {
+    padding: 1rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .blocker-item {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+  }
+}

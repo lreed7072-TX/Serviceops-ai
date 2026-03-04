@@ -507,4 +507,35 @@
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
   }
+
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .sites-page {
+    padding: 0.75rem;
+  }
+
+  .page-header-left h1 {
+    font-size: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .create-card-body {
+    padding: 1rem;
+  }
 }

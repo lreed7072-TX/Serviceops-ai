@@ -400,3 +400,33 @@
     gap: 0.75rem;
   }
 }
+
+@media (max-width: 480px) {
+  .procedure-detail-page {
+    padding: 0.75rem;
+  }
+
+  .pd-header-card {
+    padding: 1rem;
+  }
+
+  .pd-create-card {
+    padding: 1rem;
+  }
+
+  .pd-btn-primary,
+  .pd-btn-secondary,
+  .pd-btn-danger {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .pd-create-actions {
+    gap: 0.5rem;
+  }
+
+  .pd-step-item {
+    padding: 0.75rem;
+  }
+}

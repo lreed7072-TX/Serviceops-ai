@@ -407,3 +407,17 @@
     flex-wrap: wrap;
   }
 }
+
+@media (max-width: 480px) {
+  .tl-task-card {
+    padding: 0.75rem;
+  }
+
+  .tl-action-btn {
+    min-height: 44px;
+  }
+
+  .tl-pkg-header h3 {
+    font-size: 1rem;
+  }
+}

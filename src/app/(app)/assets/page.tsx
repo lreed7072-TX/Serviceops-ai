@@ -273,7 +273,7 @@ export default function AssetsPage() {
   // Calculate stats
   const totalAssets = assets.length;
   const activeAssets = assets.filter(a => a.status === "ACTIVE").length;
-  const criticalAssets = assets.filter(a => a.criticality === "CRITICAL" || a.criticality === "HIGH").length;
+  const criticalAssets = assets.filter(a => a.criticality === "HIGH").length;
   const uniqueCategories = new Set(assets.filter(a => a.assetCategory).map(a => a.assetCategory)).size;
 
   return (

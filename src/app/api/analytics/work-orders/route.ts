@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
         status: true,
         orderType: true,
         createdAt: true,
+        completedAt: true,
         customer: {
           select: {
             id: true,
@@ -82,9 +83,13 @@ export async function GET(request: NextRequest) {
     const completedOrders = workOrders.filter((wo) => wo.status === "COMPLETED");
     const completionRate = workOrders.length > 0 ? (completedOrders.length / workOrders.length) * 100 : 0;
 
-    // Average completion time - not available without completedAt field
-    // For now, we'll report 0 and recommend adding this field to schema
-    const avgCompletionTime = 0;
+    // Average completion time in days (createdAt -> completedAt)
+    const completionDays = completedOrders
+      .filter((wo) => wo.completedAt)
+      .map((wo) => (new Date(wo.completedAt!).getTime() - new Date(wo.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    const avgCompletionTime = completionDays.length > 0
+      ? completionDays.reduce((sum, d) => sum + d, 0) / completionDays.length
+      : 0;
 
     // Customer frequency
     const customerWorkOrders = workOrders.reduce((acc: any[], wo) => {

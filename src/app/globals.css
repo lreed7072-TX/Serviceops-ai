@@ -4229,3 +4229,126 @@ a {
     max-height: 60vh;
   }
 }
+
+/* ========================================
+   PWA: Offline Indicator
+   ======================================== */
+
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--warning);
+  color: var(--warning-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  text-align: center;
+  animation: slideDown var(--transition) ease-out;
+}
+
+.offline-indicator svg {
+  flex-shrink: 0;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   PWA: Offline Page
+   ======================================== */
+
+.offline-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-lg);
+  background: var(--bg);
+}
+
+.offline-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 420px;
+  padding: var(--space-2xl) var(--space-xl);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.offline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: var(--space-lg);
+  background: var(--warning-light);
+  border-radius: var(--radius-full);
+  color: var(--warning-dark);
+}
+
+.offline-title {
+  margin-bottom: var(--space);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.offline-description {
+  margin-bottom: var(--space-lg);
+  font-size: 0.95rem;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.offline-reconnected {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--success-light);
+  border-radius: var(--radius);
+  color: var(--success-dark);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.offline-retry-btn {
+  padding: var(--space) var(--space-xl);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.offline-retry-btn:hover {
+  background: var(--accent-hover);
+}
+
+.offline-hint {
+  margin-top: var(--space-lg);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

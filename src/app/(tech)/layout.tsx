@@ -4,6 +4,7 @@ import { Role } from "@prisma/client";
 import { getAuthContextFromSupabase } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
 import { TechLayoutClient } from "@/components/TechLayoutClient";
+import { OfflineIndicator } from "@/components/common/OfflineIndicator";
 
 type NavLink = { href: string; label: string };
 
@@ -21,6 +22,7 @@ export default async function TechLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="shell">
+      <OfflineIndicator />
       <aside className="sidebar">
         <h1>Tech</h1>
         <nav className="nav">

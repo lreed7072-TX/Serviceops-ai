@@ -104,7 +104,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   // Cannot edit APPROVED or CONVERTED quotes
-  const lockedStatuses = [QuoteStatus.APPROVED, QuoteStatus.CONVERTED];
+  const lockedStatuses: QuoteStatus[] = [QuoteStatus.APPROVED, QuoteStatus.CONVERTED];
   if (
     lockedStatuses.includes(existingQuote.status) &&
     (title || description || siteId !== undefined || taxRate !== undefined || lineItems)

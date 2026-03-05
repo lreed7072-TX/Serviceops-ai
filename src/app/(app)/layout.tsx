@@ -36,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/procedure-templates", label: "Procedure Templates", iconName: "FileCheck" },
     { href: "/standards-packs", label: "Standards Packs", iconName: "PackageCheck" },
     { href: "/materials", label: "Materials", iconName: "Wrench" },
+    { href: "/help", label: "Help Center", iconName: "HelpCircle" },
     ...(auth.role === Role.ADMIN ? [
       { href: "/users", label: "Users", iconName: "UserCog" },
       { href: "/settings/audit-logs", label: "Audit Logs", iconName: "Shield" },

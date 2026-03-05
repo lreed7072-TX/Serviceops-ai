@@ -21,6 +21,7 @@ import {
   UserCog,
   Shield,
   Settings,
+  HelpCircle,
   Menu,
   X,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   UserCog,
   Shield,
   Settings,
+  HelpCircle,
 };
 
 type NavLink = {

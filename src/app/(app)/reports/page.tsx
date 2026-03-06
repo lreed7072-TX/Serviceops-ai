@@ -75,6 +75,9 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="page-header-right">
+          <Link href="/reports/responses" className="reports-btn-secondary">
+            Form Responses
+          </Link>
           <Link href="/reports/templates" className="reports-btn-secondary">
             Manage Templates
           </Link>
@@ -133,6 +136,13 @@ export default function ReportsPage() {
           <div className="reports-quick-action-text">
             <h4>Work Order Reports</h4>
             <p>Summaries from work orders</p>
+          </div>
+        </Link>
+        <Link href="/reports/responses" className="reports-quick-action">
+          <div className="reports-quick-action-icon">F</div>
+          <div className="reports-quick-action-text">
+            <h4>Form Responses</h4>
+            <p>View submitted field data</p>
           </div>
         </Link>
       </div>

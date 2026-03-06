@@ -173,6 +173,26 @@ enum ReportBlockType {
   RICH_TEXT
   TABLE
   IMAGE
+  TEXT_INPUT
+  TEXTAREA
+  NUMERIC_INPUT
+  YES_NO
+  DROPDOWN
+  MULTI_SELECT
+  DATE_INPUT
+  PHOTO_CAPTURE
+  SIGNATURE
+  GPS_CAPTURE
+  SECTION_HEADER
+  INSTRUCTIONS
+  CALCULATED
+}
+
+enum FormResponseStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+  EXPORTED
 }
 
 model Org {
@@ -249,15 +269,16 @@ model Org {
   techPhotos             TechPhoto[]
   qboConnection          QboConnection?
   customerPortalTokens   CustomerPortalToken[]
+  formResponses          FormResponse[]
 }
 
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   orgId     String   @db.Uuid
-  email    String
-  name     String?
-  role     Role     @default(TECH)
-  isActive Boolean  @default(true)
+  email     String
+  name      String?
+  role      Role     @default(TECH)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -286,6 +307,7 @@ model User {
   siteCheckIns               SiteCheckIn[]        @relation("SiteCheckInUser")
   uploadedPhotos             WorkOrderPhoto[]     @relation("PhotoUploadedBy")
   techPhotos                 TechPhoto[]          @relation("TechPhotoUser")
+  filledFormResponses        FormResponse[]       @relation("FilledFormResponses")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -325,17 +347,17 @@ model Customer {
   billingPostalCode String?
   billingCountry    String?
   notes             String?
-  qboCustomerId     String?   // QuickBooks customer ID
+  qboCustomerId     String? // QuickBooks customer ID
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  org         Org                  @relation(fields: [orgId], references: [id])
-  sites       Site[]
-  assets      Asset[]
-  workOrders  WorkOrder[]
-  quotes      Quote[]
-  invoices    Invoice[]
-  pmSchedules  WorkflowDefinition[] @relation("PMScheduleCustomer")
+  org          Org                   @relation(fields: [orgId], references: [id])
+  sites        Site[]
+  assets       Asset[]
+  workOrders   WorkOrder[]
+  quotes       Quote[]
+  invoices     Invoice[]
+  pmSchedules  WorkflowDefinition[]  @relation("PMScheduleCustomer")
   portalTokens CustomerPortalToken[]
 
   @@index([orgId])
@@ -355,13 +377,14 @@ model Site {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  org         Org                  @relation(fields: [orgId], references: [id])
-  customer    Customer             @relation(fields: [customerId], references: [id])
-  assets      Asset[]
-  workOrders  WorkOrder[]
-  quotes      Quote[]
-  invoices    Invoice[]
-  pmSchedules WorkflowDefinition[] @relation("PMScheduleSite")
+  org           Org                  @relation(fields: [orgId], references: [id])
+  customer      Customer             @relation(fields: [customerId], references: [id])
+  assets        Asset[]
+  workOrders    WorkOrder[]
+  quotes        Quote[]
+  invoices      Invoice[]
+  pmSchedules   WorkflowDefinition[] @relation("PMScheduleSite")
+  formResponses FormResponse[]
 
   @@index([orgId])
   @@index([orgId, customerId])
@@ -390,11 +413,12 @@ model Asset {
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  org        Org         @relation(fields: [orgId], references: [id])
-  customer   Customer    @relation(fields: [customerId], references: [id])
-  site       Site        @relation(fields: [siteId], references: [id])
-  workOrders             WorkOrder[]
-  pmSchedules            WorkflowDefinition[] @relation("PMScheduleAsset")
+  org           Org                  @relation(fields: [orgId], references: [id])
+  customer      Customer             @relation(fields: [customerId], references: [id])
+  site          Site                 @relation(fields: [siteId], references: [id])
+  workOrders    WorkOrder[]
+  pmSchedules   WorkflowDefinition[] @relation("PMScheduleAsset")
+  formResponses FormResponse[]
 
   @@index([orgId])
   @@index([orgId, siteId])
@@ -416,7 +440,7 @@ model WorkOrder {
   executionMode    ExecutionMode   @default(UNIFIED)
   orderType        OrderType       @default(WORK_ORDER)
   workOrderNumber  String?
-  priority         String?         // LOW, MEDIUM, HIGH, CRITICAL
+  priority         String? // LOW, MEDIUM, HIGH, CRITICAL
   dueDate          DateTime?
   completedAt      DateTime?
   estimatedHours   Float?
@@ -443,6 +467,7 @@ model WorkOrder {
   siteCheckIns   SiteCheckIn[]
   photos         WorkOrderPhoto[]
   techPhotos     TechPhoto[]
+  formResponses  FormResponse[]
 
   @@unique([orgId, workOrderNumber])
   @@index([orgId])
@@ -662,10 +687,11 @@ model ReportTemplate {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  org           Org           @relation(fields: [orgId], references: [id])
-  createdByUser User          @relation("ReportTemplateCreatedBy", fields: [createdByUserId], references: [id])
-  updatedByUser User?         @relation("ReportTemplateUpdatedBy", fields: [updatedByUserId], references: [id])
-  blocks        ReportBlock[] @relation("ReportTemplateBlocks")
+  org           Org            @relation(fields: [orgId], references: [id])
+  createdByUser User           @relation("ReportTemplateCreatedBy", fields: [createdByUserId], references: [id])
+  updatedByUser User?          @relation("ReportTemplateUpdatedBy", fields: [updatedByUserId], references: [id])
+  blocks        ReportBlock[]  @relation("ReportTemplateBlocks")
+  formResponses FormResponse[]
 
   @@index([orgId])
   @@index([orgId, status])
@@ -1202,8 +1228,8 @@ model Invoice {
   paidAt          DateTime?
   notes           String?       @db.Text
   terms           String?       @db.Text
-  qboInvoiceId    String?       // QuickBooks invoice ID
-  qboSyncedAt     DateTime?     // Last synced to QBO
+  qboInvoiceId    String? // QuickBooks invoice ID
+  qboSyncedAt     DateTime? // Last synced to QBO
   createdByUserId String        @db.Uuid
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -1453,19 +1479,19 @@ model AuditLog {
 // ============================================
 
 model WorkOrderPhoto {
-  id              String    @id @default(uuid()) @db.Uuid
-  orgId           String    @db.Uuid
-  workOrderId     String    @db.Uuid
-  photoType       PhotoType @default(GENERAL)
-  fileId          String    @db.Uuid
-  storageKey      String
-  caption         String?
-  latitude        Float?
-  longitude       Float?
-  isCustomerVisible Boolean @default(false)
-  uploadedByUserId String   @db.Uuid
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                String    @id @default(uuid()) @db.Uuid
+  orgId             String    @db.Uuid
+  workOrderId       String    @db.Uuid
+  photoType         PhotoType @default(GENERAL)
+  fileId            String    @db.Uuid
+  storageKey        String
+  caption           String?
+  latitude          Float?
+  longitude         Float?
+  isCustomerVisible Boolean   @default(false)
+  uploadedByUserId  String    @db.Uuid
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   org        Org       @relation(fields: [orgId], references: [id])
   workOrder  WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
@@ -1531,22 +1557,22 @@ model SiteCheckIn {
 // ============================================
 
 model TechPhoto {
-  id              String    @id @default(uuid()) @db.Uuid
-  orgId           String    @db.Uuid
-  userId          String    @db.Uuid
-  photoType       PhotoType
-  caption         String?   @db.Text
-  fileName        String
-  fileUrl         String
-  fileSize        Int
-  mimeType        String
-  gpsLatitude     Float?
-  gpsLongitude    Float?
-  workOrderId     String?   @db.Uuid  // Can be attached to WO later
-  attachedAt      DateTime? // When attached to WO
-  capturedAt      DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String    @id @default(uuid()) @db.Uuid
+  orgId        String    @db.Uuid
+  userId       String    @db.Uuid
+  photoType    PhotoType
+  caption      String?   @db.Text
+  fileName     String
+  fileUrl      String
+  fileSize     Int
+  mimeType     String
+  gpsLatitude  Float?
+  gpsLongitude Float?
+  workOrderId  String?   @db.Uuid // Can be attached to WO later
+  attachedAt   DateTime? // When attached to WO
+  capturedAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   org       Org        @relation(fields: [orgId], references: [id])
   user      User       @relation("TechPhotoUser", fields: [userId], references: [id])
@@ -1564,8 +1590,8 @@ model TechPhoto {
 
 model QboConnection {
   id                String    @id @default(uuid()) @db.Uuid
-  orgId             String    @unique @db.Uuid  // One QBO connection per org
-  realmId           String    // QBO Company ID
+  orgId             String    @unique @db.Uuid // One QBO connection per org
+  realmId           String // QBO Company ID
   accessToken       String    @db.Text
   refreshToken      String    @db.Text
   accessTokenExpiry DateTime
@@ -1576,26 +1602,26 @@ model QboConnection {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  org               Org       @relation(fields: [orgId], references: [id])
-  syncLogs          QboSyncLog[]
+  org      Org          @relation(fields: [orgId], references: [id])
+  syncLogs QboSyncLog[]
 
   @@index([orgId])
 }
 
 model QboSyncLog {
-  id              String        @id @default(uuid()) @db.Uuid
-  orgId           String        @db.Uuid
-  connectionId    String        @db.Uuid
-  entityType      String        // "customer", "invoice", "payment"
-  entityId        String        @db.Uuid  // ServiceOps entity ID
-  qboEntityId     String?       // QBO entity ID
-  action          String        // "push", "pull", "error"
-  status          String        // "success", "failed", "pending"
-  errorMessage    String?       @db.Text
-  metadata        Json?
-  createdAt       DateTime      @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @db.Uuid
+  connectionId String   @db.Uuid
+  entityType   String // "customer", "invoice", "payment"
+  entityId     String   @db.Uuid // ServiceOps entity ID
+  qboEntityId  String? // QBO entity ID
+  action       String // "push", "pull", "error"
+  status       String // "success", "failed", "pending"
+  errorMessage String?  @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now())
 
-  connection      QboConnection @relation(fields: [connectionId], references: [id])
+  connection QboConnection @relation(fields: [connectionId], references: [id])
 
   @@index([orgId, entityType])
   @@index([connectionId])
@@ -1606,19 +1632,58 @@ model QboSyncLog {
 // ============================================
 
 model CustomerPortalToken {
-  id          String    @id @default(uuid()) @db.Uuid
-  orgId       String    @db.Uuid
-  customerId  String    @db.Uuid
-  token       String    @unique @default(uuid())
-  email       String
-  isActive    Boolean   @default(true)
-  expiresAt   DateTime?  // null = never expires
-  lastUsedAt  DateTime?
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid()) @db.Uuid
+  orgId      String    @db.Uuid
+  customerId String    @db.Uuid
+  token      String    @unique @default(uuid())
+  email      String
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime? // null = never expires
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 
-  org         Org       @relation(fields: [orgId], references: [id])
-  customer    Customer  @relation(fields: [customerId], references: [id])
+  org      Org      @relation(fields: [orgId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
 
   @@index([token])
   @@index([orgId, customerId])
+}
+
+// ============================================
+// CUSTOM FORM RESPONSES
+// ============================================
+
+model FormResponse {
+  id    String @id @default(uuid()) @db.Uuid
+  orgId String @db.Uuid
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  reportTemplateId String         @db.Uuid
+  reportTemplate   ReportTemplate @relation(fields: [reportTemplateId], references: [id])
+  templateSnapshot Json?
+
+  workOrderId String?    @db.Uuid
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+  siteId      String?    @db.Uuid
+  site        Site?      @relation(fields: [siteId], references: [id])
+  assetId     String?    @db.Uuid
+  asset       Asset?     @relation(fields: [assetId], references: [id])
+
+  data   Json               @default("{}")
+  status FormResponseStatus @default(DRAFT)
+
+  filledByUserId String    @db.Uuid
+  filledBy       User      @relation("FilledFormResponses", fields: [filledByUserId], references: [id])
+  submittedAt    DateTime?
+  submissionLat  Float?
+  submissionLng  Float?
+  pdfUrl         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([workOrderId])
+  @@index([reportTemplateId])
+  @@index([filledByUserId])
 }

@@ -195,9 +195,14 @@ export default function ReportTemplatesPage() {
                       {template.status} · Updated {formatDate(template.updatedAt)}
                     </p>
                   </div>
-                  <Link className="link-button" href={`/reports/templates/${template.id}`}>
-                    View
-                  </Link>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <Link className="link-button" href={`/reports/templates/${template.id}/builder`}>
+                      Builder
+                    </Link>
+                    <Link className="link-button" href={`/reports/templates/${template.id}`}>
+                      View
+                    </Link>
+                  </div>
                 </div>
               </li>
             ))}

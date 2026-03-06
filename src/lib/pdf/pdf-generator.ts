@@ -10,11 +10,16 @@ import {
   AnalyticsReportDocument,
   type AnalyticsData,
 } from "./documents/AnalyticsReportDocument";
+import {
+  FormReportDocument,
+  type FormReportData,
+} from "./documents/FormReportDocument";
 
 export type { InvoiceData } from "./documents/InvoiceDocument";
 export type { QuoteData } from "./documents/QuoteDocument";
 export type { WorkOrderData } from "./documents/WorkOrderReportDocument";
 export type { AnalyticsData } from "./documents/AnalyticsReportDocument";
+export type { FormReportData } from "./documents/FormReportDocument";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function render(element: React.ReactElement): Promise<Buffer> {
@@ -44,4 +49,10 @@ export async function generateAnalyticsReportPdf(
   data: AnalyticsData
 ): Promise<Buffer> {
   return render(React.createElement(AnalyticsReportDocument, { data }));
+}
+
+export async function generateFormReportPdf(
+  data: FormReportData
+): Promise<Buffer> {
+  return render(React.createElement(FormReportDocument, { data }));
 }

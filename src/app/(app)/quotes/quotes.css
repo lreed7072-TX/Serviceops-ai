@@ -8,41 +8,6 @@
   min-height: 100vh;
 }
 
-/* CSS Variables - Design System */
-:root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-tertiary: #9ca3af;
-  --background-primary: #f9fafb;
-  --background-secondary: #f3f4f6;
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --radius: 8px;
-  --radius-lg: 12px;
-  
-  /* Status Colors */
-  --status-draft: #6b7280;
-  --status-draft-bg: #f3f4f6;
-  --status-in-progress: #3b82f6;
-  --status-in-progress-bg: #dbeafe;
-  --status-completed: #10b981;
-  --status-completed-bg: #d1fae5;
-  --status-rejected: #ef4444;
-  --status-rejected-bg: #fee2e2;
-  --status-expired: #f59e0b;
-  --status-expired-bg: #fef3c7;
-  --status-converted: #8b5cf6;
-  --status-converted-bg: #ede9fe;
-}
-
 /* Page Header */
 .page-header {
   margin-bottom: 2rem;
@@ -72,19 +37,19 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: var(--primary);
+  background: var(--accent, #f97316);
   color: white;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius, 8px);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-  background: var(--primary-hover);
+  background: var(--accent-hover, #ea580c);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -111,10 +76,10 @@
 .summary-card {
   background: white;
   padding: 1.5rem;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
-  transition: all 0.2s;
+  border: 1px solid var(--border, #e5e7eb);
+  transition: all var(--transition, 200ms);
 }
 
 .summary-card:hover {
@@ -163,34 +128,34 @@
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 8px);
   font-size: 0.95rem;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   background: white;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--accent, #f97316);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 .filter-select {
   padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 8px);
   font-size: 0.95rem;
   background: white;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   min-width: 180px;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--accent, #f97316);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 /* Quotes Grid */
@@ -203,11 +168,11 @@
 .quote-card {
   background: white;
   padding: 1.5rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border, #e5e7eb);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -216,7 +181,7 @@
 .quote-card:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
-  border-color: var(--primary);
+  border-color: var(--accent, #f97316);
 }
 
 .quote-header {
@@ -299,7 +264,7 @@
 .total-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--accent, #f97316);
 }
 
 .quote-dates {
@@ -335,8 +300,8 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--border);
-  border-top-color: var(--primary);
+  border: 3px solid var(--border, #e5e7eb);
+  border-top-color: var(--accent, #f97316);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -391,10 +356,10 @@
   padding: 0.375rem;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius);
-  color: var(--text-tertiary);
+  border-radius: var(--radius, 8px);
+  color: var(--text-tertiary, #9ca3af);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -452,14 +417,14 @@
   border: none;
   padding: 0.5rem;
   cursor: pointer;
-  color: var(--text-secondary);
-  transition: all 0.2s;
-  border-radius: var(--radius);
+  color: var(--text-secondary, #6b7280);
+  transition: all var(--transition, 200ms);
+  border-radius: var(--radius, 8px);
 }
 
 .modal-close:hover {
-  background: var(--background-secondary);
-  color: var(--text-primary);
+  background: var(--background-secondary, #f3f4f6);
+  color: var(--text-primary, #111827);
 }
 
 .modal-body {
@@ -471,7 +436,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border, #e5e7eb);
 }
 
 /* Delete Warning */
@@ -482,23 +447,23 @@
 .warning-icon {
   width: 48px;
   height: 48px;
-  color: var(--warning);
+  color: var(--warning, #f59e0b);
   margin-bottom: 1rem;
 }
 
 .delete-warning p {
   margin: 0 0 0.5rem 0;
-  color: var(--text-primary);
+  color: var(--text-primary, #111827);
   font-size: 1rem;
 }
 
 .delete-subtitle {
-  color: var(--text-secondary) !important;
+  color: var(--text-secondary, #6b7280) !important;
   font-style: italic;
 }
 
 .delete-note {
-  color: var(--text-tertiary) !important;
+  color: var(--text-tertiary, #9ca3af) !important;
   font-size: 0.875rem !important;
   margin-top: 1rem !important;
 }
@@ -507,18 +472,18 @@
 .btn-cancel {
   padding: 0.75rem 1.5rem;
   background: white;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  color: var(--text-secondary, #6b7280);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 8px);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: var(--background-secondary);
-  border-color: var(--text-secondary);
+  background: var(--background-secondary, #f3f4f6);
+  border-color: var(--text-secondary, #6b7280);
 }
 
 .btn-danger {
@@ -527,14 +492,14 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: var(--danger);
+  background: var(--danger, #ef4444);
   color: white;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius, 8px);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   box-shadow: var(--shadow-sm);
 }
 
@@ -549,6 +514,8 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Note: Status badge colors (.status-in-progress uses blue #3b82f6) are intentionally informational */
 
 /* Spinner */
 .spinner-sm {

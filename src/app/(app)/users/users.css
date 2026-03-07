@@ -124,13 +124,13 @@
   color: #374151;
   background: white;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
 }
 
 .role-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent, #f97316);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 .role-select:disabled {
@@ -209,15 +209,15 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.95rem;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   font-family: inherit;
 }
 
 .users-modal-body .field-input:focus,
 .users-modal-body .field-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent, #f97316);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 .users-modal-footer {
@@ -275,19 +275,19 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1rem;
-  background: #3b82f6;
+  background: var(--accent, #f97316);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   text-decoration: none;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--accent-hover, #ea580c);
 }
 
 .btn-primary:disabled {
@@ -307,13 +307,13 @@
   font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
   text-decoration: none;
 }
 
 .btn-secondary:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: var(--accent, #f97316);
+  color: var(--accent, #f97316);
 }
 
 .btn-danger {
@@ -328,7 +328,7 @@
   font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -350,7 +350,7 @@
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
 }
 
 .btn-cancel:hover:not(:disabled) {
@@ -359,18 +359,18 @@
 
 .btn-submit {
   padding: 0.625rem 1.25rem;
-  background: #10b981;
+  background: var(--accent, #f97316);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition, 200ms);
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #059669;
+  background: var(--accent-hover, #ea580c);
 }
 
 .btn-submit:disabled {

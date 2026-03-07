@@ -178,48 +178,65 @@ const serializeNameplate = (
 };
 
 export async function GET(request: Request) {
-const authResult = await requireAuthSessionFirst(request);
+  const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
   const { auth } = authResult;
 
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search") || "";
+  const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 200);
+  const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
+
   const whereBase: any = { orgId: auth.orgId };
-      if (auth.role === Role.TECH) {
-        // Tech sees assets only when tied to a work order they are involved in
-        whereBase.OR = [
-          {
-            workOrders: {
-              some: {
-                OR: [
-                  { tasks: { some: { assignedToId: auth.userId } } },
-                  { visits: { some: { assignedTechId: auth.userId } } },
-                  { packages: { some: { leadTechId: auth.userId } } },
-                ],
-              },
+  if (auth.role === Role.TECH) {
+    whereBase.OR = [
+      {
+        workOrders: {
+          some: {
+            OR: [
+              { tasks: { some: { assignedToId: auth.userId } } },
+              { visits: { some: { assignedTechId: auth.userId } } },
+              { packages: { some: { leadTechId: auth.userId } } },
+            ],
+          },
+        },
+      },
+      {
+        site: {
+          workOrders: {
+            some: {
+              OR: [
+                { tasks: { some: { assignedToId: auth.userId } } },
+                { visits: { some: { assignedTechId: auth.userId } } },
+                { packages: { some: { leadTechId: auth.userId } } },
+              ],
             },
           },
-          {
-            site: {
-              workOrders: {
-                some: {
-                  OR: [
-                    { tasks: { some: { assignedToId: auth.userId } } },
-                    { visits: { some: { assignedTechId: auth.userId } } },
-                    { packages: { some: { leadTechId: auth.userId } } },
-                  ],
-                },
-              },
-            },
-          },
-        ];
-      }
+        },
+      },
+    ];
+  }
 
-      const assets = await prisma.asset.findMany({
-        where: whereBase,
+  if (search) {
+    whereBase.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { serialNumber: { contains: search, mode: "insensitive" } },
+      { assetTag: { contains: search, mode: "insensitive" } },
+      { manufacturer: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
-    orderBy: { createdAt: "desc" },
-  });
+  const [assets, total] = await Promise.all([
+    prisma.asset.findMany({
+      where: whereBase,
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.asset.count({ where: whereBase }),
+  ]);
 
-  return NextResponse.json({ data: assets });
+  return NextResponse.json({ data: assets, total, limit, offset });
 }
 
 export async function POST(request: Request) {

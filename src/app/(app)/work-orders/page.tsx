@@ -20,6 +20,7 @@ import "./work-orders.css";
 
 type ListResponse<T> = {
   data?: T[];
+  total?: number;
 };
 
 type SingleResponse<T> = {
@@ -161,7 +162,7 @@ const toNullable = (value: string) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-async function fetchList<T>(path: string): Promise<T[]> {
+async function fetchList<T>(path: string): Promise<{ data: T[]; total?: number }> {
   const response = await apiFetch(path, { cache: "no-store" });
   if (!response.ok) {
     let detail: string | undefined;
@@ -175,7 +176,7 @@ async function fetchList<T>(path: string): Promise<T[]> {
   }
 
   const payload = (await response.json()) as ListResponse<T>;
-  return payload.data ?? [];
+  return { data: payload.data ?? [], total: payload.total };
 }
 
 const advancedFilterConfigs: FilterConfig[] = [
@@ -241,11 +242,13 @@ export default function WorkOrdersPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [woTotal, setWoTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [standardsPacks, setStandardsPacks] = useState<StandardsPack[]>([]);
-  
+
   // State - Form
   const [form, setForm] = useState<WorkOrderFormState>(() => createInitialFormState());
-  
+
   // State - UI
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -294,19 +297,20 @@ export default function WorkOrdersPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const [customerData, siteData, assetData, workOrderData, packsData] = await Promise.all([
-          fetchList<Customer>("/api/customers"),
-          fetchList<Site>("/api/sites"),
-          fetchList<Asset>("/api/assets"),
-          fetchList<WorkOrder>("/api/work-orders"),
-          fetchList<StandardsPack>("/api/standards-packs?status=ACTIVE"),
+        const [customerRes, siteRes, assetRes, workOrderRes, packsRes] = await Promise.all([
+          fetchList<Customer>("/api/customers?limit=200"),
+          fetchList<Site>("/api/sites?limit=200"),
+          fetchList<Asset>("/api/assets?limit=200"),
+          fetchList<WorkOrder>("/api/work-orders?limit=50"),
+          fetchList<StandardsPack>("/api/standards-packs?status=ACTIVE&limit=200"),
         ]);
         if (!active) return;
-        setCustomers(customerData);
-        setSites(siteData);
-        setAssets(assetData);
-        setWorkOrders(workOrderData);
-        setStandardsPacks(packsData);
+        setCustomers(customerRes.data);
+        setSites(siteRes.data);
+        setAssets(assetRes.data);
+        setWorkOrders(workOrderRes.data);
+        setWoTotal(workOrderRes.total ?? workOrderRes.data.length);
+        setStandardsPacks(packsRes.data);
         setLoadError(null);
       } catch (error) {
         if (!active) return;
@@ -417,8 +421,9 @@ export default function WorkOrdersPage() {
   // Refresh functions
   const refreshWorkOrders = async () => {
     try {
-      const data = await fetchList<WorkOrder>("/api/work-orders");
-      setWorkOrders(data);
+      const res = await fetchList<WorkOrder>("/api/work-orders?limit=50");
+      setWorkOrders(res.data);
+      setWoTotal(res.total ?? res.data.length);
     } catch (error) {
       console.error(error);
       setLoadError(
@@ -429,8 +434,8 @@ export default function WorkOrdersPage() {
 
   const refreshCustomers = async (selectId?: string) => {
     try {
-      const data = await fetchList<Customer>("/api/customers");
-      setCustomers(data);
+      const res = await fetchList<Customer>("/api/customers?limit=200");
+      setCustomers(res.data);
       if (selectId) {
         setForm((prev) => ({ ...prev, customerId: selectId, siteId: "", assetId: "" }));
       }
@@ -445,8 +450,8 @@ export default function WorkOrdersPage() {
 
   const refreshSites = async (selectId?: string) => {
     try {
-      const data = await fetchList<Site>("/api/sites");
-      setSites(data);
+      const res = await fetchList<Site>("/api/sites");
+      setSites(res.data);
       if (selectId) {
         setForm((prev) => ({ ...prev, siteId: selectId, assetId: "" }));
       }
@@ -461,8 +466,8 @@ export default function WorkOrdersPage() {
 
   const refreshAssets = async (selectId?: string) => {
     try {
-      const data = await fetchList<Asset>("/api/assets");
-      setAssets(data);
+      const res = await fetchList<Asset>("/api/assets");
+      setAssets(res.data);
       if (selectId) {
         setForm((prev) => ({ ...prev, assetId: selectId }));
       }
@@ -1210,6 +1215,29 @@ export default function WorkOrdersPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {workOrders.length < woTotal && (
+            <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+              <button
+                className="btn-secondary"
+                disabled={loadingMore}
+                onClick={async () => {
+                  setLoadingMore(true);
+                  try {
+                    const res = await fetchList<WorkOrder>(`/api/work-orders?limit=50&offset=${workOrders.length}`);
+                    setWorkOrders((prev) => [...prev, ...res.data]);
+                    setWoTotal(res.total ?? woTotal);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setLoadingMore(false);
+                  }
+                }}
+              >
+                {loadingMore ? "Loading..." : `Load More (${woTotal - workOrders.length} remaining)`}
+              </button>
             </div>
           )}
         </>

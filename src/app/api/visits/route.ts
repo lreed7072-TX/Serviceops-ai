@@ -20,18 +20,30 @@ export async function GET(request: Request) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
+  const { searchParams } = new URL(request.url);
+  const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 200);
+  const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
+  const status = searchParams.get("status") as VisitStatus | null;
+  const workOrderId = searchParams.get("workOrderId");
+
   const whereBase: any = { orgId: authResult.auth.orgId };
-    if (authResult.auth.role === Role.TECH) {
-      whereBase.assignedTechId = authResult.auth.userId;
-    }
+  if (authResult.auth.role === Role.TECH) {
+    whereBase.assignedTechId = authResult.auth.userId;
+  }
+  if (status) whereBase.status = status;
+  if (workOrderId) whereBase.workOrderId = workOrderId;
 
-    const visits = await prisma.visit.findMany({
+  const [visits, total] = await Promise.all([
+    prisma.visit.findMany({
       where: whereBase,
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.visit.count({ where: whereBase }),
+  ]);
 
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json({ data: visits });
+  return NextResponse.json({ data: visits, total, limit, offset });
 }
 
 export async function POST(request: Request) {

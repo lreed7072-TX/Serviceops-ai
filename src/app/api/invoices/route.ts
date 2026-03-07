@@ -18,32 +18,49 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") as InvoiceStatus | null;
   const customerId = searchParams.get("customerId");
   const workOrderId = searchParams.get("workOrderId");
+  const search = searchParams.get("search") || "";
+  const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 200);
+  const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
 
-  const invoices = await prisma.invoice.findMany({
-    where: {
-      orgId: authResult.auth.orgId,
-      ...(status && { status }),
-      ...(customerId && { customerId }),
-      ...(workOrderId && { workOrderId }),
-    },
-    include: {
-      customer: {
-        select: { id: true, name: true },
-      },
-      site: {
-        select: { id: true, name: true },
-      },
-      workOrder: {
-        select: { id: true, title: true, workOrderNumber: true },
-      },
-      _count: {
-        select: { lineItems: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const where: any = {
+    orgId: authResult.auth.orgId,
+    ...(status && { status }),
+    ...(customerId && { customerId }),
+    ...(workOrderId && { workOrderId }),
+  };
 
-  return NextResponse.json({ data: invoices });
+  if (search) {
+    where.OR = [
+      { invoiceNumber: { contains: search, mode: "insensitive" } },
+      { customer: { name: { contains: search, mode: "insensitive" } } },
+    ];
+  }
+
+  const [invoices, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      include: {
+        customer: {
+          select: { id: true, name: true },
+        },
+        site: {
+          select: { id: true, name: true },
+        },
+        workOrder: {
+          select: { id: true, title: true, workOrderNumber: true },
+        },
+        _count: {
+          select: { lineItems: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.invoice.count({ where }),
+  ]);
+
+  return NextResponse.json({ data: invoices, total, limit, offset });
 }
 
 /**

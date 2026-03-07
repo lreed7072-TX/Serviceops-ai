@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { Building2, CheckCircle, MapPin, Wrench, Mail, Phone, Search, Plus } from "lucide-react";
 import "./customers.css";
+
+const PAGE_SIZE = 50;
 
 type Customer = {
   id: string;
@@ -21,7 +23,9 @@ type Customer = {
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -42,27 +46,47 @@ export default function CustomersPage() {
     notes: "",
   });
 
-  async function loadCustomers() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch("/api/customers");
-      if (!res.ok) {
-        throw new Error(`Failed to load customers (${res.status})`);
+  const loadCustomers = useCallback(
+    async (offset = 0, append = false) => {
+      try {
+        if (append) {
+          setLoadingMore(true);
+        } else {
+          setLoading(true);
+        }
+        setError(null);
+
+        const params = new URLSearchParams();
+        params.set("limit", String(PAGE_SIZE));
+        params.set("offset", String(offset));
+
+        const res = await apiFetch(`/api/customers?${params}`);
+        if (!res.ok) {
+          throw new Error(`Failed to load customers (${res.status})`);
+        }
+        const json = await res.json();
+        const items = Array.isArray(json?.data) ? json.data : [];
+
+        if (append) {
+          setCustomers((prev) => [...prev, ...items]);
+        } else {
+          setCustomers(items);
+        }
+        setTotal(json.total ?? items.length);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load customers.");
+        if (!append) setCustomers([]);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-      const json = await res.json();
-      setCustomers(Array.isArray(json?.data) ? json.data : []);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load customers.");
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+    []
+  );
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    loadCustomers(0, false);
+  }, [loadCustomers]);
 
   const resetForm = () => {
     setFormData({
@@ -133,8 +157,10 @@ export default function CustomersPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const hasMore = customers.length < total;
+
   // Calculate stats
-  const totalCustomers = customers.length;
+  const totalCustomers = total;
   const activeCustomers = customers.filter((c) => c.status === "ACTIVE").length;
   const totalSites = customers.reduce((sum, c) => sum + (c._count?.sites || 0), 0);
   const totalWorkOrders = customers.reduce((sum, c) => sum + (c._count?.workOrders || 0), 0);
@@ -251,6 +277,7 @@ export default function CustomersPage() {
           )}
         </div>
       ) : (
+        <>
         <div className="customers-grid">
           {filteredCustomers.map((customer) => (
             <Link
@@ -304,6 +331,19 @@ export default function CustomersPage() {
             </Link>
           ))}
         </div>
+
+        {hasMore && (
+          <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+            <button
+              className="btn-secondary"
+              onClick={() => loadCustomers(customers.length, true)}
+              disabled={loadingMore}
+            >
+              {loadingMore ? "Loading..." : `Load More (${total - customers.length} remaining)`}
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {/* Create Customer Modal */}

@@ -27,6 +27,13 @@
   gap: var(--space-md);
 }
 
+.portal-org-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
 .portal-org-name {
   font-size: 1.125rem;
   font-weight: 600;

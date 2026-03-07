@@ -27,6 +27,8 @@ const CATEGORIES = [
 
 export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [materialTotal, setMaterialTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -48,14 +50,30 @@ export default function MaterialsPage() {
   const loadMaterials = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/api/materials?active=${!showInactive}`, { cache: "no-store" });
+      const res = await apiFetch(`/api/materials?isActive=${!showInactive}&limit=50`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load");
       const json = await res.json();
       setMaterials(json.data ?? []);
+      setMaterialTotal(json.total ?? (json.data ?? []).length);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreMaterials = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await apiFetch(`/api/materials?isActive=${!showInactive}&limit=50&offset=${materials.length}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load more");
+      const json = await res.json();
+      setMaterials((prev) => [...prev, ...(json.data ?? [])]);
+      setMaterialTotal(json.total ?? materialTotal);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load more");
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -172,6 +190,7 @@ export default function MaterialsPage() {
           <button className="btn-primary" onClick={openCreate}>+ Add Material</button>
         </div>
       ) : (
+        <>
         <div className="materials-table-container">
           <table className="materials-table">
             <thead>
@@ -205,6 +224,19 @@ export default function MaterialsPage() {
             </tbody>
           </table>
         </div>
+
+        {materials.length < materialTotal && (
+          <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+            <button
+              className="btn-secondary"
+              onClick={loadMoreMaterials}
+              disabled={loadingMore}
+            >
+              {loadingMore ? "Loading..." : `Load More (${materialTotal - materials.length} remaining)`}
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {/* Create/Edit Modal */}

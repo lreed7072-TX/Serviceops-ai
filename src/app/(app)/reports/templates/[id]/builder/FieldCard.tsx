@@ -73,6 +73,8 @@ interface FieldCardProps {
   onDelete: () => void;
   onDragStart: (e: DragEvent<HTMLDivElement>) => void;
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
+  onDragEnter: (e: DragEvent<HTMLDivElement>) => void;
+  onDragLeave: (e: DragEvent<HTMLDivElement>) => void;
   onDrop: (e: DragEvent<HTMLDivElement>) => void;
 }
 
@@ -83,6 +85,8 @@ export default function FieldCard({
   onDelete,
   onDragStart,
   onDragOver,
+  onDragEnter,
+  onDragLeave,
   onDrop,
 }: FieldCardProps) {
   const tags = getFieldPropsSummary(field);
@@ -97,6 +101,8 @@ export default function FieldCard({
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
       <span className="field-card-drag-handle" title="Drag to reorder">&#x2261;</span>

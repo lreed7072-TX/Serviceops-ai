@@ -20,13 +20,13 @@ export async function GET(request: Request) {
   const search = searchParams.get("search") || "";
   const category = searchParams.get("category") as MaterialCategory | null;
   const isActive = searchParams.get("isActive");
+  const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 200);
+  const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
 
-  // Build where clause
   const where: any = {
     orgId: auth.orgId,
   };
 
-  // Search across name, part number, manufacturer
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
@@ -35,30 +35,33 @@ export async function GET(request: Request) {
     ];
   }
 
-  // Filter by category
   if (category && Object.values(MaterialCategory).includes(category)) {
     where.category = category;
   }
 
-  // Filter by active status
   if (isActive !== null) {
     where.isActive = isActive === "true";
   }
 
-  const materials = await prisma.material.findMany({
-    where,
-    orderBy: [
-      { isActive: "desc" }, // Active first
-      { name: "asc" },
-    ],
-    include: {
-      _count: {
-        select: { usages: true },
+  const [materials, total] = await Promise.all([
+    prisma.material.findMany({
+      where,
+      orderBy: [
+        { isActive: "desc" },
+        { name: "asc" },
+      ],
+      include: {
+        _count: {
+          select: { usages: true },
+        },
       },
-    },
-  });
+      take: limit,
+      skip: offset,
+    }),
+    prisma.material.count({ where }),
+  ]);
 
-  return NextResponse.json({ data: materials });
+  return NextResponse.json({ data: materials, total, limit, offset });
 }
 
 /**

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import "./visits.css";
 
 
-type ListResponse<T> = { data?: T[] };
+type ListResponse<T> = { data?: T[]; total?: number };
 
 async function fetchList<T>(path: string): Promise<T[]> {
   const res = await apiFetch(path, { cache: "no-store" });
@@ -28,6 +28,13 @@ async function fetchList<T>(path: string): Promise<T[]> {
   return payload.data ?? [];
 }
 
+async function fetchPaginated<T>(path: string): Promise<{ data: T[]; total: number }> {
+  const res = await apiFetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Request to ${path} failed with ${res.status}`);
+  const payload = (await res.json()) as ListResponse<T>;
+  return { data: payload.data ?? [], total: payload.total ?? (payload.data ?? []).length };
+}
+
 const shortId = (id: string) => (id ? id.slice(0, 8) : "—");
 
 const formatDate = (value?: string | Date | null) => {
@@ -39,6 +46,8 @@ const formatDate = (value?: string | Date | null) => {
 
 export default function VisitsPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [visitTotal, setVisitTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [users, setUsers] = useState<UserLite[]>([]);
 
@@ -63,12 +72,13 @@ export default function VisitsPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const [visitData, woData, userData] = await Promise.all([
-        fetchList<Visit>("/api/visits"),
-        fetchList<WorkOrder>("/api/work-orders"),
+      const [visitRes, woData, userData] = await Promise.all([
+        fetchPaginated<Visit>("/api/visits?limit=50"),
+        fetchList<WorkOrder>("/api/work-orders?limit=200"),
         fetchList<UserLite>("/api/users"),
       ]);
-      setVisits(visitData);
+      setVisits(visitRes.data);
+      setVisitTotal(visitRes.total);
       setWorkOrders(woData);
       setUsers(userData);
       setLoadError(null);
@@ -82,18 +92,32 @@ export default function VisitsPage() {
     }
   };
 
+  const loadMoreVisits = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await fetchPaginated<Visit>(`/api/visits?limit=50&offset=${visits.length}`);
+      setVisits((prev) => [...prev, ...res.data]);
+      setVisitTotal(res.total);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
-        const [visitData, woData, userData] = await Promise.all([
-          fetchList<Visit>("/api/visits"),
-          fetchList<WorkOrder>("/api/work-orders"),
+        const [visitRes, woData, userData] = await Promise.all([
+          fetchPaginated<Visit>("/api/visits?limit=50"),
+          fetchList<WorkOrder>("/api/work-orders?limit=200"),
           fetchList<UserLite>("/api/users"),
         ]);
         if (cancelled) return;
-        setVisits(visitData);
+        setVisits(visitRes.data);
+        setVisitTotal(visitRes.total);
         setWorkOrders(woData);
         setUsers(userData);
         setLoadError(null);
@@ -280,6 +304,7 @@ export default function VisitsPage() {
               <p>No visits yet.</p>
             </div>
           ) : (
+            <>
             <ul className="visits-list">
               {visits.map((visit) => {
                 const wo = workOrderLookup.get(visit.workOrderId);
@@ -322,6 +347,19 @@ export default function VisitsPage() {
                 );
               })}
             </ul>
+
+            {visits.length < visitTotal && (
+              <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+                <button
+                  className="btn-secondary"
+                  onClick={loadMoreVisits}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Loading..." : `Load More (${visitTotal - visits.length} remaining)`}
+                </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>

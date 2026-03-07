@@ -82,6 +82,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     <div className="portal-layout">
       <header className="portal-header">
         <div className="portal-header-left">
+          {portal.org.logoUrl && (
+            <img
+              src={portal.org.logoUrl}
+              alt={portal.org.name}
+              className="portal-org-logo"
+            />
+          )}
           <span className="portal-org-name">{portal.org.name}</span>
           <span className="portal-customer-badge">{portal.customer.name}</span>
         </div>

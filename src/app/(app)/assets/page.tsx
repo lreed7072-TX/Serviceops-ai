@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { FormEvent } from "react";
 import type { Asset, Customer, Site } from "@prisma/client";
 import { AssetCriticality, AssetStatus, AssetCategory, AssetFamily, AssetSubFamily } from "@prisma/client";
@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api";
 import "./assets.css";
 
 
-type ListResponse<T> = { data?: T[] };
+type ListResponse<T> = { data?: T[]; total?: number };
 
 type AssetFormState = {
   customerId: string;
@@ -129,6 +129,8 @@ export default function AssetsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetTotal, setAssetTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [form, setForm] = useState<AssetFormState>(() => createInitialState());
 
   const [loading, setLoading] = useState(true);
@@ -168,14 +170,18 @@ export default function AssetsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [customerData, siteData, assetData] = await Promise.all([
-        fetchList<Customer>("/api/customers"),
-        fetchList<Site>("/api/sites"),
-        fetchList<Asset>("/api/assets"),
+      const [customerData, siteData, assetRes] = await Promise.all([
+        fetchList<Customer>("/api/customers?limit=200"),
+        fetchList<Site>("/api/sites?limit=200"),
+        apiFetch("/api/assets?limit=50", { cache: "no-store" }).then(async (r) => {
+          if (!r.ok) throw new Error("Failed to load assets");
+          return r.json() as Promise<{ data: Asset[]; total?: number }>;
+        }),
       ]);
       setCustomers(customerData);
       setSites(siteData);
-      setAssets(assetData);
+      setAssets(assetRes.data ?? []);
+      setAssetTotal(assetRes.total ?? (assetRes.data ?? []).length);
       setLoadError(null);
     } catch (err) {
       console.error(err);
@@ -202,12 +208,30 @@ export default function AssetsPage() {
 
   const refreshAssets = async () => {
     try {
-      const assetData = await fetchList<Asset>("/api/assets");
-      setAssets(assetData);
+      const res = await apiFetch("/api/assets?limit=50", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to refresh assets");
+      const payload = await res.json();
+      setAssets(payload.data ?? []);
+      setAssetTotal(payload.total ?? (payload.data ?? []).length);
       setLoadError(null);
     } catch (err) {
       console.error(err);
       setLoadError(err instanceof Error ? err.message : "Failed to refresh assets.");
+    }
+  };
+
+  const loadMoreAssets = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await apiFetch(`/api/assets?limit=50&offset=${assets.length}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load more assets");
+      const payload = await res.json();
+      setAssets((prev) => [...prev, ...(payload.data ?? [])]);
+      setAssetTotal(payload.total ?? assetTotal);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -272,7 +296,7 @@ export default function AssetsPage() {
   };
 
   // Calculate stats
-  const totalAssets = assets.length;
+  const totalAssets = assetTotal;
   const activeAssets = assets.filter(a => a.status === "ACTIVE").length;
   const criticalAssets = assets.filter(a => a.criticality === "HIGH").length;
   const uniqueCategories = new Set(assets.filter(a => a.assetCategory).map(a => a.assetCategory)).size;
@@ -574,6 +598,7 @@ export default function AssetsPage() {
             <p>Create one using the form above</p>
           </div>
         ) : (
+          <>
           <table className="data-table">
             <thead>
               <tr>
@@ -614,6 +639,19 @@ export default function AssetsPage() {
               ))}
             </tbody>
           </table>
+
+          {assets.length < assetTotal && (
+            <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+              <button
+                className="btn-secondary"
+                onClick={loadMoreAssets}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "Loading..." : `Load More (${assetTotal - assets.length} remaining)`}
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
@@ -22,7 +22,7 @@ type Invoice = {
   invoiceNumber: string;
   status: string;
   title: string;
-  total: string | number; // Prisma Decimal serializes to string
+  total: string | number;
   dueDate: string | null;
   createdAt: string;
   customer: { id: string; name: string };
@@ -33,57 +33,76 @@ type Invoice = {
 type StatusTab = "ALL" | "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "VOID";
 
 const STATUS_TABS: StatusTab[] = ["ALL", "DRAFT", "SENT", "PAID", "OVERDUE", "VOID"];
+const PAGE_SIZE = 50;
 
 export default function InvoicesPage() {
   const router = useRouter();
   const toast = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusTab>("ALL");
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const loadInvoices = useCallback(
+    async (offset = 0, append = false) => {
       try {
-        setLoading(true);
-        const res = await apiFetch("/api/invoices", { cache: "no-store" });
+        if (append) {
+          setLoadingMore(true);
+        } else {
+          setLoading(true);
+        }
+
+        const params = new URLSearchParams();
+        params.set("limit", String(PAGE_SIZE));
+        params.set("offset", String(offset));
+        if (statusFilter !== "ALL") params.set("status", statusFilter);
+        if (searchTerm) params.set("search", searchTerm);
+
+        const res = await apiFetch(`/api/invoices?${params}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to load invoices");
 
         const data = await res.json();
-        setInvoices(data.data ?? []);
+        const items = data.data ?? [];
+
+        if (append) {
+          setInvoices((prev) => [...prev, ...items]);
+        } else {
+          setInvoices(items);
+        }
+        setTotal(data.total ?? items.length);
+        setError(null);
       } catch (e: any) {
         const msg = e?.message ?? "Failed to load invoices";
         setError(msg);
-        toast.error(msg);
+        if (!append) toast.error(msg);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
-    };
-    load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    },
+    [statusFilter, searchTerm, toast]
+  );
 
-  // Client-side filtering: search + status
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
-      // Status filter
-      if (statusFilter !== "ALL" && inv.status !== statusFilter) return false;
+  useEffect(() => {
+    loadInvoices(0, false);
+  }, [loadInvoices]);
 
-      // Search filter (invoice number or customer name)
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        const matchesNumber = inv.invoiceNumber?.toLowerCase().includes(term);
-        const matchesCustomer = inv.customer.name.toLowerCase().includes(term);
-        if (!matchesNumber && !matchesCustomer) return false;
-      }
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
 
-      return true;
-    });
-  }, [invoices, statusFilter, searchTerm]);
+  const handleLoadMore = () => {
+    loadInvoices(invoices.length, true);
+  };
 
-  // Stats computed from full dataset (not filtered)
+  const hasMore = invoices.length < total;
+
+  // Stats from current loaded set
   const stats = useMemo(() => {
-    const totalCount = invoices.length;
     const totalValue = invoices.reduce(
       (sum, inv) => sum + parseFloat(inv.total.toString()),
       0
@@ -91,8 +110,8 @@ export default function InvoicesPage() {
     const paidCount = invoices.filter((inv) => inv.status === "PAID").length;
     const overdueCount = invoices.filter((inv) => inv.status === "OVERDUE").length;
 
-    return { totalCount, totalValue, paidCount, overdueCount };
-  }, [invoices]);
+    return { totalCount: total, totalValue, paidCount, overdueCount };
+  }, [invoices, total]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-US", {
@@ -216,7 +235,7 @@ export default function InvoicesPage() {
               className="invoices-search-input"
               placeholder="Search by invoice number or customer name..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
           <div className="invoices-filter-tabs">
@@ -231,12 +250,10 @@ export default function InvoicesPage() {
             ))}
           </div>
         </div>
-        {(searchTerm || statusFilter !== "ALL") && (
-          <div className="invoices-results-count">
-            Showing <strong>{filteredInvoices.length}</strong> of{" "}
-            <strong>{invoices.length}</strong> invoices
-          </div>
-        )}
+        <div className="invoices-results-count">
+          Showing <strong>{invoices.length}</strong> of{" "}
+          <strong>{total}</strong> invoices
+        </div>
       </div>
 
       {/* Loading State */}
@@ -248,7 +265,7 @@ export default function InvoicesPage() {
       )}
 
       {/* Empty State */}
-      {!loading && filteredInvoices.length === 0 && (
+      {!loading && invoices.length === 0 && (
         <div className="invoices-empty">
           <div className="invoices-empty-icon">
             <FileText size={48} />
@@ -276,7 +293,8 @@ export default function InvoicesPage() {
       )}
 
       {/* Data Table */}
-      {!loading && filteredInvoices.length > 0 && (
+      {!loading && invoices.length > 0 && (
+        <>
         <div className="invoices-table-card">
           <table className="invoices-table">
             <thead>
@@ -291,7 +309,7 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredInvoices.map((invoice) => (
+              {invoices.map((invoice) => (
                 <tr
                   key={invoice.id}
                   onClick={() => router.push(`/invoices/${invoice.id}`)}
@@ -347,6 +365,19 @@ export default function InvoicesPage() {
             </tbody>
           </table>
         </div>
+
+        {hasMore && (
+          <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+            <button
+              className="btn-secondary"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? "Loading..." : `Load More (${total - invoices.length} remaining)`}
+            </button>
+          </div>
+        )}
+      </>
       )}
     </div>
   );

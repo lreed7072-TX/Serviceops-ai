@@ -189,6 +189,15 @@ export default function BuilderCanvas({ templateId }: BuilderCanvasProps) {
     e.dataTransfer.dropEffect = "move";
   }, []);
 
+  const handleDragEnter = useCallback((_index: number) => (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("field-card--drag-over");
+  }, []);
+
+  const handleDragLeave = useCallback((_index: number) => (e: DragEvent<HTMLDivElement>) => {
+    e.currentTarget.classList.remove("field-card--drag-over");
+  }, []);
+
   const handleDrop = useCallback((toIndex: number) => (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const fromIndex = dragIndexRef.current;
@@ -196,9 +205,8 @@ export default function BuilderCanvas({ templateId }: BuilderCanvasProps) {
       handleReorder(fromIndex, toIndex);
     }
     dragIndexRef.current = null;
-    // Clear dragging class from all cards
-    document.querySelectorAll(".field-card--dragging").forEach((el) => {
-      el.classList.remove("field-card--dragging");
+    document.querySelectorAll(".field-card--dragging, .field-card--drag-over").forEach((el) => {
+      el.classList.remove("field-card--dragging", "field-card--drag-over");
     });
   }, [handleReorder]);
 
@@ -358,6 +366,8 @@ export default function BuilderCanvas({ templateId }: BuilderCanvasProps) {
                 onDelete={() => handleDeleteField(field.blockId)}
                 onDragStart={handleDragStart(index)}
                 onDragOver={handleDragOver(index)}
+                onDragEnter={handleDragEnter(index)}
+                onDragLeave={handleDragLeave(index)}
                 onDrop={handleDrop(index)}
               />
             ))

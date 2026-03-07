@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { Customer, Site } from "@prisma/client";
+import { MapPin, Building2, Globe, Search } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import "./sites.css";
 
@@ -237,21 +238,21 @@ export default function SitesPage() {
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon sites">📍</div>
+          <div className="stat-icon sites"><MapPin size={20} /></div>
           <div className="stat-content">
             <h3>{totalSites}</h3>
             <p>Total Sites</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon customers">🏢</div>
+          <div className="stat-icon customers"><Building2 size={20} /></div>
           <div className="stat-content">
             <h3>{uniqueCustomers}</h3>
             <p>Customers</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon locations">🌍</div>
+          <div className="stat-icon locations"><Globe size={20} /></div>
           <div className="stat-content">
             <h3>{uniqueLocations}</h3>
             <p>Locations</p>
@@ -397,7 +398,7 @@ export default function SitesPage() {
         {!loading && sites.length > 0 && (
           <div className="sites-search-bar">
             <div className="search-input-wrapper">
-              <span className="search-icon">🔍</span>
+              <span className="search-icon"><Search size={16} /></span>
               <input
                 type="text"
                 placeholder="Search sites by name, customer, city, or state..."
@@ -420,13 +421,13 @@ export default function SitesPage() {
           </div>
         ) : sites.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📍</div>
+            <div className="empty-icon"><MapPin size={32} /></div>
             <h3>No sites yet</h3>
             <p>Create one using the form above</p>
           </div>
         ) : filteredSites.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🔍</div>
+            <div className="empty-icon"><Search size={32} /></div>
             <h3>No sites match your search</h3>
             <p>Try adjusting your search term</p>
           </div>

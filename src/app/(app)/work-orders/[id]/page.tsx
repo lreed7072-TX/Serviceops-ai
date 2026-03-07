@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { WorkOrderStatus, ExecutionMode, OrderType } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import TaskList from "@/components/tasks/TaskList";
 import SignaturePanel from "@/components/signatures/SignaturePanel";
 import { Building2, MapPin, Users, Clock, FileText, CheckSquare, PenTool, Zap, Printer, Download, Mail, Play, Square, Pause, Trash2, Edit, XCircle, ClipboardList, CalendarDays, AlertTriangle, User } from "lucide-react";
@@ -191,6 +192,16 @@ export default function WorkOrderDetailPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [assigningReport, setAssigningReport] = useState(false);
   const [showAssignReport, setShowAssignReport] = useState(false);
+
+  // Confirm dialog state
+  const [showStopTimerConfirm, setShowStopTimerConfirm] = useState(false);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<WorkOrderStatus | null>(null);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
+  const [pendingUnassignTechId, setPendingUnassignTechId] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
   const toast = useToast();
 
   const workOrderId = params?.id;
@@ -392,7 +403,6 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleStopTimer = async () => {
-    if (!confirm("Stop the timer?")) return;
     setTimerLoading(true);
     try {
       const response = await apiFetch("/api/tech/timer/stop", {
@@ -410,6 +420,7 @@ export default function WorkOrderDetailPage() {
       console.error("Failed to stop timer:", error);
     } finally {
       setTimerLoading(false);
+      setShowStopTimerConfirm(false);
     }
   };
 
@@ -427,16 +438,20 @@ export default function WorkOrderDetailPage() {
     return (totalSeconds / 3600).toFixed(1) + "h";
   };
 
-  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
-    if (!workOrder) return;
+  const handleStatusChange = (newStatus: WorkOrderStatus) => {
+    setPendingStatus(newStatus);
+    setShowStatusConfirm(true);
+  };
 
-    if (!confirm(`Change work order status to ${newStatus}?`)) return;
+  const confirmStatusChange = async () => {
+    if (!workOrder || !pendingStatus) return;
 
+    setStatusLoading(true);
     try {
       const response = await apiFetch(`/api/work-orders/${workOrder.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: pendingStatus }),
       });
 
       if (response.ok) {
@@ -448,6 +463,10 @@ export default function WorkOrderDetailPage() {
     } catch (error) {
       console.error("Failed to update status:", error);
       toast.error("An error occurred while updating status");
+    } finally {
+      setStatusLoading(false);
+      setShowStatusConfirm(false);
+      setPendingStatus(null);
     }
   };
 
@@ -480,7 +499,7 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  const handleEmailWorkOrder = async () => {
+  const handleEmailWorkOrder = () => {
     if (!workOrder) return;
 
     if (!workOrder.customer?.primaryEmail) {
@@ -488,7 +507,11 @@ export default function WorkOrderDetailPage() {
       return;
     }
 
-    if (!confirm(`Send work order to ${workOrder.customer.primaryEmail}?`)) return;
+    setShowEmailConfirm(true);
+  };
+
+  const confirmEmailWorkOrder = async () => {
+    if (!workOrder) return;
 
     setSendingEmail(true);
     setEmailStatus(null);
@@ -508,6 +531,7 @@ export default function WorkOrderDetailPage() {
       setEmailStatus({ type: "error", message: "An error occurred while sending email" });
     } finally {
       setSendingEmail(false);
+      setShowEmailConfirm(false);
     }
   };
 
@@ -537,17 +561,20 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  const handleUnassignTech = async (techId: string) => {
-    if (!workOrder) return;
+  const handleUnassignTech = (techId: string) => {
+    setPendingUnassignTechId(techId);
+    setShowUnassignConfirm(true);
+  };
 
-    if (!confirm("Remove this technician from the work order?")) return;
+  const confirmUnassignTech = async () => {
+    if (!workOrder || !pendingUnassignTechId) return;
 
-    setUnassigning(techId);
+    setUnassigning(pendingUnassignTechId);
     try {
       const response = await apiFetch(`/api/work-orders/${workOrder.id}/unassign-tech`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ techId }),
+        body: JSON.stringify({ techId: pendingUnassignTechId }),
       });
 
       if (response.ok) {
@@ -561,6 +588,8 @@ export default function WorkOrderDetailPage() {
       toast.error("An error occurred while removing technician");
     } finally {
       setUnassigning(null);
+      setShowUnassignConfirm(false);
+      setPendingUnassignTechId(null);
     }
   };
 
@@ -854,7 +883,7 @@ export default function WorkOrderDetailPage() {
                         <Pause size={14} /> Pause
                       </button>
                       <button
-                        onClick={handleStopTimer}
+                        onClick={() => setShowStopTimerConfirm(true)}
                         disabled={timerLoading}
                         className="timer-btn stop"
                       >
@@ -871,7 +900,7 @@ export default function WorkOrderDetailPage() {
                         <Play size={14} /> Resume
                       </button>
                       <button
-                        onClick={handleStopTimer}
+                        onClick={() => setShowStopTimerConfirm(true)}
                         disabled={timerLoading}
                         className="timer-btn stop"
                       >
@@ -1130,45 +1159,68 @@ export default function WorkOrderDetailPage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteModalOpen && (
-        <div className="delete-modal-overlay" onClick={() => !deleting && setDeleteModalOpen(false)}>
-          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-modal-header">
-              <h3>Delete Work Order</h3>
-              <button
-                onClick={() => !deleting && setDeleteModalOpen(false)}
-                className="delete-modal-close"
-                disabled={deleting}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="delete-modal-body">
-              <div className="delete-warning-icon"><AlertTriangle size={32} /></div>
-              <p>Are you sure you want to delete work order <strong>{workOrder.workOrderNumber || `WO-${workOrder.id.slice(0, 8).toUpperCase()}`}</strong>?</p>
-              <p className="delete-wo-title">"{workOrder.title}"</p>
-              <p className="delete-warning-text">This action cannot be undone. All associated tasks, time entries, and data will be permanently removed.</p>
-            </div>
-            <div className="delete-modal-footer">
-              <button
-                onClick={() => setDeleteModalOpen(false)}
-                className="btn-modal-cancel"
-                disabled={deleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteWorkOrder}
-                className="btn-modal-delete"
-                disabled={deleting}
-              >
-                {deleting ? "Deleting..." : "Delete Work Order"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteWorkOrder}
+        title="Delete Work Order"
+        message={`Are you sure you want to delete work order ${workOrder.workOrderNumber || `WO-${workOrder.id.slice(0, 8).toUpperCase()}`}?`}
+        detail="This action cannot be undone. All associated tasks, time entries, and data will be permanently removed."
+        confirmLabel="Delete Work Order"
+        variant="danger"
+        loading={deleting}
+      />
+
+      {/* Stop Timer Confirmation */}
+      <ConfirmDialog
+        open={showStopTimerConfirm}
+        onClose={() => setShowStopTimerConfirm(false)}
+        onConfirm={handleStopTimer}
+        title="Stop Timer"
+        message="Are you sure you want to stop the work timer?"
+        detail="The elapsed time will be saved as a time entry."
+        confirmLabel="Stop Timer"
+        variant="warning"
+        loading={timerLoading}
+      />
+
+      {/* Status Change Confirmation */}
+      <ConfirmDialog
+        open={showStatusConfirm}
+        onClose={() => { setShowStatusConfirm(false); setPendingStatus(null); }}
+        onConfirm={confirmStatusChange}
+        title="Change Status"
+        message={`Change work order status to ${pendingStatus}?`}
+        confirmLabel="Change Status"
+        variant={pendingStatus === WorkOrderStatus.CANCELED ? "danger" : "warning"}
+        loading={statusLoading}
+      />
+
+      {/* Email Confirmation */}
+      <ConfirmDialog
+        open={showEmailConfirm}
+        onClose={() => setShowEmailConfirm(false)}
+        onConfirm={confirmEmailWorkOrder}
+        title="Email Work Order"
+        message={`Send work order to ${workOrder.customer?.primaryEmail}?`}
+        confirmLabel="Send Email"
+        variant="default"
+        loading={sendingEmail}
+      />
+
+      {/* Unassign Tech Confirmation */}
+      <ConfirmDialog
+        open={showUnassignConfirm}
+        onClose={() => { setShowUnassignConfirm(false); setPendingUnassignTechId(null); }}
+        onConfirm={confirmUnassignTech}
+        title="Remove Technician"
+        message="Remove this technician from the work order?"
+        detail="Their task assignments will not be changed."
+        confirmLabel="Remove"
+        variant="danger"
+        loading={unassigning !== null}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "./materials-duplicates.css";
 
 interface DuplicateGroup {
@@ -25,6 +26,8 @@ export default function MaterialDuplicatesPage() {
   const [merging, setMerging] = useState<string | null>(null);
   const [selectedPrimary, setSelectedPrimary] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<string | null>(null);
+  const [showMergeConfirm, setShowMergeConfirm] = useState(false);
+  const [pendingMergeGroup, setPendingMergeGroup] = useState<DuplicateGroup | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function MaterialDuplicatesPage() {
     }
   };
 
-  const handleMerge = async (group: DuplicateGroup) => {
+  const handleMerge = (group: DuplicateGroup) => {
     const key = `${group.normalized_name}|${group.part_number}`;
     const primaryId = selectedPrimary[key];
     if (!primaryId) return;
@@ -72,12 +75,16 @@ export default function MaterialDuplicatesPage() {
     const duplicateIds = group.ids.filter((id) => id !== primaryId);
     if (duplicateIds.length === 0) return;
 
-    if (
-      !confirm(
-        `Merge ${duplicateIds.length} duplicate(s) into the selected primary? This cannot be undone.`
-      )
-    )
-      return;
+    setPendingMergeGroup(group);
+    setShowMergeConfirm(true);
+  };
+
+  const confirmMerge = async () => {
+    if (!pendingMergeGroup) return;
+
+    const key = `${pendingMergeGroup.normalized_name}|${pendingMergeGroup.part_number}`;
+    const primaryId = selectedPrimary[key];
+    const duplicateIds = pendingMergeGroup.ids.filter((id) => id !== primaryId);
 
     setMerging(key);
     try {
@@ -99,6 +106,8 @@ export default function MaterialDuplicatesPage() {
       toast.error(e?.message || "Failed to merge");
     } finally {
       setMerging(null);
+      setShowMergeConfirm(false);
+      setPendingMergeGroup(null);
     }
   };
 
@@ -218,6 +227,21 @@ export default function MaterialDuplicatesPage() {
           })}
         </div>
       )}
+
+      {/* Merge Confirmation */}
+      <ConfirmDialog
+        open={showMergeConfirm}
+        onClose={() => { setShowMergeConfirm(false); setPendingMergeGroup(null); }}
+        onConfirm={confirmMerge}
+        title="Merge Duplicates"
+        message={pendingMergeGroup
+          ? `Merge ${pendingMergeGroup.ids.length - 1} duplicate(s) into the selected primary?`
+          : "Merge duplicates?"}
+        detail="This cannot be undone. All usage references will be transferred to the primary record."
+        confirmLabel="Merge"
+        variant="danger"
+        loading={merging !== null}
+      />
     </div>
   );
 }

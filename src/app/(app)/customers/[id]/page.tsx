@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import "./customer-detail.css";
 
 interface Customer {
@@ -337,12 +338,14 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="customer-detail-page">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[
+        { label: "Customers", href: "/customers" },
+        { label: customer.name },
+      ]} />
+
       {/* Page Header */}
       <div className="page-header">
-        <Link href="/customers" className="back-link">
-          ← Back to Customers
-        </Link>
-
         <div className="header-content">
           <div className="header-left">
             <h1>{customer.name}</h1>

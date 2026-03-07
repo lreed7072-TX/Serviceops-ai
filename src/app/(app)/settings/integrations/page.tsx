@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "./integrations.css";
 
 type QboConnectionStatus = {
@@ -31,6 +32,7 @@ export default function IntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Check for callback params
@@ -69,8 +71,6 @@ export default function IntegrationsPage() {
   }
 
   async function handleDisconnect() {
-    if (!confirm("Are you sure you want to disconnect QuickBooks Online?")) return;
-
     setDisconnecting(true);
     try {
       const res = await apiFetch("/api/integrations/qbo/disconnect", {
@@ -87,6 +87,7 @@ export default function IntegrationsPage() {
       setMessage({ type: "error", text: "Failed to disconnect QuickBooks" });
     } finally {
       setDisconnecting(false);
+      setShowDisconnectConfirm(false);
     }
   }
 
@@ -210,7 +211,7 @@ export default function IntegrationsPage() {
                 </button>
                 <button
                   className="btn btn-danger"
-                  onClick={handleDisconnect}
+                  onClick={() => setShowDisconnectConfirm(true)}
                   disabled={disconnecting}
                 >
                   {disconnecting ? "Disconnecting..." : "Disconnect"}
@@ -267,6 +268,19 @@ export default function IntegrationsPage() {
           )}
         </div>
       </div>
+
+      {/* Disconnect Confirmation */}
+      <ConfirmDialog
+        open={showDisconnectConfirm}
+        onClose={() => setShowDisconnectConfirm(false)}
+        onConfirm={handleDisconnect}
+        title="Disconnect QuickBooks"
+        message="Are you sure you want to disconnect QuickBooks Online?"
+        detail="Synced data will remain, but new syncs will stop until you reconnect."
+        confirmLabel="Disconnect"
+        variant="danger"
+        loading={disconnecting}
+      />
     </div>
   );
 }

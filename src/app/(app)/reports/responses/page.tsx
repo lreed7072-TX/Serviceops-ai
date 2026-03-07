@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "../reports.css";
 import "./responses.css";
 
@@ -61,6 +62,8 @@ export default function FormResponsesListPage() {
 
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   // Load template list for the filter dropdown
   useEffect(() => {
@@ -171,12 +174,17 @@ export default function FormResponsesListPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this draft response? This cannot be undone.")) return;
+  const handleDelete = (id: string) => {
+    setPendingDeleteId(id);
+    setShowDeleteConfirm(true);
+  };
 
-    setDeletingId(id);
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+
+    setDeletingId(pendingDeleteId);
     try {
-      const res = await apiFetch(`/api/form-responses/${id}`, {
+      const res = await apiFetch(`/api/form-responses/${pendingDeleteId}`, {
         method: "DELETE",
       });
 
@@ -185,13 +193,15 @@ export default function FormResponsesListPage() {
         throw new Error(payload.error ?? "Failed to delete response.");
       }
 
-      setResponses((prev) => prev.filter((r) => r.id !== id));
+      setResponses((prev) => prev.filter((r) => r.id !== pendingDeleteId));
       setTotal((prev) => prev - 1);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Failed to delete response.");
     } finally {
       setDeletingId(null);
+      setShowDeleteConfirm(false);
+      setPendingDeleteId(null);
     }
   };
 
@@ -364,6 +374,18 @@ export default function FormResponsesListPage() {
           )}
         </>
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => { setShowDeleteConfirm(false); setPendingDeleteId(null); }}
+        onConfirm={confirmDelete}
+        title="Delete Draft Response"
+        message="Delete this draft response? This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deletingId !== null}
+      />
     </div>
   );
 }

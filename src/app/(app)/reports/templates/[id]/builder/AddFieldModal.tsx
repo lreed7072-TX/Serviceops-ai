@@ -1,5 +1,21 @@
 "use client";
 
+import {
+  Type,
+  AlignLeft,
+  Hash,
+  ToggleLeft,
+  ChevronDown,
+  CheckSquare,
+  Calendar,
+  Camera,
+  PenTool,
+  MapPin,
+  Heading,
+  Info,
+  Calculator,
+} from "lucide-react";
+
 interface AddFieldModalProps {
   onAdd: (type: string) => void;
   onClose: () => void;
@@ -8,29 +24,29 @@ interface AddFieldModalProps {
 interface FieldTypeOption {
   type: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const INPUT_FIELDS: FieldTypeOption[] = [
-  { type: "TEXT_INPUT", label: "Text Input", icon: "Aa" },
-  { type: "TEXTAREA", label: "Long Text", icon: "\u00b6" },
-  { type: "NUMERIC_INPUT", label: "Number", icon: "#" },
-  { type: "YES_NO", label: "Yes / No", icon: "\u2713\u2717" },
-  { type: "DROPDOWN", label: "Dropdown", icon: "\u25BE" },
-  { type: "MULTI_SELECT", label: "Multi-Select", icon: "\u2611" },
-  { type: "DATE_INPUT", label: "Date", icon: "\uD83D\uDCC5" },
+  { type: "TEXT_INPUT", label: "Text Input", icon: <Type size={20} /> },
+  { type: "TEXTAREA", label: "Long Text", icon: <AlignLeft size={20} /> },
+  { type: "NUMERIC_INPUT", label: "Number", icon: <Hash size={20} /> },
+  { type: "YES_NO", label: "Yes / No", icon: <ToggleLeft size={20} /> },
+  { type: "DROPDOWN", label: "Dropdown", icon: <ChevronDown size={20} /> },
+  { type: "MULTI_SELECT", label: "Multi-Select", icon: <CheckSquare size={20} /> },
+  { type: "DATE_INPUT", label: "Date", icon: <Calendar size={20} /> },
 ];
 
 const CAPTURE_FIELDS: FieldTypeOption[] = [
-  { type: "PHOTO_CAPTURE", label: "Photo", icon: "\uD83D\uDCF7" },
-  { type: "SIGNATURE", label: "Signature", icon: "\u270D" },
-  { type: "GPS_CAPTURE", label: "GPS Location", icon: "\uD83D\uDCCD" },
+  { type: "PHOTO_CAPTURE", label: "Photo", icon: <Camera size={20} /> },
+  { type: "SIGNATURE", label: "Signature", icon: <PenTool size={20} /> },
+  { type: "GPS_CAPTURE", label: "GPS Location", icon: <MapPin size={20} /> },
 ];
 
 const LAYOUT_FIELDS: FieldTypeOption[] = [
-  { type: "SECTION_HEADER", label: "Section Header", icon: "\u2014" },
-  { type: "INSTRUCTIONS", label: "Instructions", icon: "\u2139" },
-  { type: "CALCULATED", label: "Calculated", icon: "fx" },
+  { type: "SECTION_HEADER", label: "Section Header", icon: <Heading size={20} /> },
+  { type: "INSTRUCTIONS", label: "Instructions", icon: <Info size={20} /> },
+  { type: "CALCULATED", label: "Calculated", icon: <Calculator size={20} /> },
 ];
 
 export default function AddFieldModal({ onAdd, onClose }: AddFieldModalProps) {

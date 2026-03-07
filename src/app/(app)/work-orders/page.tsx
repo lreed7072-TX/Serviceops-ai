@@ -15,6 +15,7 @@ import ExportButton from "@/components/filters/ExportButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { ClipboardList, FileEdit, Settings, CheckCircle2, DollarSign, Plus, Building2, MapPin, Zap, AlertTriangle } from "lucide-react";
 import "./work-orders.css";
 
 type ListResponse<T> = {
@@ -879,7 +880,7 @@ export default function WorkOrdersPage() {
         <div className="stats-grid">
           <div className="stat-card stat-total">
             <div className="stat-label">
-              <span className="stat-icon">📋</span>
+              <span className="stat-icon"><ClipboardList size={20} /></span>
               Total Orders
             </div>
             <div className="stat-value">{stats.total}</div>
@@ -888,7 +889,7 @@ export default function WorkOrdersPage() {
 
           <div className="stat-card stat-open">
             <div className="stat-label">
-              <span className="stat-icon">📝</span>
+              <span className="stat-icon"><FileEdit size={20} /></span>
               Open Orders
             </div>
             <div className="stat-value">{stats.open}</div>
@@ -897,7 +898,7 @@ export default function WorkOrdersPage() {
 
           <div className="stat-card stat-in-progress">
             <div className="stat-label">
-              <span className="stat-icon">⚙️</span>
+              <span className="stat-icon"><Settings size={20} /></span>
               In Progress
             </div>
             <div className="stat-value">{stats.inProgress}</div>
@@ -906,7 +907,7 @@ export default function WorkOrdersPage() {
 
           <div className="stat-card stat-completed">
             <div className="stat-label">
-              <span className="stat-icon">✅</span>
+              <span className="stat-icon"><CheckCircle2 size={20} /></span>
               Completed
             </div>
             <div className="stat-value">{stats.completed}</div>
@@ -915,7 +916,7 @@ export default function WorkOrdersPage() {
 
           <div className="stat-card stat-revenue">
             <div className="stat-label">
-              <span className="stat-icon">💰</span>
+              <span className="stat-icon"><DollarSign size={20} /></span>
               Est. Revenue
             </div>
             <div className="stat-value">$0</div>
@@ -927,7 +928,7 @@ export default function WorkOrdersPage() {
       {/* Create Work Order Form */}
       <div className="create-wo-section">
         <h3 className="section-title">
-          <span className="section-title-icon">➕</span>
+          <span className="section-title-icon"><Plus size={18} /></span>
           Create New Work Order
         </h3>
 
@@ -984,7 +985,7 @@ export default function WorkOrdersPage() {
                   {customer.name}
                 </option>
               ))}
-              <option value={NEW_CUSTOMER_VALUE}>➕ Add new customer…</option>
+              <option value={NEW_CUSTOMER_VALUE}>+ Add new customer...</option>
             </select>
           </label>
 
@@ -1002,7 +1003,7 @@ export default function WorkOrdersPage() {
                   {site.name}
                 </option>
               ))}
-              <option value={NEW_SITE_VALUE}>➕ Add new site…</option>
+              <option value={NEW_SITE_VALUE}>+ Add new site...</option>
             </select>
           </label>
 
@@ -1019,7 +1020,7 @@ export default function WorkOrdersPage() {
                   {formatAssetOptionLabel(asset)}
                 </option>
               ))}
-              <option value={NEW_ASSET_VALUE}>➕ Add new asset…</option>
+              <option value={NEW_ASSET_VALUE}>+ Add new asset...</option>
             </select>
           </label>
 
@@ -1115,7 +1116,7 @@ export default function WorkOrdersPage() {
         <>
           {filteredWorkOrders.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">📋</div>
+              <div className="empty-icon"><ClipboardList size={32} /></div>
               <div className="empty-title">
                 {hasActiveFilters ? "No matching work orders" : "No work orders yet"}
               </div>
@@ -1167,17 +1168,17 @@ export default function WorkOrdersPage() {
 
                     <div className="wo-meta">
                       <div className="wo-meta-item">
-                        <span className="wo-meta-icon">🏢</span>
+                        <span className="wo-meta-icon"><Building2 size={14} /></span>
                         <span className="wo-meta-label">Customer:</span>
                         <span className="wo-meta-value">{customer?.name || "—"}</span>
                       </div>
                       <div className="wo-meta-item">
-                        <span className="wo-meta-icon">📍</span>
+                        <span className="wo-meta-icon"><MapPin size={14} /></span>
                         <span className="wo-meta-label">Site:</span>
                         <span className="wo-meta-value">{site?.name || "—"}</span>
                       </div>
                       <div className="wo-meta-item">
-                        <span className="wo-meta-icon">⚡</span>
+                        <span className="wo-meta-icon"><Zap size={14} /></span>
                         <span className="wo-meta-label">Mode:</span>
                         <span className="wo-meta-value">{executionModeLabels[wo.executionMode]}</span>
                       </div>
@@ -1646,7 +1647,7 @@ export default function WorkOrdersPage() {
           <div className="modal delete-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Delete Work Order</h3>
             <div className="delete-modal-body">
-              <div className="delete-warning-icon">⚠️</div>
+              <div className="delete-warning-icon"><AlertTriangle size={24} /></div>
               <p>
                 Are you sure you want to delete work order{" "}
                 <strong>{(workOrderToDelete as any).workOrderNumber || `WO-${workOrderToDelete.id.slice(0, 8).toUpperCase()}`}</strong>?

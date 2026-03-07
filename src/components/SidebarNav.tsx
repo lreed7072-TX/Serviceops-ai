@@ -24,6 +24,7 @@ import {
   HelpCircle,
   Menu,
   X,
+  TrendingUp,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -45,16 +46,25 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Shield,
   Settings,
   HelpCircle,
+  TrendingUp,
 };
 
-type NavLink = {
+export type NavLink = {
+  kind: "link";
   href: string;
   label: string;
   iconName: string;
 };
 
+export type NavDivider = {
+  kind: "divider";
+  label?: string;
+};
+
+export type NavItem = NavLink | NavDivider;
+
 interface SidebarNavProps {
-  links: NavLink[];
+  links: NavItem[];
   searchSlot?: React.ReactNode;
   footerSlot?: React.ReactNode;
 }
@@ -98,19 +108,30 @@ export default function SidebarNav({ links, searchSlot, footerSlot }: SidebarNav
         )}
 
         <nav className="nav">
-          {links.map((link) => {
-            const Icon = iconMap[link.iconName];
+          {links.map((item, index) => {
+            if (item.kind === "divider") {
+              return (
+                <div key={`divider-${index}`} className="nav-section-divider">
+                  <div className="nav-divider" />
+                  {item.label && (
+                    <span className="nav-section-label">{item.label}</span>
+                  )}
+                </div>
+              );
+            }
+
+            const Icon = iconMap[item.iconName];
             return (
               <Link
-                key={link.href}
-                href={link.href}
-                className={isActive(link.href) ? "active" : ""}
+                key={item.href}
+                href={item.href}
+                className={isActive(item.href) ? "active" : ""}
                 onClick={() => setOpen(false)}
               >
                 <span className="nav-icon">
                   {Icon ? <Icon size={18} /> : null}
                 </span>
-                <span className="nav-label">{link.label}</span>
+                <span className="nav-label">{item.label}</span>
               </Link>
             );
           })}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteStatus, QuoteLineItemType } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "./quote-detail.css";
 
 interface QuoteLineItem {
@@ -61,6 +62,13 @@ export default function QuoteDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Confirm dialog state
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+
   const toast = useToast();
 
   const quoteId = params?.id;
@@ -122,9 +130,7 @@ export default function QuoteDetailPage() {
 
   const handleConvertToWorkOrder = async () => {
     if (!quote) return;
-    
-    if (!confirm(`Convert quote ${quote.quoteNumber} to a work order?`)) return;
-    
+
     setConverting(true);
     try {
       const response = await fetch(`/api/quotes/${quote.id}/accept`, {
@@ -144,6 +150,7 @@ export default function QuoteDetailPage() {
       toast.error("An error occurred while converting");
     } finally {
       setConverting(false);
+      setShowConvertConfirm(false);
     }
   };
 
@@ -176,25 +183,30 @@ export default function QuoteDetailPage() {
     }
   };
 
-  const handleEmailQuote = async () => {
+  const handleEmailQuote = () => {
     if (!quote) return;
-    
+
     const email = quote.customer.primaryEmail || prompt("Enter customer email address:");
     if (!email) return;
-    
-    if (!confirm(`Send quote ${quote.quoteNumber} to ${email}?`)) return;
-    
+
+    setPendingEmail(email);
+    setShowEmailConfirm(true);
+  };
+
+  const confirmEmailQuote = async () => {
+    if (!quote || !pendingEmail) return;
+
     setEmailing(true);
     try {
       const response = await fetch(`/api/quotes/${quote.id}/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: pendingEmail }),
       });
 
       if (response.ok) {
-        toast.success(`Quote sent successfully to ${email}`);
-        await fetchQuote(); // Refresh to update sentAt timestamp
+        toast.success(`Quote sent successfully to ${pendingEmail}`);
+        await fetchQuote();
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to send email");
@@ -204,13 +216,13 @@ export default function QuoteDetailPage() {
       toast.error("An error occurred while sending email");
     } finally {
       setEmailing(false);
+      setShowEmailConfirm(false);
+      setPendingEmail(null);
     }
   };
 
   const handleDuplicateQuote = async () => {
     if (!quote) return;
-
-    if (!confirm(`Create a copy of quote ${quote.quoteNumber}?`)) return;
 
     setDuplicating(true);
     try {
@@ -230,6 +242,7 @@ export default function QuoteDetailPage() {
       toast.error("An error occurred while duplicating");
     } finally {
       setDuplicating(false);
+      setShowDuplicateConfirm(false);
     }
   };
 
@@ -532,7 +545,7 @@ export default function QuoteDetailPage() {
           </button>
           
           <button
-            onClick={handleDuplicateQuote}
+            onClick={() => setShowDuplicateConfirm(true)}
             disabled={duplicating}
             className="action-button secondary"
           >
@@ -553,7 +566,7 @@ export default function QuoteDetailPage() {
           {(quote.status === QuoteStatus.SENT || quote.status === QuoteStatus.DRAFT) && (
             <>
               <button
-                onClick={handleConvertToWorkOrder}
+                onClick={() => setShowConvertConfirm(true)}
                 disabled={converting}
                 className="action-button success"
               >
@@ -598,45 +611,56 @@ export default function QuoteDetailPage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteModalOpen && (
-        <div className="delete-modal-overlay" onClick={() => !deleting && setDeleteModalOpen(false)}>
-          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-modal-header">
-              <h3>Delete Quote</h3>
-              <button
-                onClick={() => !deleting && setDeleteModalOpen(false)}
-                className="delete-modal-close"
-                disabled={deleting}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="delete-modal-body">
-              <div className="delete-warning-icon">⚠️</div>
-              <p>Are you sure you want to delete quote <strong>{quote.quoteNumber}</strong>?</p>
-              <p className="delete-quote-title">"{quote.title}"</p>
-              <p className="delete-warning-text">This action cannot be undone.</p>
-            </div>
-            <div className="delete-modal-footer">
-              <button
-                onClick={() => setDeleteModalOpen(false)}
-                className="btn-modal-cancel"
-                disabled={deleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteQuote}
-                className="btn-modal-delete"
-                disabled={deleting}
-              >
-                {deleting ? "Deleting..." : "Delete Quote"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteQuote}
+        title="Delete Quote"
+        message={`Are you sure you want to delete quote ${quote.quoteNumber}?`}
+        detail={`"${quote.title}" -- This action cannot be undone.`}
+        confirmLabel="Delete Quote"
+        variant="danger"
+        loading={deleting}
+      />
+
+      {/* Convert to Work Order Confirmation */}
+      <ConfirmDialog
+        open={showConvertConfirm}
+        onClose={() => setShowConvertConfirm(false)}
+        onConfirm={handleConvertToWorkOrder}
+        title="Convert to Work Order"
+        message={`Convert quote ${quote.quoteNumber} to a work order?`}
+        detail="A new work order will be created from this quote's line items."
+        confirmLabel="Convert"
+        variant="default"
+        loading={converting}
+      />
+
+      {/* Email Confirmation */}
+      <ConfirmDialog
+        open={showEmailConfirm}
+        onClose={() => { setShowEmailConfirm(false); setPendingEmail(null); }}
+        onConfirm={confirmEmailQuote}
+        title="Email Quote"
+        message={`Send quote ${quote.quoteNumber} to ${pendingEmail}?`}
+        confirmLabel="Send Email"
+        variant="default"
+        loading={emailing}
+      />
+
+      {/* Duplicate Confirmation */}
+      <ConfirmDialog
+        open={showDuplicateConfirm}
+        onClose={() => setShowDuplicateConfirm(false)}
+        onConfirm={handleDuplicateQuote}
+        title="Duplicate Quote"
+        message={`Create a copy of quote ${quote.quoteNumber}?`}
+        detail="A new draft quote will be created with the same line items."
+        confirmLabel="Duplicate"
+        variant="default"
+        loading={duplicating}
+      />
     </div>
   );
 }

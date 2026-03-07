@@ -8,6 +8,25 @@ const CALC_OPERATIONS: CalcOperation[] = [
 
 const NO_REQUIRED_TYPES = new Set(["SECTION_HEADER", "INSTRUCTIONS", "CALCULATED"]);
 
+function friendlyType(type: string): string {
+  const map: Record<string, string> = {
+    TEXT_INPUT: "Text Input",
+    TEXTAREA: "Long Text",
+    NUMERIC_INPUT: "Number",
+    YES_NO: "Yes / No",
+    DROPDOWN: "Dropdown",
+    MULTI_SELECT: "Multi-Select",
+    DATE_INPUT: "Date",
+    PHOTO_CAPTURE: "Photo",
+    SIGNATURE: "Signature",
+    GPS_CAPTURE: "GPS Location",
+    SECTION_HEADER: "Section Header",
+    INSTRUCTIONS: "Instructions",
+    CALCULATED: "Calculated Field",
+  };
+  return map[type] || type;
+}
+
 interface PropertiesPanelProps {
   field: TemplateField | null;
   allFields: TemplateField[];
@@ -41,7 +60,7 @@ export default function PropertiesPanel({ field, allFields, onChange }: Properti
     <div className="properties-panel">
       <div className="properties-panel-header">
         <h3>Properties</h3>
-        <span className="properties-panel-type">{field.type}</span>
+        <span className="properties-panel-type">{friendlyType(field.type)}</span>
       </div>
 
       {/* ─── Common: Title ─── */}

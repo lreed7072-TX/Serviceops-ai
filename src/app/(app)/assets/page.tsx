@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { Asset, Customer, Site } from "@prisma/client";
 import { AssetCriticality, AssetStatus, AssetCategory, AssetFamily, AssetSubFamily } from "@prisma/client";
+import { Settings, CheckCircle, AlertTriangle, FolderOpen } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import "./assets.css";
 
@@ -298,28 +299,28 @@ export default function AssetsPage() {
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon assets">⚙️</div>
+          <div className="stat-icon assets"><Settings size={20} /></div>
           <div className="stat-content">
             <h3>{totalAssets}</h3>
             <p>Total Assets</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon active">✓</div>
+          <div className="stat-icon active"><CheckCircle size={20} /></div>
           <div className="stat-content">
             <h3>{activeAssets}</h3>
             <p>Active</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon critical">⚠️</div>
+          <div className="stat-icon critical"><AlertTriangle size={20} /></div>
           <div className="stat-content">
             <h3>{criticalAssets}</h3>
             <p>High / Critical</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon categories">📂</div>
+          <div className="stat-icon categories"><FolderOpen size={20} /></div>
           <div className="stat-content">
             <h3>{uniqueCategories}</h3>
             <p>Categories</p>
@@ -568,7 +569,7 @@ export default function AssetsPage() {
           </div>
         ) : assets.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">⚙️</div>
+            <div className="empty-icon"><Settings size={32} /></div>
             <h3>No assets yet</h3>
             <p>Create one using the form above</p>
           </div>

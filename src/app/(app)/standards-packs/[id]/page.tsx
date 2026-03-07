@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "../standards-detail.css";
 
 type MeasurementDef = {
@@ -95,6 +96,13 @@ export default function StandardsPackDetailPage() {
   const [measRequired, setMeasRequired] = useState(false);
   const [savingMeasurement, setSavingMeasurement] = useState(false);
 
+  // Confirm dialog state
+  const [showDeletePackConfirm, setShowDeletePackConfirm] = useState(false);
+  const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
+  const [pendingDeleteTaskId, setPendingDeleteTaskId] = useState<string | null>(null);
+  const [showDeleteMeasConfirm, setShowDeleteMeasConfirm] = useState(false);
+  const [pendingDeleteMeasId, setPendingDeleteMeasId] = useState<string | null>(null);
+
   const loadPack = async () => {
     try {
       setLoading(true);
@@ -145,13 +153,14 @@ export default function StandardsPackDetailPage() {
   };
 
   const deletePack = async () => {
-    if (!confirm("Delete this pack? This cannot be undone.")) return;
     try {
       const res = await apiFetch(`/api/standards-packs/${packId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       router.push("/standards-packs");
     } catch (e: any) {
       setError(e?.message ?? "Failed to delete");
+    } finally {
+      setShowDeletePackConfirm(false);
     }
   };
 
@@ -218,14 +227,22 @@ export default function StandardsPackDetailPage() {
     }
   };
 
-  const deleteTask = async (taskId: string) => {
-    if (!confirm("Delete this task?")) return;
+  const deleteTask = (taskId: string) => {
+    setPendingDeleteTaskId(taskId);
+    setShowDeleteTaskConfirm(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!pendingDeleteTaskId) return;
     try {
-      const res = await apiFetch(`/api/standards-packs/${packId}/tasks/${taskId}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/standards-packs/${packId}/tasks/${pendingDeleteTaskId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete task");
       await loadPack();
     } catch (e: any) {
       setError(e?.message ?? "Failed to delete task");
+    } finally {
+      setShowDeleteTaskConfirm(false);
+      setPendingDeleteTaskId(null);
     }
   };
 
@@ -298,16 +315,25 @@ export default function StandardsPackDetailPage() {
     }
   };
 
-  const deleteMeasurement = async (measId: string) => {
-    if (!measurementsTask || !confirm("Delete this measurement?")) return;
+  const deleteMeasurement = (measId: string) => {
+    if (!measurementsTask) return;
+    setPendingDeleteMeasId(measId);
+    setShowDeleteMeasConfirm(true);
+  };
+
+  const confirmDeleteMeasurement = async () => {
+    if (!measurementsTask || !pendingDeleteMeasId) return;
     try {
-      const res = await apiFetch(`/api/standards-packs/${packId}/tasks/${measurementsTask.id}/measurements/${measId}`, {
+      const res = await apiFetch(`/api/standards-packs/${packId}/tasks/${measurementsTask.id}/measurements/${pendingDeleteMeasId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete measurement");
       await openMeasurements(measurementsTask);
     } catch (e: any) {
       setError(e?.message ?? "Failed to delete measurement");
+    } finally {
+      setShowDeleteMeasConfirm(false);
+      setPendingDeleteMeasId(null);
     }
   };
 
@@ -333,7 +359,7 @@ export default function StandardsPackDetailPage() {
           <h1>{pack.name}</h1>
         </div>
         <div className="sd-header-actions">
-          <button className="sd-btn-danger" onClick={deletePack}>Delete</button>
+          <button className="sd-btn-danger" onClick={() => setShowDeletePackConfirm(true)}>Delete</button>
         </div>
       </div>
 
@@ -565,6 +591,42 @@ export default function StandardsPackDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Pack Confirmation */}
+      <ConfirmDialog
+        open={showDeletePackConfirm}
+        onClose={() => setShowDeletePackConfirm(false)}
+        onConfirm={deletePack}
+        title="Delete Standards Pack"
+        message="Delete this pack? This cannot be undone."
+        detail="All associated tasks and measurement definitions will be permanently removed."
+        confirmLabel="Delete Pack"
+        variant="danger"
+      />
+
+      {/* Delete Task Confirmation */}
+      <ConfirmDialog
+        open={showDeleteTaskConfirm}
+        onClose={() => { setShowDeleteTaskConfirm(false); setPendingDeleteTaskId(null); }}
+        onConfirm={confirmDeleteTask}
+        title="Delete Task"
+        message="Delete this task?"
+        detail="This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
+
+      {/* Delete Measurement Confirmation */}
+      <ConfirmDialog
+        open={showDeleteMeasConfirm}
+        onClose={() => { setShowDeleteMeasConfirm(false); setPendingDeleteMeasId(null); }}
+        onConfirm={confirmDeleteMeasurement}
+        title="Delete Measurement"
+        message="Delete this measurement?"
+        detail="This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

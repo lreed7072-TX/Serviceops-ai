@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "../procedure-detail.css";
 
 type ProcedureStep = {
@@ -64,6 +65,7 @@ export default function ProcedureTemplateDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAddStep, setShowAddStep] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   const [stepForm, setStepForm] = useState({
     title: "",
@@ -136,8 +138,6 @@ export default function ProcedureTemplateDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Archive this template? It will no longer appear in the active list.")) return;
-
     try {
       const res = await apiFetch(`/api/procedure-templates/${templateId}`, {
         method: "DELETE",
@@ -146,6 +146,8 @@ export default function ProcedureTemplateDetailPage() {
       router.push("/procedure-templates");
     } catch (e: any) {
       setError(e?.message || "Failed to archive template");
+    } finally {
+      setShowArchiveConfirm(false);
     }
   };
 
@@ -185,7 +187,7 @@ export default function ProcedureTemplateDetailPage() {
               <p className="pd-header-desc">{template.description}</p>
             )}
           </div>
-          <button onClick={handleDelete} className="pd-btn-danger">
+          <button onClick={() => setShowArchiveConfirm(true)} className="pd-btn-danger">
             Archive
           </button>
         </div>
@@ -349,6 +351,18 @@ export default function ProcedureTemplateDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Archive Confirmation */}
+      <ConfirmDialog
+        open={showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(false)}
+        onConfirm={handleDelete}
+        title="Archive Template"
+        message="Archive this template?"
+        detail="It will no longer appear in the active list, but existing work orders using it will not be affected."
+        confirmLabel="Archive"
+        variant="warning"
+      />
     </div>
   );
 }

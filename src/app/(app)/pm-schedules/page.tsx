@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Wrench } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import PMScheduleCard from "@/components/pm/PMScheduleCard";
 import PMCalendar from "@/components/pm/PMCalendar";
@@ -134,7 +135,7 @@ export default function PMSchedulesPage() {
         </p>
       ) : schedules.length === 0 ? (
         <div className="pm-empty">
-          <div className="pm-empty-icon">&#x1f527;</div>
+          <div className="pm-empty-icon"><Wrench size={32} /></div>
           <h2>No PM Schedules Yet</h2>
           <p>
             Create your first preventive maintenance schedule to automate

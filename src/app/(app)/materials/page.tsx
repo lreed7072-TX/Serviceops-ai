@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Package, Pencil, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import "./materials.css";
 
 type Material = {
@@ -40,6 +42,8 @@ export default function MaterialsPage() {
   const [formUnit, setFormUnit] = useState("");
   const [formCategory, setFormCategory] = useState("PART");
   const [formActive, setFormActive] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const loadMaterials = async () => {
     setLoading(true);
@@ -108,14 +112,22 @@ export default function MaterialsPage() {
     }
   };
 
-  const deleteMaterial = async (id: string) => {
-    if (!confirm("Delete this material?")) return;
+  const deleteMaterial = (id: string) => {
+    setPendingDeleteId(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteMaterial = async () => {
+    if (!pendingDeleteId) return;
     try {
-      const res = await apiFetch(`/api/materials/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/materials/${pendingDeleteId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       await loadMaterials();
     } catch (e: any) {
       setError(e?.message ?? "Failed to delete");
+    } finally {
+      setShowDeleteConfirm(false);
+      setPendingDeleteId(null);
     }
   };
 
@@ -154,7 +166,7 @@ export default function MaterialsPage() {
         </div>
       ) : materials.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📦</div>
+          <div className="empty-icon"><Package size={32} /></div>
           <h3>No materials found</h3>
           <p>Add your first material to get started</p>
           <button className="btn-primary" onClick={openCreate}>+ Add Material</button>
@@ -184,8 +196,8 @@ export default function MaterialsPage() {
                   <td><span className={`category-badge ${m.category.toLowerCase()}`}>{m.category}</span></td>
                   <td>
                     <div className="materials-actions">
-                      <button className="btn-icon" onClick={() => openEdit(m)}>✏️</button>
-                      <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}>🗑️</button>
+                      <button className="btn-icon" onClick={() => openEdit(m)}><Pencil size={14} /></button>
+                      <button className="btn-icon danger" onClick={() => deleteMaterial(m.id)}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -247,6 +259,18 @@ export default function MaterialsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => { setShowDeleteConfirm(false); setPendingDeleteId(null); }}
+        onConfirm={confirmDeleteMaterial}
+        title="Delete Material"
+        message="Delete this material?"
+        detail="This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

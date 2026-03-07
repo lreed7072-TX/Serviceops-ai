@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type InvoiceLineItem = {
   id: string;
@@ -55,6 +56,8 @@ export default function InvoiceDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -100,20 +103,25 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  const emailInvoice = async () => {
+  const emailInvoice = () => {
     if (!invoiceId || !invoice) return;
 
     const email = invoice.customer.primaryEmail || prompt("Enter customer email address:");
     if (!email) return;
 
-    if (!confirm(`Send invoice ${invoice.invoiceNumber} to ${email}?`)) return;
+    setPendingEmail(email);
+    setShowEmailConfirm(true);
+  };
+
+  const confirmEmailInvoice = async () => {
+    if (!invoiceId || !invoice || !pendingEmail) return;
 
     setEmailing(true);
     try {
       const res = await apiFetch(`/api/invoices/${invoiceId}/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: pendingEmail }),
       });
 
       if (!res.ok) {
@@ -134,6 +142,8 @@ export default function InvoiceDetailPage() {
       toast.error(e?.message ?? "Failed to send email");
     } finally {
       setEmailing(false);
+      setShowEmailConfirm(false);
+      setPendingEmail(null);
     }
   };
 
@@ -446,6 +456,18 @@ export default function InvoiceDetailPage() {
           )}
         </div>
       )}
+
+      {/* Email Confirmation */}
+      <ConfirmDialog
+        open={showEmailConfirm}
+        onClose={() => { setShowEmailConfirm(false); setPendingEmail(null); }}
+        onConfirm={confirmEmailInvoice}
+        title="Email Invoice"
+        message={`Send invoice ${invoice.invoiceNumber} to ${pendingEmail}?`}
+        confirmLabel="Send Email"
+        variant="default"
+        loading={emailing}
+      />
     </div>
   );
 }

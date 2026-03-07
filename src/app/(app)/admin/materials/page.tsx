@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { MaterialCategory } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Material {
   id: string;
@@ -26,6 +27,8 @@ export default function MaterialsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<MaterialCategory | "ALL">("ALL");
   const [showInactive, setShowInactive] = useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<string | null>(null);
   const toast = useToast();
 
   // Form state
@@ -133,11 +136,16 @@ export default function MaterialsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to deactivate this material?")) return;
+  const handleDelete = (id: string) => {
+    setPendingDeactivateId(id);
+    setShowDeactivateConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDeactivateId) return;
 
     try {
-      const response = await fetch(`/api/materials/${id}`, {
+      const response = await fetch(`/api/materials/${pendingDeactivateId}`, {
         method: "DELETE",
       });
 
@@ -146,6 +154,9 @@ export default function MaterialsPage() {
       }
     } catch (error) {
       console.error("Failed to delete material:", error);
+    } finally {
+      setShowDeactivateConfirm(false);
+      setPendingDeactivateId(null);
     }
   };
 
@@ -372,6 +383,18 @@ export default function MaterialsPage() {
           </table>
         </div>
       )}
+
+      {/* Deactivate Confirmation */}
+      <ConfirmDialog
+        open={showDeactivateConfirm}
+        onClose={() => { setShowDeactivateConfirm(false); setPendingDeactivateId(null); }}
+        onConfirm={confirmDelete}
+        title="Deactivate Material"
+        message="Are you sure you want to deactivate this material?"
+        detail="The material will be marked as inactive and hidden from default views."
+        confirmLabel="Deactivate"
+        variant="warning"
+      />
     </div>
   );
 }

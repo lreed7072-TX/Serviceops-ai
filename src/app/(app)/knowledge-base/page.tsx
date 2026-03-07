@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import FileUploader from "@/components/knowledge-base/FileUploader";
 import DocumentViewer from "@/components/knowledge-base/DocumentViewer";
 import "./knowledge-base.css";
@@ -53,6 +54,8 @@ export default function KnowledgeBasePage() {
   const [showUploader, setShowUploader] = useState(false);
   const [viewingFile, setViewingFile] = useState<KbFileItem | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const toast = useToast();
 
   const loadFiles = async () => {
@@ -90,12 +93,17 @@ export default function KnowledgeBasePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this document? This cannot be undone.")) return;
+  const handleDelete = (id: string) => {
+    setPendingDeleteId(id);
+    setShowDeleteConfirm(true);
+  };
 
-    setDeleting(id);
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+
+    setDeleting(pendingDeleteId);
     try {
-      const res = await apiFetch(`/api/knowledge-base/${id}`, {
+      const res = await apiFetch(`/api/knowledge-base/${pendingDeleteId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete");
@@ -104,6 +112,8 @@ export default function KnowledgeBasePage() {
       toast.error(e instanceof Error ? e.message : "Failed to delete");
     } finally {
       setDeleting(null);
+      setShowDeleteConfirm(false);
+      setPendingDeleteId(null);
     }
   };
 
@@ -316,6 +326,19 @@ export default function KnowledgeBasePage() {
           onClose={() => setViewingFile(null)}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => { setShowDeleteConfirm(false); setPendingDeleteId(null); }}
+        onConfirm={confirmDelete}
+        title="Delete Document"
+        message="Delete this document? This cannot be undone."
+        detail="All associated data and file content will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting !== null}
+      />
     </div>
   );
 }

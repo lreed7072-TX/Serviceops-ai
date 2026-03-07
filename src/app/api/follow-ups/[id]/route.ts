@@ -53,7 +53,7 @@ export async function GET(
       contact: { select: { firstName: true, lastName: true } },
       assignedTo: { select: { name: true } },
       createdBy: { select: { name: true } },
-      callLog: { select: { id: true, subject: true } },
+      callLog: { select: { id: true, notes: true, callTimestamp: true } },
       site: { select: { id: true, name: true } },
     },
   });
@@ -175,7 +175,7 @@ export async function PUT(
       contact: { select: { firstName: true, lastName: true } },
       assignedTo: { select: { name: true } },
       createdBy: { select: { name: true } },
-      callLog: { select: { id: true, subject: true } },
+      callLog: { select: { id: true, notes: true, callTimestamp: true } },
       site: { select: { id: true, name: true } },
     },
   });

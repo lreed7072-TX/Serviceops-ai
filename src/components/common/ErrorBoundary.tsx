@@ -26,6 +26,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Error Boundary caught error:", error, errorInfo);
+    console.error("Error name:", error?.name);
+    console.error("Error message:", error?.message);
+    console.error("Error stack:", error?.stack);
+    if (errorInfo?.componentStack) {
+      console.error("Component stack:", errorInfo.componentStack);
+    }
   }
 
   render() {
@@ -45,9 +51,9 @@ export default class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2>Something went wrong</h2>
           <p>An unexpected error occurred. Please try reloading the page.</p>
-          <details className="eb-details">
+          <details className="eb-details" open>
             <summary>Error Details</summary>
-            <pre>{this.state.error?.message}</pre>
+            <pre>{this.state.error?.message}{"\n\n"}{this.state.error?.stack}</pre>
           </details>
           <button
             onClick={() => window.location.reload()}

@@ -208,7 +208,7 @@ export default function AnalyticsPage() {
             <div className="analytics-list">
               {revenueData?.topCustomers?.slice(0, 5).map((customer: any, index: number) => (
                 <div key={index} className="analytics-list-item">
-                  <span className="analytics-list-name">{customer.customerName}</span>
+                  <span className="analytics-list-name">{customer.customerName || "Unknown"}</span>
                   <span className="analytics-list-value">{formatCurrency(customer.revenue)}</span>
                   <span className="analytics-list-percent">{((customer.revenue / (revenueData?.summary?.totalRevenue || 1)) * 100).toFixed(1)}%</span>
                 </div>
@@ -222,7 +222,7 @@ export default function AnalyticsPage() {
             <div className="analytics-list">
               {workOrderData?.technicianPerformance?.slice(0, 5).map((tech: any, index: number) => (
                 <div key={index} className="analytics-list-item">
-                  <span className="analytics-list-name">{tech.userName}</span>
+                  <span className="analytics-list-name">{tech.userName || "Unknown"}</span>
                   <span className="analytics-list-value">{tech.taskCount} tasks</span>
                   <span className="analytics-list-percent">{tech.completionRate?.toFixed(1) || 0}%</span>
                 </div>

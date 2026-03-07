@@ -28,7 +28,8 @@ function formatCurrency(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
-function truncateName(name: string, maxLen: number = 18): string {
+function truncateName(name: string | null | undefined, maxLen: number = 18): string {
+  if (!name) return "Unknown";
   if (name.length <= maxLen) return name;
   return name.slice(0, maxLen - 1) + "\u2026";
 }

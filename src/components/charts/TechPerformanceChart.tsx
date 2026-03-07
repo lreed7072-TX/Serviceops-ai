@@ -23,7 +23,8 @@ interface TechPerformanceChartProps {
   data: TechPerformance[];
 }
 
-function truncateName(name: string, maxLen: number = 14): string {
+function truncateName(name: string | null | undefined, maxLen: number = 14): string {
+  if (!name) return "Unknown";
   if (name.length <= maxLen) return name;
   return name.slice(0, maxLen - 1) + "\u2026";
 }

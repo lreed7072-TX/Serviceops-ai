@@ -119,6 +119,45 @@ export async function GET(request: Request) {
     }),
   ]);
 
+  // Check for overdue follow-ups and create notifications
+  try {
+    const overdueFollowUpsList = await prisma.followUp.findMany({
+      where: {
+        orgId: auth.orgId,
+        status: "PENDING",
+        dueDate: { lt: now },
+        reminderSent: false,
+      },
+      select: {
+        id: true,
+        assignedToUserId: true,
+        title: true,
+        customer: { select: { name: true } },
+      },
+    });
+
+    if (overdueFollowUpsList.length > 0) {
+      await prisma.notification.createMany({
+        data: overdueFollowUpsList.map((fu) => ({
+          userId: fu.assignedToUserId,
+          orgId: auth.orgId,
+          type: "FOLLOW_UP_OVERDUE",
+          title: "Follow-up Overdue",
+          message: `"${fu.title}" for ${fu.customer?.name || "a customer"} is overdue`,
+          actionUrl: `/sales/follow-ups`,
+        })),
+      });
+
+      // Mark as reminded so we don't spam
+      await prisma.followUp.updateMany({
+        where: { id: { in: overdueFollowUpsList.map((fu) => fu.id) } },
+        data: { reminderSent: true },
+      });
+    }
+  } catch (notifError) {
+    console.error("Failed to create overdue follow-up notifications:", notifError);
+  }
+
   return NextResponse.json({
     data: {
       callsThisWeek,

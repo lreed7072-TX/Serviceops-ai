@@ -85,6 +85,12 @@ export default function NotificationBell() {
       QUOTE_APPROVED: "👍",
       QUOTE_REJECTED: "👎",
       INVOICE_PAID: "💰",
+      // CRM notification types
+      SERVICE_TICKET_CREATED: "🎫",
+      SERVICE_TICKET_CONVERTED: "🔀",
+      FOLLOW_UP_OVERDUE: "⏰",
+      OPPORTUNITY_WON: "🏆",
+      OPPORTUNITY_LOST: "📉",
     };
     return icons[type] || "📢";
   };

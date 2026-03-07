@@ -118,5 +118,33 @@ export async function POST(request: Request) {
     },
   });
 
+  // After ticket creation, notify ADMIN + DISPATCHER users
+  try {
+    const adminAndDispatchers = await prisma.user.findMany({
+      where: {
+        orgId: auth.orgId,
+        role: { in: [Role.ADMIN, Role.DISPATCHER] },
+        id: { not: auth.userId }, // Don't notify the creator
+      },
+      select: { id: true },
+    });
+
+    if (adminAndDispatchers.length > 0) {
+      await prisma.notification.createMany({
+        data: adminAndDispatchers.map((u) => ({
+          userId: u.id,
+          orgId: auth.orgId,
+          type: "SERVICE_TICKET_CREATED",
+          title: "New Service Ticket",
+          message: `${ticket.createdBy?.name || "A sales rep"} created a service ticket for ${ticket.customer?.name || "a customer"}: ${body.reasonForService.substring(0, 100)}`,
+          actionUrl: `/sales/service-tickets/${ticket.id}`,
+        })),
+      });
+    }
+  } catch (notifError) {
+    // Don't fail the request if notification creation fails
+    console.error("Failed to create service ticket notifications:", notifError);
+  }
+
   return NextResponse.json({ data: ticket }, { status: 201 });
 }

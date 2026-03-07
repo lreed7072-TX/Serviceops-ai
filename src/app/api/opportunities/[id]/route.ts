@@ -162,6 +162,35 @@ export async function PUT(
       },
     });
 
+    // Notify ADMIN when opportunity is won or lost
+    if (body.status === OpportunityStatus.WON || body.status === OpportunityStatus.LOST) {
+      try {
+        const admins = await prisma.user.findMany({
+          where: {
+            orgId: auth.orgId,
+            role: Role.ADMIN,
+            id: { not: auth.userId },
+          },
+          select: { id: true },
+        });
+
+        if (admins.length > 0) {
+          await prisma.notification.createMany({
+            data: admins.map((u) => ({
+              userId: u.id,
+              orgId: auth.orgId,
+              type: body.status === OpportunityStatus.WON ? "OPPORTUNITY_WON" : "OPPORTUNITY_LOST",
+              title: `Opportunity ${body.status === OpportunityStatus.WON ? "Won" : "Lost"}`,
+              message: `${opportunity.name} (${opportunity.customer?.name || "Unknown"})${opportunity.amount ? " — $" + Number(opportunity.amount).toLocaleString() : ""}`,
+              actionUrl: `/sales/opportunities/${opportunity.id}`,
+            })),
+          });
+        }
+      } catch (notifError) {
+        console.error("Failed to create opportunity notification:", notifError);
+      }
+    }
+
     return NextResponse.json({ data: opportunity });
   } catch (error) {
     console.error("Failed to update opportunity:", error);

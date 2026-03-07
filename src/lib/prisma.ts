@@ -12,7 +12,7 @@ function getDatasourceUrl(): string | undefined {
   if (!url) return undefined;
   if (url.includes("connection_limit")) return url;
   const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}connection_limit=10`;
+  return `${url}${separator}connection_limit=25`;
 }
 
 export const prisma =

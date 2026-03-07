@@ -101,9 +101,25 @@ import { prisma } from "@/lib/prisma";
  * Resolve auth context from Supabase session cookie + DB mapping (user_org_roles).
  * Falls back to existing header/dev logic elsewhere (keep current behavior).
  */
-export async function getAuthContextFromSupabase(): Promise<AuthContext | null> {
+export async function getAuthContextFromSupabase(
+  request?: Request
+): Promise<AuthContext | null> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
+
+  // Try cookie-based auth first
+  let { data, error } = await supabase.auth.getUser();
+
+  // If cookie auth fails, try Bearer token from Authorization header
+  if ((error || !data?.user) && request) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const result = await supabase.auth.getUser(token);
+      data = result.data;
+      error = result.error;
+    }
+  }
+
   if (error || !data?.user) return null;
 
   const userId = data.user.id;
@@ -130,7 +146,7 @@ export async function getAuthContextFromSupabase(): Promise<AuthContext | null> 
 export async function requireAuthSessionFirst(
   request: Request
 ): Promise<{ auth: AuthContext } | { error: NextResponse }> {
-  const auth = (await getAuthContextFromSupabase()) ?? getAuthContext(request);
+  const auth = (await getAuthContextFromSupabase(request)) ?? getAuthContext(request);
 
   if (!auth) {
     return {

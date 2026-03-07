@@ -27,6 +27,10 @@ const authResult = await requireAuthSessionFirst(request);
   const { auth } = authResult;
 
   try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 200);
+    const offset = Math.max(parseInt(searchParams.get("offset") ?? "0", 10), 0);
+
     const whereBase: any = { orgId: auth.orgId };
       if (auth.role === Role.TECH) {
         whereBase.workOrders = {
@@ -40,20 +44,25 @@ const authResult = await requireAuthSessionFirst(request);
         };
       }
 
-      const customers = await prisma.customer.findMany({
-        where: whereBase,
-        include: {
-          _count: {
-            select: {
-              sites: true,
-              workOrders: true,
+      const [customers, total] = await Promise.all([
+        prisma.customer.findMany({
+          where: whereBase,
+          include: {
+            _count: {
+              select: {
+                sites: true,
+                workOrders: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+          orderBy: { createdAt: "desc" },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.customer.count({ where: whereBase }),
+      ]);
 
-    return NextResponse.json({ data: customers });
+    return NextResponse.json({ data: customers, total, limit, offset });
   } catch (err) {
     console.error("GET /api/customers failed:", err);
     return jsonError("Internal server error.", 500);

@@ -10,31 +10,69 @@ export async function GET(req: NextRequest) {
   const { orgId } = auth;
 
   try {
-    // Work Orders Stats
-    const workOrders = await prisma.workOrder.groupBy({
-      by: ['status'],
-      where: { orgId },
-      _count: { id: true },
-    });
+    // Pre-compute date boundaries
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
 
-    const workOrdersByType = await prisma.workOrder.groupBy({
-      by: ['orderType'],
-      where: { orgId },
-      _count: { id: true },
-    });
+    // Run ALL independent queries in parallel (was 15+ sequential)
+    const [
+      workOrders,
+      workOrdersByType,
+      quotes,
+      invoices,
+      invoicesThisMonth,
+      completedWOs,
+      technicianCount,
+      activeTodayTimers,
+      timersThisWeek,
+      recentWOs,
+      recentQuotes,
+      aiTaskPlans,
+      allTasks,
+      packages,
+      revenueByMonth,
+      customerRevenue,
+    ] = await Promise.all([
+      prisma.workOrder.groupBy({ by: ['status'], where: { orgId }, _count: { id: true } }),
+      prisma.workOrder.groupBy({ by: ['orderType'], where: { orgId }, _count: { id: true } }),
+      prisma.quote.groupBy({ by: ['status'], where: { orgId }, _count: { id: true }, _sum: { total: true } }),
+      prisma.invoice.groupBy({ by: ['status'], where: { orgId }, _count: { id: true }, _sum: { total: true } }),
+      prisma.invoice.aggregate({ where: { orgId, createdAt: { gte: startOfMonth } }, _sum: { total: true } }),
+      prisma.workOrder.findMany({ where: { orgId, status: 'COMPLETED' }, select: { id: true } }),
+      prisma.user.count({ where: { orgId, role: 'TECH' } }),
+      prisma.timeEntry.findMany({ where: { orgId, startedAt: { gte: startOfDay } }, distinct: ['userId'], select: { userId: true } }),
+      prisma.timeEntry.findMany({ where: { orgId, startedAt: { gte: startOfWeek } }, select: { accumulatedSeconds: true, startedAt: true, stoppedAt: true, pausedAt: true, status: true } }),
+      prisma.workOrder.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, workOrderNumber: true, status: true, createdAt: true, customer: { select: { name: true } } } }),
+      prisma.quote.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, quoteNumber: true, status: true, createdAt: true, customer: { select: { name: true } } } }),
+      prisma.aITaskPlan.groupBy({ by: ['status'], where: { orgId }, _count: { id: true } }),
+      prisma.taskInstance.groupBy({ by: ['status'], where: { orgId }, _count: { id: true } }),
+      prisma.workPackage.groupBy({ by: ['packageType'], where: { orgId }, _count: { id: true } }),
+      prisma.invoice.findMany({ where: { orgId, status: 'PAID', createdAt: { gte: sixMonthsAgo } }, select: { total: true, createdAt: true } }),
+      prisma.invoice.groupBy({ by: ['customerId'], where: { orgId, status: 'PAID' }, _sum: { total: true }, orderBy: { _sum: { total: 'desc' } }, take: 5 }),
+    ]);
 
+    // Dependent query: completed WO value (needs completedWOs result)
+    const completedWOIds = completedWOs.map(wo => wo.id);
+    const [sourceQuotes, customerNames] = await Promise.all([
+      completedWOIds.length > 0
+        ? prisma.quote.findMany({ where: { orgId, convertedToOrderId: { in: completedWOIds } }, select: { total: true } })
+        : Promise.resolve([]),
+      prisma.customer.findMany({ where: { id: { in: customerRevenue.map(c => c.customerId) } }, select: { id: true, name: true } }),
+    ]);
+
+    // Process results
     const woTotal = workOrders.reduce((sum, g) => sum + g._count.id, 0);
     const woOpen = workOrders.find(g => g.status === 'OPEN')?._count.id || 0;
     const woInProgress = workOrders.find(g => g.status === 'IN_PROGRESS')?._count.id || 0;
     const woCompleted = workOrders.find(g => g.status === 'COMPLETED')?._count.id || 0;
-
-    // Quotes Stats
-    const quotes = await prisma.quote.groupBy({
-      by: ['status'],
-      where: { orgId },
-      _count: { id: true },
-      _sum: { total: true },
-    });
 
     const quotesTotal = quotes.reduce((sum, g) => sum + g._count.id, 0);
     const quotesDraft = quotes.find(g => g.status === 'DRAFT')?._count.id || 0;
@@ -43,242 +81,72 @@ export async function GET(req: NextRequest) {
     const pendingValue = quotes.find(g => g.status === 'SENT')?._sum.total || 0;
     const approvedValue = quotes.find(g => g.status === 'APPROVED')?._sum.total || 0;
 
-    // Revenue Stats (invoicing)
-    const invoices = await prisma.invoice.groupBy({
-      by: ['status'],
-      where: { orgId },
-      _count: { id: true },
-      _sum: { total: true },
-    });
-
     const invoicesTotal = invoices.reduce((sum, g) => sum + g._count.id, 0);
     const invoicesDraft = invoices.find(g => g.status === 'DRAFT')?._count.id || 0;
     const invoicesSent = invoices.find(g => g.status === 'SENT')?._count.id || 0;
     const invoicesPaid = invoices.find(g => g.status === 'PAID')?._count.id || 0;
     const invoicesOverdue = invoices.find(g => g.status === 'OVERDUE')?._count.id || 0;
-    
     const totalBilled = invoices.reduce((sum, g) => sum + Number(g._sum.total || 0), 0);
     const paidRevenue = invoices.find(g => g.status === 'PAID')?._sum.total || 0;
     const pendingRevenue = invoices.filter(g => g.status === 'SENT' || g.status === 'OVERDUE')
       .reduce((sum, g) => sum + Number(g._sum.total || 0), 0);
 
-    // This month invoiced (created this month)
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const invoicesThisMonth = await prisma.invoice.aggregate({
-      where: {
-        orgId,
-        createdAt: { gte: startOfMonth },
-      },
-      _sum: { total: true },
-    });
-
     const thisMonthInvoiced = Number(invoicesThisMonth._sum.total || 0);
+    const completedWorkValue = sourceQuotes.reduce((sum, q) => sum + Number(q.total || 0), 0);
 
-    // Completed work orders value (from converted quotes)
-    const completedWOs = await prisma.workOrder.findMany({
-      where: { orgId, status: 'COMPLETED' },
-      select: { id: true },
-    });
-
-    const completedWOIds = completedWOs.map(wo => wo.id);
-    const sourceQuotes = completedWOIds.length > 0
-      ? await prisma.quote.findMany({
-          where: { orgId, convertedToOrderId: { in: completedWOIds } },
-          select: { total: true },
-        })
-      : [];
-    const completedWorkValue = sourceQuotes.reduce(
-      (sum, q) => sum + Number(q.total || 0), 0
-    );
-
-    // Technician Stats
-    const technicianCount = await prisma.user.count({
-      where: { orgId, role: 'TECH' },
-    });
-
-    // Active today (techs with running or stopped timers today)
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const activeTodayTimers = await prisma.timeEntry.findMany({
-      where: {
-        orgId,
-        startedAt: { gte: startOfDay },
-      },
-      distinct: ['userId'],
-      select: { userId: true },
-    });
-
-    // Hours this week (sum of time entry durations)
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const timersThisWeek = await prisma.timeEntry.findMany({
-      where: {
-        orgId,
-        startedAt: { gte: startOfWeek },
-      },
-      select: { 
-        accumulatedSeconds: true,
-        startedAt: true,
-        stoppedAt: true,
-        pausedAt: true,
-        status: true,
-      },
-    });
-
-    // Calculate total hours including running timers
+    // Timer hours calculation
     const now = new Date();
     let totalSecondsThisWeek = 0;
-    
     for (const timer of timersThisWeek) {
       let seconds = timer.accumulatedSeconds || 0;
-      
-      // If timer is still running, add time since startedAt
       if (timer.status === 'RUNNING' && timer.startedAt) {
         const runningSince = timer.pausedAt || timer.startedAt;
-        const runningSeconds = Math.floor((now.getTime() - runningSince.getTime()) / 1000);
-        seconds += runningSeconds;
+        seconds += Math.floor((now.getTime() - runningSince.getTime()) / 1000);
       }
-      
       totalSecondsThisWeek += seconds;
     }
-    
     const totalHoursThisWeek = totalSecondsThisWeek / 3600;
 
-    // Recent Activity (last 10 items)
-    const recentWOs = await prisma.workOrder.findMany({
-      where: { orgId },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: {
-        id: true,
-        workOrderNumber: true,
-        status: true,
-        createdAt: true,
-        customer: { select: { name: true } },
-      },
-    });
-
-    const recentQuotes = await prisma.quote.findMany({
-      where: { orgId },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: {
-        id: true,
-        quoteNumber: true,
-        status: true,
-        createdAt: true,
-        customer: { select: { name: true } },
-      },
-    });
-
+    // Recent activity
     const recentActivity = [
       ...recentWOs.map(wo => ({
-        id: wo.id,
-        type: 'WORK_ORDER' as const,
+        id: wo.id, type: 'WORK_ORDER' as const,
         description: `Work Order ${wo.workOrderNumber} - ${wo.customer?.name || "Unknown"} (${wo.status})`,
         timestamp: wo.createdAt.toISOString(),
       })),
       ...recentQuotes.map(q => ({
-        id: q.id,
-        type: 'QUOTE' as const,
+        id: q.id, type: 'QUOTE' as const,
         description: `Quote ${q.quoteNumber} - ${q.customer?.name || "Unknown"} (${q.status})`,
         timestamp: q.createdAt.toISOString(),
       })),
-    ]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 10);
-
-    // AI & Task Stats
-    const aiTaskPlans = await prisma.aITaskPlan.groupBy({
-      by: ['status'],
-      where: { orgId },
-      _count: { id: true },
-    });
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10);
 
     const aiGenerated = aiTaskPlans.find(g => g.status === 'GENERATED')?._count.id || 0;
     const aiApproved = aiTaskPlans.find(g => g.status === 'APPROVED')?._count.id || 0;
     const aiRejected = aiTaskPlans.find(g => g.status === 'REJECTED')?._count.id || 0;
-
-    const allTasks = await prisma.taskInstance.groupBy({
-      by: ['status'],
-      where: { orgId },
-      _count: { id: true },
-    });
 
     const totalTasks = allTasks.reduce((sum, g) => sum + g._count.id, 0);
     const tasksTodo = allTasks.find(g => g.status === 'TODO')?._count.id || 0;
     const tasksInProgress = allTasks.find(g => g.status === 'IN_PROGRESS')?._count.id || 0;
     const tasksDone = allTasks.find(g => g.status === 'DONE')?._count.id || 0;
     const tasksBlocked = allTasks.find(g => g.status === 'BLOCKED')?._count.id || 0;
-
     const completionRate = totalTasks > 0 ? Math.round((tasksDone / totalTasks) * 100) : 0;
-
-    // Package Stats
-    const packages = await prisma.workPackage.groupBy({
-      by: ['packageType'],
-      where: { orgId },
-      _count: { id: true },
-    });
-
     const totalPackages = packages.reduce((sum, g) => sum + g._count.id, 0);
 
-    // Revenue by month (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
-
-    const revenueByMonth = await prisma.invoice.findMany({
-      where: {
-        orgId,
-        status: 'PAID',
-        createdAt: { gte: sixMonthsAgo },
-      },
-      select: {
-        total: true,
-        createdAt: true,
-      },
-    });
-
-    // Group revenue by month
+    // Revenue chart data
     const monthlyRevenue: Record<string, number> = {};
     for (let i = 0; i < 6; i++) {
       const date = new Date();
       date.setMonth(date.getMonth() - (5 - i));
-      const key = date.toLocaleString('default', { month: 'short' });
-      monthlyRevenue[key] = 0;
+      monthlyRevenue[date.toLocaleString('default', { month: 'short' })] = 0;
     }
-
     for (const inv of revenueByMonth) {
       const key = inv.createdAt.toLocaleString('default', { month: 'short' });
-      if (key in monthlyRevenue) {
-        monthlyRevenue[key] += Number(inv.total || 0);
-      }
+      if (key in monthlyRevenue) monthlyRevenue[key] += Number(inv.total || 0);
     }
+    const revenueChartData = Object.entries(monthlyRevenue).map(([month, amount]) => ({ month, revenue: amount }));
 
-    const revenueChartData = Object.entries(monthlyRevenue).map(([month, amount]) => ({
-      month,
-      revenue: amount,
-    }));
-
-    // Top customers by revenue
-    const customerRevenue = await prisma.invoice.groupBy({
-      by: ['customerId'],
-      where: { orgId, status: 'PAID' },
-      _sum: { total: true },
-      orderBy: { _sum: { total: 'desc' } },
-      take: 5,
-    });
-
-    const customerIds = customerRevenue.map(c => c.customerId);
-    const customerNames = await prisma.customer.findMany({
-      where: { id: { in: customerIds } },
-      select: { id: true, name: true },
-    });
-
+    // Top customers
     const customerNameMap = new Map(customerNames.map(c => [c.id, c.name]));
     const topCustomers = customerRevenue.map(c => ({
       name: customerNameMap.get(c.customerId) || 'Unknown',

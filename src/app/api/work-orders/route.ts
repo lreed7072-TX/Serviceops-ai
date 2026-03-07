@@ -37,9 +37,11 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const typeFilter = searchParams.get("orderType") as OrderType | null;
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 200);
+  const offset = Math.max(parseInt(searchParams.get("offset") ?? "0", 10), 0);
 
   const whereBase: any = { orgId: auth.orgId };
-  
+
   if (typeFilter && Object.values(OrderType).includes(typeFilter)) {
     whereBase.orderType = typeFilter;
   }
@@ -52,12 +54,22 @@ export async function GET(request: Request) {
     ];
   }
 
-  const workOrders = await prisma.workOrder.findMany({
-    where: whereBase,
-    orderBy: { createdAt: "desc" },
-  });
+  const [workOrders, total] = await Promise.all([
+    prisma.workOrder.findMany({
+      where: whereBase,
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+      include: {
+        customer: { select: { id: true, name: true } },
+        site: { select: { id: true, name: true } },
+        tasks: { select: { id: true, status: true } },
+      },
+    }),
+    prisma.workOrder.count({ where: whereBase }),
+  ]);
 
-  return NextResponse.json({ data: workOrders });
+  return NextResponse.json({ data: workOrders, total, limit, offset });
 }
 
 export async function POST(request: Request) {

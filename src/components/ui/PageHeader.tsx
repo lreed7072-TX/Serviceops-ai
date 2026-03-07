@@ -1,23 +1,28 @@
 import type { ReactNode } from "react";
+import "./shared-ui.css";
 
-export function PageHeader(props: {
+interface PageHeaderProps {
   title: string;
   subtitle?: string;
   right?: ReactNode;
   badge?: ReactNode;
-}) {
-  const { title, subtitle, right, badge } = props;
+  count?: number;
+}
 
+export function PageHeader({ title, subtitle, right, badge, count }: PageHeaderProps) {
   return (
-    <div className="page-header">
-      <div>
-        <h2>{title}</h2>
-        {subtitle ? <p>{subtitle}</p> : null}
+    <div className="ui-page-header">
+      <div className="ui-page-header-left">
+        <div className="ui-page-header-title-row">
+          <h1 className="ui-page-title">{title}</h1>
+          {badge && <span className="ui-page-header-badge">{badge}</span>}
+          {count !== undefined && (
+            <span className="ui-page-header-count">{count}</span>
+          )}
+        </div>
+        {subtitle && <p className="ui-page-subtitle">{subtitle}</p>}
       </div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        {badge ?? null}
-        {right ?? null}
-      </div>
+      {right && <div className="ui-page-header-right">{right}</div>}
     </div>
   );
 }

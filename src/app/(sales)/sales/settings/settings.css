@@ -1,0 +1,533 @@
+/* ===================================================================
+   CRM Settings Page
+   =================================================================== */
+
+.crm-settings {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg, #f6f5f2);
+}
+
+/* -------------------------------------------------------------------
+   Page Header
+   ------------------------------------------------------------------- */
+.crm-settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.crm-settings-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.crm-settings-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: var(--accent, #f97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.crm-settings-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary, #1f2937);
+  margin: 0 0 0.25rem 0;
+}
+
+.crm-settings-subtitle {
+  color: #6b7280;
+  font-size: 0.9375rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* -------------------------------------------------------------------
+   Config Sections Container
+   ------------------------------------------------------------------- */
+.crm-config-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* -------------------------------------------------------------------
+   Config Section Card
+   ------------------------------------------------------------------- */
+.crm-config-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: box-shadow var(--transition, 200ms);
+}
+
+.crm-config-section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* -------------------------------------------------------------------
+   Section Header (Collapsible)
+   ------------------------------------------------------------------- */
+.crm-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition, 200ms);
+}
+
+.crm-config-header:hover {
+  background: #fafaf9;
+}
+
+.crm-config-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--primary, #1f2937);
+}
+
+.crm-config-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.crm-config-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary, #1f2937);
+  margin: 0;
+}
+
+.crm-config-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 10px;
+  border-radius: 9999px;
+}
+
+.crm-config-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Add Button */
+.crm-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent, #f97316);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition, 200ms), transform var(--transition, 200ms);
+}
+
+.crm-btn-add:hover {
+  background: var(--accent-hover, #ea580c);
+  transform: translateY(-1px);
+}
+
+.crm-btn-add:active {
+  transform: translateY(0);
+}
+
+/* -------------------------------------------------------------------
+   Section Body
+   ------------------------------------------------------------------- */
+.crm-config-body {
+  border-top: 1px solid #e5e7eb;
+}
+
+.crm-config-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.crm-config-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #f3f4f6;
+  border-top-color: var(--accent, #f97316);
+  border-radius: 50%;
+  animation: crm-spin 0.8s linear infinite;
+}
+
+@keyframes crm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.crm-config-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* -------------------------------------------------------------------
+   Item List
+   ------------------------------------------------------------------- */
+.crm-config-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background var(--transition, 200ms);
+}
+
+.crm-config-item:last-child {
+  border-bottom: none;
+}
+
+.crm-config-item:hover {
+  background: #fafaf9;
+}
+
+.crm-config-item--inactive {
+  opacity: 0.55;
+}
+
+.crm-config-item--inactive:hover {
+  opacity: 0.75;
+}
+
+.crm-config-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.crm-config-item-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--primary, #1f2937);
+}
+
+/* Default Badge */
+.crm-config-default-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Trigger Badges (extra fields) */
+.crm-config-trigger-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.crm-config-item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------------
+   Toggle Switch
+   ------------------------------------------------------------------- */
+.crm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.crm-toggle input {
+  display: none;
+}
+
+.crm-toggle-slider {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: #d1d5db;
+  transition: background var(--transition, 200ms);
+  flex-shrink: 0;
+}
+
+.crm-toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition, 200ms);
+}
+
+.crm-toggle input:checked + .crm-toggle-slider {
+  background: #10b981;
+}
+
+.crm-toggle input:checked + .crm-toggle-slider::after {
+  transform: translateX(16px);
+}
+
+.crm-toggle-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 52px;
+}
+
+/* -------------------------------------------------------------------
+   Ghost Buttons (Edit / Delete)
+   ------------------------------------------------------------------- */
+.crm-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background var(--transition, 200ms), color var(--transition, 200ms);
+}
+
+.crm-btn-ghost:hover {
+  background: #f3f4f6;
+  color: var(--primary, #1f2937);
+}
+
+.crm-btn-ghost--danger:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* -------------------------------------------------------------------
+   Modal Form Styles
+   ------------------------------------------------------------------- */
+.crm-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.crm-form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary, #1f2937);
+  margin-bottom: 0.375rem;
+}
+
+.crm-form-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: var(--primary, #1f2937);
+  transition: border-color var(--transition, 200ms), box-shadow var(--transition, 200ms);
+  box-sizing: border-box;
+}
+
+.crm-form-input:focus {
+  outline: none;
+  border-color: var(--accent, #f97316);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+}
+
+.crm-form-input::placeholder {
+  color: #9ca3af;
+}
+
+.crm-form-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.crm-form-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.crm-form-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  color: var(--primary, #1f2937);
+}
+
+.crm-form-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  accent-color: var(--accent, #f97316);
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------------
+   Confirm Dialog Text
+   ------------------------------------------------------------------- */
+.crm-confirm-text {
+  font-size: 0.9375rem;
+  color: var(--primary, #1f2937);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.crm-confirm-text strong {
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------------
+   Responsive: Tablet
+   ------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .crm-settings {
+    padding: 1rem;
+  }
+
+  .crm-settings-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .crm-settings-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .crm-config-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .crm-config-item-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .crm-form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+/* -------------------------------------------------------------------
+   Responsive: Mobile
+   ------------------------------------------------------------------- */
+@media (max-width: 480px) {
+  .crm-settings {
+    padding: 0.75rem;
+  }
+
+  .crm-settings-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .crm-settings-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .crm-settings-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .crm-config-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .crm-config-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .crm-config-item-left {
+    gap: 0.375rem;
+  }
+
+  .crm-btn-add {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .crm-toggle-label {
+    display: none;
+  }
+
+  .crm-config-count {
+    display: none;
+  }
+}

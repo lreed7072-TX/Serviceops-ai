@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!auth) redirect("/login");
 
   if (auth.role === Role.TECH) redirect("/tech");
+  if (auth.role === Role.SALES) redirect("/sales/dashboard");
 
   const navLinks: NavItem[] = [
     // ── Operations ──
@@ -44,6 +45,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { kind: "link", href: "/procedure-templates", label: "Procedure Templates", iconName: "FileCheck" },
     { kind: "link", href: "/standards-packs", label: "Standards Packs", iconName: "PackageCheck" },
     { kind: "link", href: "/help", label: "Help Center", iconName: "HelpCircle" },
+
+    // ── CRM (ADMIN/DISPATCHER) ──
+    ...(auth.role === Role.ADMIN || auth.role === Role.DISPATCHER ? [
+      { kind: "divider" as const, label: "CRM" },
+      { kind: "link" as const, href: "/sales/service-tickets", label: "Service Requests", iconName: "Ticket" },
+      ...(auth.role === Role.ADMIN ? [
+        { kind: "link" as const, href: "/sales/dashboard", label: "Sales View", iconName: "Target" },
+      ] : []),
+    ] : []),
 
     // ── Admin (ADMIN role only) ──
     ...(auth.role === Role.ADMIN ? [

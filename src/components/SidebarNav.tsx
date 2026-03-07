@@ -25,6 +25,12 @@ import {
   Menu,
   X,
   TrendingUp,
+  Phone,
+  Target,
+  Ticket,
+  CalendarClock,
+  PieChart,
+  Contact,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -47,6 +53,12 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Settings,
   HelpCircle,
   TrendingUp,
+  Phone,
+  Target,
+  Ticket,
+  CalendarClock,
+  PieChart,
+  Contact,
 };
 
 export type NavLink = {

@@ -1,0 +1,1189 @@
+/* ===================================================================
+   OPPORTUNITIES PAGE - Enterprise CRM Pipeline UI
+   Matches invoices + work-orders page patterns
+   =================================================================== */
+
+/* Page Container */
+.opportunities-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* ===================================================================
+   STAGE FILTER TABS
+   =================================================================== */
+
+.opps-toolbar {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.opps-search-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.opps-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+}
+
+.opps-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.opps-search-input {
+  width: 100%;
+  padding: 10px 14px 10px 44px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 200ms ease;
+  background: #f9fafb;
+  font-family: inherit;
+}
+
+.opps-search-input:focus {
+  outline: none;
+  border-color: #f97316;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.opps-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.opps-filter-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.opps-filter-tab {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.opps-filter-tab:hover {
+  border-color: #f97316;
+  color: #f97316;
+}
+
+.opps-filter-tab.active {
+  background: #f97316;
+  border-color: #f97316;
+  color: white;
+}
+
+.opps-results-count {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 12px;
+}
+
+.opps-results-count strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* ===================================================================
+   STAGE BADGES
+   =================================================================== */
+
+.opps-stage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.opps-stage-badge.prospecting {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.opps-stage-badge.qualification {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.opps-stage-badge.proposal {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.opps-stage-badge.negotiation {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.opps-stage-badge.won {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.opps-stage-badge.lost {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ===================================================================
+   DATA TABLE
+   =================================================================== */
+
+.opps-table-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.opps-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.opps-table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.opps-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.opps-table th.text-right {
+  text-align: right;
+}
+
+.opps-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+
+.opps-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.opps-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.opps-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.opps-table td.text-right {
+  text-align: right;
+}
+
+.opps-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.opps-customer {
+  font-weight: 500;
+  color: #374151;
+}
+
+.opps-amount {
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.opps-date {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.opps-created-by {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* ===================================================================
+   STAGE PROGRESSION STEPPER (detail page)
+   =================================================================== */
+
+.opps-stage-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 24px 0;
+  overflow-x: auto;
+}
+
+.opps-stage-step {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.opps-stage-step:last-child .opps-stage-line {
+  display: none;
+}
+
+.opps-stage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.opps-stage-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  border: 3px solid #e5e7eb;
+  background: white;
+  color: #9ca3af;
+  transition: all 200ms ease;
+}
+
+.opps-stage-circle.completed {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.opps-stage-circle.current {
+  background: #f97316;
+  border-color: #f97316;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2);
+}
+
+.opps-stage-circle.lost {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+.opps-stage-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.opps-stage-label.completed {
+  color: #065f46;
+}
+
+.opps-stage-label.current {
+  color: #f97316;
+}
+
+.opps-stage-label.lost {
+  color: #ef4444;
+}
+
+.opps-stage-line {
+  flex: 1;
+  height: 3px;
+  background: #e5e7eb;
+  min-width: 24px;
+  margin: 0 8px;
+  margin-bottom: 28px;
+  border-radius: 2px;
+  transition: background 200ms ease;
+}
+
+.opps-stage-line.completed {
+  background: #10b981;
+}
+
+/* ===================================================================
+   DETAIL PAGE LAYOUT
+   =================================================================== */
+
+.opps-detail-page {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.opps-detail-header {
+  margin-bottom: 24px;
+}
+
+.opps-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  transition: color 200ms ease;
+}
+
+.opps-back-link:hover {
+  color: #f97316;
+}
+
+.opps-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.opps-detail-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.opps-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.opps-detail-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* ===================================================================
+   INFO SECTION
+   =================================================================== */
+
+.opps-info-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.opps-info-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.opps-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.opps-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opps-info-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.opps-info-value {
+  font-size: 15px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.opps-info-value.muted {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.opps-description-text {
+  font-size: 15px;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.opps-notes-text {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  background: #f9fafb;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #f3f4f6;
+}
+
+/* ===================================================================
+   ACTION BUTTONS
+   =================================================================== */
+
+.opps-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.opps-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  font-family: inherit;
+  border: none;
+}
+
+.opps-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.opps-action-btn.convert {
+  background: #f97316;
+  color: white;
+}
+
+.opps-action-btn.convert:hover:not(:disabled) {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.opps-action-btn.won {
+  background: #10b981;
+  color: white;
+}
+
+.opps-action-btn.won:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.opps-action-btn.lost {
+  background: #ef4444;
+  color: white;
+}
+
+.opps-action-btn.lost:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.opps-action-btn.edit {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.opps-action-btn.edit:hover:not(:disabled) {
+  border-color: #f97316;
+  color: #f97316;
+  background: #fff7ed;
+}
+
+.opps-quote-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 200ms ease;
+}
+
+.opps-quote-link:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+/* ===================================================================
+   MODALS (Won/Lost/Edit/Create)
+   =================================================================== */
+
+.opps-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: opps-fade-in 150ms ease-out;
+}
+
+@keyframes opps-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.opps-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 90vw;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: opps-slide-up 200ms ease-out;
+}
+
+.opps-modal.wide {
+  max-width: 700px;
+}
+
+@keyframes opps-slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.opps-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.opps-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.opps-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+
+.opps-modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.opps-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.opps-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ===================================================================
+   FORM FIELDS (Modal forms)
+   =================================================================== */
+
+.opps-form-field {
+  margin-bottom: 16px;
+}
+
+.opps-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.opps-form-label .required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.opps-form-input,
+.opps-form-select,
+.opps-form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 200ms ease;
+  background: #f9fafb;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.opps-form-input:focus,
+.opps-form-select:focus,
+.opps-form-textarea:focus {
+  outline: none;
+  border-color: #f97316;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.opps-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.opps-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.opps-form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+/* Customer search dropdown */
+.opps-customer-search-wrapper {
+  position: relative;
+}
+
+.opps-customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: 4px;
+}
+
+.opps-customer-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: background 150ms;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.opps-customer-option:hover {
+  background: #f3f4f6;
+}
+
+.opps-selected-customer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.opps-selected-customer button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.opps-selected-customer button:hover {
+  color: #ef4444;
+}
+
+/* Modal buttons */
+.opps-btn-cancel {
+  padding: 10px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  font-family: inherit;
+}
+
+.opps-btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.opps-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #f97316;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  font-family: inherit;
+}
+
+.opps-btn-submit:hover:not(:disabled) {
+  background: #ea580c;
+}
+
+.opps-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.opps-btn-submit.green {
+  background: #10b981;
+}
+
+.opps-btn-submit.green:hover:not(:disabled) {
+  background: #059669;
+}
+
+.opps-btn-submit.red {
+  background: #ef4444;
+}
+
+.opps-btn-submit.red:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+/* ===================================================================
+   AMOUNT FORMATTING
+   =================================================================== */
+
+.opps-amount-large {
+  font-size: 24px;
+  font-weight: 700;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===================================================================
+   HEADER ACTIONS
+   =================================================================== */
+
+.opps-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.opps-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.opps-create-btn:hover {
+  background: #ea580c;
+}
+
+/* ===================================================================
+   EMPTY STATE
+   =================================================================== */
+
+.opps-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border: 2px dashed #e5e7eb;
+  border-radius: 12px;
+}
+
+.opps-empty-icon {
+  color: #d1d5db;
+  margin-bottom: 16px;
+}
+
+.opps-empty h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.opps-empty p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+.opps-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  font-family: inherit;
+}
+
+.opps-empty-btn:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+/* ===================================================================
+   LOADING STATE
+   =================================================================== */
+
+.opps-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.opps-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f4f6;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: opps-spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes opps-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.opps-loading-text {
+  font-size: 15px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* ===================================================================
+   ERROR STATE
+   =================================================================== */
+
+.opps-error {
+  padding: 14px 18px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+/* ===================================================================
+   WON/LOST REASON DISPLAY
+   =================================================================== */
+
+.opps-reason-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.opps-reason-banner.won {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.opps-reason-banner.lost {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.opps-reason-banner .reason-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.opps-reason-banner.won .reason-label {
+  color: #065f46;
+}
+
+.opps-reason-banner.lost .reason-label {
+  color: #991b1b;
+}
+
+.opps-reason-banner .reason-text {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+/* ===================================================================
+   RESPONSIVE - TABLET (768px)
+   =================================================================== */
+
+@media (max-width: 768px) {
+  .opportunities-page {
+    padding: 1rem;
+  }
+
+  .opps-detail-page {
+    padding: 1rem;
+  }
+
+  .opps-search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .opps-search-wrapper {
+    min-width: unset;
+  }
+
+  .opps-filter-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .opps-table-card {
+    overflow-x: auto;
+  }
+
+  .opps-table {
+    min-width: 700px;
+  }
+
+  .opps-detail-title-row {
+    flex-direction: column;
+  }
+
+  .opps-detail-title {
+    font-size: 22px;
+  }
+
+  .opps-amount-large {
+    font-size: 20px;
+  }
+
+  .opps-stage-stepper {
+    gap: 0;
+    padding: 16px 0;
+  }
+
+  .opps-stage-label {
+    font-size: 10px;
+  }
+
+  .opps-stage-circle {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .opps-stage-line {
+    min-width: 16px;
+    margin: 0 4px;
+  }
+
+  .opps-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opps-actions-row {
+    flex-direction: column;
+  }
+
+  .opps-action-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .opps-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opps-modal {
+    width: 95vw;
+    max-height: 90vh;
+  }
+
+  .opps-create-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+
+/* ===================================================================
+   RESPONSIVE - MOBILE (480px)
+   =================================================================== */
+
+@media (max-width: 480px) {
+  .opportunities-page {
+    padding: 0.75rem;
+  }
+
+  .opps-detail-page {
+    padding: 0.75rem;
+  }
+
+  .opps-toolbar {
+    padding: 16px;
+  }
+
+  .opps-filter-tabs {
+    gap: 4px;
+  }
+
+  .opps-filter-tab {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .opps-stage-stepper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .opps-info-card {
+    padding: 16px;
+  }
+
+  .opps-modal-header {
+    padding: 16px 20px 12px;
+  }
+
+  .opps-modal-body {
+    padding: 16px 20px;
+  }
+
+  .opps-modal-footer {
+    padding: 12px 20px;
+  }
+}

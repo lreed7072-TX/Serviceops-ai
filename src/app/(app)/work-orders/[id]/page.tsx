@@ -127,6 +127,21 @@ interface OrgUser {
   role: string;
 }
 
+interface FormResponseItem {
+  id: string;
+  status: string;
+  createdAt: string;
+  submittedAt: string | null;
+  reportTemplate: { id: string; name: string };
+  filledBy: { id: string; name: string | null };
+}
+
+interface ReportTemplateOption {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface ActiveTimer {
   id: string;
   status: "RUNNING" | "PAUSED";
@@ -168,6 +183,13 @@ export default function WorkOrderDetailPage() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timeEntries, setTimeEntries] = useState<TimeEntryRecord[]>([]);
   const [timerLoading, setTimerLoading] = useState(false);
+
+  // Reports state
+  const [formResponses, setFormResponses] = useState<FormResponseItem[]>([]);
+  const [reportTemplates, setReportTemplates] = useState<ReportTemplateOption[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [assigningReport, setAssigningReport] = useState(false);
+  const [showAssignReport, setShowAssignReport] = useState(false);
   const toast = useToast();
 
   const workOrderId = params?.id;
@@ -178,6 +200,7 @@ export default function WorkOrderDetailPage() {
       fetchUsers();
       fetchTimer();
       fetchTimeEntries();
+      fetchFormResponses();
     }
   }, [workOrderId]);
 
@@ -263,6 +286,57 @@ export default function WorkOrderDetailPage() {
       }
     } catch (error) {
       console.error("Error fetching time entries:", error);
+    }
+  };
+
+  const fetchFormResponses = async () => {
+    if (!workOrderId) return;
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrderId}/reports`);
+      if (response.ok) {
+        const result = await response.json();
+        setFormResponses(Array.isArray(result.data) ? result.data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching form responses:", error);
+    }
+  };
+
+  const fetchReportTemplates = async () => {
+    try {
+      const response = await apiFetch("/api/report-templates?status=ACTIVE");
+      if (response.ok) {
+        const result = await response.json();
+        setReportTemplates(Array.isArray(result.data) ? result.data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching report templates:", error);
+    }
+  };
+
+  const handleAssignReport = async () => {
+    if (!workOrderId || !selectedTemplateId) return;
+    setAssigningReport(true);
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrderId}/reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportTemplateId: selectedTemplateId }),
+      });
+      if (response.ok) {
+        setSelectedTemplateId("");
+        setShowAssignReport(false);
+        await fetchFormResponses();
+        toast.success("Report assigned successfully");
+      } else {
+        const err = await response.json();
+        toast.error(err.error || "Failed to assign report");
+      }
+    } catch (error) {
+      console.error("Failed to assign report:", error);
+      toast.error("An error occurred");
+    } finally {
+      setAssigningReport(false);
     }
   };
 
@@ -874,6 +948,90 @@ export default function WorkOrderDetailPage() {
           Signatures
         </h2>
         <SignaturePanel workOrderId={workOrder.id} />
+      </div>
+
+      {/* Reports / Forms */}
+      <div className="wo-section">
+        <h2 className="wo-section-title">
+          <span className="section-icon">📋</span>
+          Reports
+          {formResponses.length > 0 && (
+            <span style={{ fontWeight: 400, fontSize: '0.875rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+              ({formResponses.length})
+            </span>
+          )}
+        </h2>
+
+        {formResponses.length > 0 ? (
+          <div className="reports-list">
+            {formResponses.map((fr) => (
+              <div
+                key={fr.id}
+                className="report-item"
+                onClick={() => router.push(`/reports/responses/${fr.id}`)}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="report-item-left">
+                  <div className="report-item-name">{fr.reportTemplate.name}</div>
+                  <div className="report-item-meta">
+                    {fr.filledBy?.name || "Unassigned"} · {new Date(fr.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="report-item-right">
+                  <span className={`report-status-badge ${fr.status.toLowerCase()}`}>
+                    {fr.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="no-techs-message">No reports assigned yet</div>
+        )}
+
+        {isEditable && (
+          <>
+            {showAssignReport ? (
+              <div className="assign-tech-form" style={{ marginTop: 12 }}>
+                <select
+                  className="assign-tech-dropdown"
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                >
+                  <option value="">Select a report template...</option>
+                  {reportTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <button
+                  className="assign-tech-btn"
+                  onClick={handleAssignReport}
+                  disabled={!selectedTemplateId || assigningReport}
+                >
+                  {assigningReport ? "Assigning..." : "Assign"}
+                </button>
+                <button
+                  className="action-button secondary"
+                  onClick={() => setShowAssignReport(false)}
+                  style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="action-button primary"
+                onClick={() => {
+                  fetchReportTemplates();
+                  setShowAssignReport(true);
+                }}
+                style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <span>+</span> Assign Report
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {/* Actions */}

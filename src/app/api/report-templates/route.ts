@@ -41,8 +41,16 @@ export async function GET(request: Request) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
+  const { searchParams } = new URL(request.url);
+  const statusFilter = searchParams.get("status");
+
+  const where: Prisma.ReportTemplateWhereInput = { orgId: authResult.auth.orgId };
+  if (statusFilter && Object.values(ReportTemplateStatus).includes(statusFilter as ReportTemplateStatus)) {
+    where.status = statusFilter as ReportTemplateStatus;
+  }
+
   const templates = await prisma.reportTemplate.findMany({
-    where: { orgId: authResult.auth.orgId },
+    where,
     orderBy: { updatedAt: "desc" },
   });
 

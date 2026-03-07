@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { Building2, CheckCircle, MapPin, Wrench, Mail, Phone, Search, Plus } from "lucide-react";
 import "./customers.css";
 
 type Customer = {
@@ -150,7 +151,7 @@ export default function CustomersPage() {
         </div>
         <div className="page-header-right">
           <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-            + New Customer
+            <Plus size={16} /> New Customer
           </button>
         </div>
       </div>
@@ -161,28 +162,28 @@ export default function CustomersPage() {
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon customers">🏢</div>
+          <div className="stat-icon customers"><Building2 size={20} /></div>
           <div className="stat-content">
             <h3>{totalCustomers}</h3>
             <p>Total Customers</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon active">✓</div>
+          <div className="stat-icon active"><CheckCircle size={20} /></div>
           <div className="stat-content">
             <h3>{activeCustomers}</h3>
             <p>Active</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon sites">📍</div>
+          <div className="stat-icon sites"><MapPin size={20} /></div>
           <div className="stat-content">
             <h3>{totalSites}</h3>
             <p>Total Sites</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon workorders">🔧</div>
+          <div className="stat-icon workorders"><Wrench size={20} /></div>
           <div className="stat-content">
             <h3>{totalWorkOrders}</h3>
             <p>Work Orders</p>
@@ -193,7 +194,7 @@ export default function CustomersPage() {
       {/* Search and Filter */}
       <div className="search-filter-section">
         <div className="search-input-wrapper">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             type="text"
             placeholder="Search customers by name, email, or phone..."
@@ -232,7 +233,7 @@ export default function CustomersPage() {
         </div>
       ) : filteredCustomers.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🏢</div>
+          <div className="empty-icon"><Building2 size={32} /></div>
           <h3>
             {searchTerm || statusFilter !== "ALL"
               ? "No customers match your search"
@@ -245,7 +246,7 @@ export default function CustomersPage() {
           </p>
           {!searchTerm && statusFilter === "ALL" && (
             <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-              + Create Customer
+              <Plus size={16} /> Create Customer
             </button>
           )}
         </div>
@@ -269,13 +270,13 @@ export default function CustomersPage() {
               <div className="customer-details">
                 {customer.primaryEmail && (
                   <div className="customer-detail-row">
-                    <span className="icon">📧</span>
+                    <span className="icon"><Mail size={14} /></span>
                     <span>{customer.primaryEmail}</span>
                   </div>
                 )}
                 {customer.primaryPhone && (
                   <div className="customer-detail-row">
-                    <span className="icon">📞</span>
+                    <span className="icon"><Phone size={14} /></span>
                     <span>{customer.primaryPhone}</span>
                   </div>
                 )}

@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import TaskList from "@/components/tasks/TaskList";
 import SignaturePanel from "@/components/signatures/SignaturePanel";
+import { Building2, MapPin, Users, Clock, FileText, CheckSquare, PenTool, Zap, Printer, Download, Mail, Play, Square, Pause, Trash2, Edit, XCircle, ClipboardList, CalendarDays, AlertTriangle, User } from "lucide-react";
 import "./work-order-detail.css";
 
 interface TaskMeasurement {
@@ -695,12 +696,12 @@ export default function WorkOrderDetailPage() {
 
             <div className="wo-metadata">
               <div className="wo-meta-item">
-                <span className="wo-meta-icon">📅</span>
+                <span className="wo-meta-icon"><CalendarDays size={14} /></span>
                 <span>Created <span className="wo-meta-value">{new Date(workOrder.createdAt).toLocaleDateString()}</span></span>
               </div>
               {workOrder.quote && (
                 <div className="wo-meta-item">
-                  <span className="wo-meta-icon">📋</span>
+                  <span className="wo-meta-icon"><ClipboardList size={14} /></span>
                   <span>From Quote <span className="wo-meta-value">{workOrder.quote.quoteNumber}</span></span>
                 </div>
               )}
@@ -720,7 +721,7 @@ export default function WorkOrderDetailPage() {
       {/* Customer & Site Information */}
       <div className="wo-section">
         <h2 className="wo-section-title">
-          <span className="section-icon">🏢</span>
+          <span className="section-icon"><Building2 size={18} /></span>
           Location Information
         </h2>
         <div className="customer-grid">
@@ -753,7 +754,7 @@ export default function WorkOrderDetailPage() {
       {/* Team Assignment */}
       <div className="wo-section">
         <h2 className="wo-section-title">
-          <span className="section-icon">👥</span>
+          <span className="section-icon"><Users size={18} /></span>
           Team Assignment
         </h2>
         <div className="team-assignment-section">
@@ -762,7 +763,7 @@ export default function WorkOrderDetailPage() {
             <div className="assigned-techs-list">
               {assignedTechs.map((tech) => (
                 <div key={tech.id} className="tech-chip">
-                  <span className="tech-chip-icon">👤</span>
+                  <span className="tech-chip-icon"><User size={14} /></span>
                   <span className="tech-chip-name">{tech.name}</span>
                   {isEditable && (
                     <button
@@ -828,7 +829,7 @@ export default function WorkOrderDetailPage() {
       {(workOrder.status === WorkOrderStatus.IN_PROGRESS || workOrder.status === WorkOrderStatus.OPEN) && (
         <div className="wo-section">
           <h2 className="wo-section-title">
-            <span className="section-icon">⏱️</span>
+            <span className="section-icon"><Clock size={18} /></span>
             Time Tracking
           </h2>
           <div className="time-tracking-section">
@@ -850,14 +851,14 @@ export default function WorkOrderDetailPage() {
                         disabled={timerLoading}
                         className="timer-btn pause"
                       >
-                        ⏸ Pause
+                        <Pause size={14} /> Pause
                       </button>
                       <button
                         onClick={handleStopTimer}
                         disabled={timerLoading}
                         className="timer-btn stop"
                       >
-                        ⏹ Stop
+                        <Square size={14} /> Stop
                       </button>
                     </>
                   ) : (
@@ -867,14 +868,14 @@ export default function WorkOrderDetailPage() {
                         disabled={timerLoading}
                         className="timer-btn resume"
                       >
-                        ▶ Resume
+                        <Play size={14} /> Resume
                       </button>
                       <button
                         onClick={handleStopTimer}
                         disabled={timerLoading}
                         className="timer-btn stop"
                       >
-                        ⏹ Stop
+                        <Square size={14} /> Stop
                       </button>
                     </>
                   )}
@@ -886,7 +887,7 @@ export default function WorkOrderDetailPage() {
                 disabled={timerLoading}
                 className="timer-btn start"
               >
-                {timerLoading ? "Starting..." : "▶ Start Work Timer"}
+                {timerLoading ? "Starting..." : <><Play size={14} /> Start Work Timer</>}
               </button>
             )}
 
@@ -914,7 +915,7 @@ export default function WorkOrderDetailPage() {
       {workOrder.description && (
         <div className="wo-section">
           <h2 className="wo-section-title">
-            <span className="section-icon">📝</span>
+            <span className="section-icon"><FileText size={18} /></span>
             Description
           </h2>
           <div className="wo-description-block">
@@ -926,7 +927,7 @@ export default function WorkOrderDetailPage() {
       {/* Tasks */}
       <div className="wo-section">
         <h2 className="wo-section-title">
-          <span className="section-icon">✓</span>
+          <span className="section-icon"><CheckSquare size={18} /></span>
           Tasks
           {workOrder.summary && workOrder.summary.totalTasks > 0 && (
             <span style={{ fontWeight: 400, fontSize: '0.875rem', color: '#6b7280', marginLeft: '0.5rem' }}>
@@ -944,7 +945,7 @@ export default function WorkOrderDetailPage() {
       {/* Signatures */}
       <div className="wo-section">
         <h2 className="wo-section-title">
-          <span className="section-icon">✍️</span>
+          <span className="section-icon"><PenTool size={18} /></span>
           Signatures
         </h2>
         <SignaturePanel workOrderId={workOrder.id} />
@@ -953,7 +954,7 @@ export default function WorkOrderDetailPage() {
       {/* Reports / Forms */}
       <div className="wo-section">
         <h2 className="wo-section-title">
-          <span className="section-icon">📋</span>
+          <span className="section-icon"><ClipboardList size={18} /></span>
           Reports
           {formResponses.length > 0 && (
             <span style={{ fontWeight: 400, fontSize: '0.875rem', color: '#6b7280', marginLeft: '0.5rem' }}>
@@ -1037,7 +1038,7 @@ export default function WorkOrderDetailPage() {
       {/* Actions */}
       <div className="actions-section no-print">
         <h3 className="actions-title">
-          <span className="section-icon">⚡</span>
+          <span className="section-icon"><Zap size={18} /></span>
           Actions
         </h3>
         <div className="actions-grid">
@@ -1047,7 +1048,7 @@ export default function WorkOrderDetailPage() {
               onClick={() => router.push(`/work-orders/${workOrder.id}/edit`)}
               className="action-button primary"
             >
-              <span>✏️</span> Edit Work Order
+              <Edit size={16} /> Edit Work Order
             </button>
           )}
 
@@ -1057,7 +1058,7 @@ export default function WorkOrderDetailPage() {
               onClick={() => handleStatusChange(WorkOrderStatus.IN_PROGRESS)}
               className="action-button success"
             >
-              <span>▶️</span> Start Work Order
+              <Play size={16} /> Start Work Order
             </button>
           )}
 
@@ -1066,7 +1067,7 @@ export default function WorkOrderDetailPage() {
               onClick={() => handleStatusChange(WorkOrderStatus.COMPLETED)}
               className="action-button success"
             >
-              <span>✓</span> Mark Complete
+              <CheckSquare size={16} /> Mark Complete
             </button>
           )}
 
@@ -1076,7 +1077,7 @@ export default function WorkOrderDetailPage() {
               onClick={() => router.push(`/invoices/new?workOrderId=${workOrder.id}`)}
               className="action-button primary"
             >
-              <span>📄</span> Generate Invoice
+              <FileText size={16} /> Generate Invoice
             </button>
           )}
 
@@ -1086,7 +1087,7 @@ export default function WorkOrderDetailPage() {
             disabled={sendingEmail}
             className="action-button email"
           >
-            <span>{sendingEmail ? "⏳" : "📧"}</span>
+            {sendingEmail ? <Clock size={16} /> : <Mail size={16} />}
             {sendingEmail ? "Sending..." : "Email to Customer"}
           </button>
 
@@ -1095,7 +1096,7 @@ export default function WorkOrderDetailPage() {
             onClick={handlePrint}
             className="action-button secondary"
           >
-            <span>🖨️</span> Print
+            <Printer size={16} /> Print
           </button>
 
           <button
@@ -1103,7 +1104,7 @@ export default function WorkOrderDetailPage() {
             disabled={downloadingPdf}
             className="action-button secondary"
           >
-            <span>{downloadingPdf ? "⏳" : "📑"}</span>
+            {downloadingPdf ? <Clock size={16} /> : <Download size={16} />}
             {downloadingPdf ? "Generating..." : "Download PDF"}
           </button>
 
@@ -1113,7 +1114,7 @@ export default function WorkOrderDetailPage() {
               onClick={() => handleStatusChange(WorkOrderStatus.CANCELED)}
               className="action-button danger"
             >
-              <span>✗</span> Cancel Work Order
+              <XCircle size={16} /> Cancel Work Order
             </button>
           )}
 
@@ -1123,7 +1124,7 @@ export default function WorkOrderDetailPage() {
               onClick={() => setDeleteModalOpen(true)}
               className="action-button danger"
             >
-              <span>🗑️</span> Delete Work Order
+              <Trash2 size={16} /> Delete Work Order
             </button>
           )}
         </div>
@@ -1144,7 +1145,7 @@ export default function WorkOrderDetailPage() {
               </button>
             </div>
             <div className="delete-modal-body">
-              <div className="delete-warning-icon">⚠️</div>
+              <div className="delete-warning-icon"><AlertTriangle size={32} /></div>
               <p>Are you sure you want to delete work order <strong>{workOrder.workOrderNumber || `WO-${workOrder.id.slice(0, 8).toUpperCase()}`}</strong>?</p>
               <p className="delete-wo-title">"{workOrder.title}"</p>
               <p className="delete-warning-text">This action cannot be undone. All associated tasks, time entries, and data will be permanently removed.</p>

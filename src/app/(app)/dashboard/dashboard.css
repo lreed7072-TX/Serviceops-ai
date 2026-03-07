@@ -57,6 +57,10 @@
 .action-icon {
   font-size: 2rem;
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
 }
 
 .action-label {
@@ -341,6 +345,10 @@
 .activity-icon {
   font-size: 1.25rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
 }
 
 .activity-content {

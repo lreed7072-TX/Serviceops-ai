@@ -1,5 +1,5 @@
 export { Badge } from "./Badge";
-export { Breadcrumbs } from "./Breadcrumbs";
+export { default as Breadcrumbs } from "./Breadcrumbs";
 export { Card, CardHeader } from "./Card";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState } from "./EmptyState";

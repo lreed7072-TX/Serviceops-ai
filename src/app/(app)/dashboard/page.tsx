@@ -15,6 +15,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { DollarSign, Wrench, FileText, ClipboardList, Users, CheckCircle, PenTool, Activity } from "lucide-react";
 import "./dashboard.css";
 
 type DashboardStats = {
@@ -162,19 +163,19 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="quick-actions">
         <Link href="/quotes/new" className="action-card">
-          <div className="action-icon">📋</div>
+          <div className="action-icon"><ClipboardList size={20} /></div>
           <div className="action-label">Create Quote</div>
         </Link>
         <Link href="/work-orders/new" className="action-card">
-          <div className="action-icon">🔧</div>
+          <div className="action-icon"><Wrench size={20} /></div>
           <div className="action-label">New Work Order</div>
         </Link>
         <Link href="/customers" className="action-card">
-          <div className="action-icon">👥</div>
+          <div className="action-icon"><Users size={20} /></div>
           <div className="action-label">Manage Customers</div>
         </Link>
         <Link href="/invoices" className="action-card">
-          <div className="action-icon">📄</div>
+          <div className="action-icon"><FileText size={20} /></div>
           <div className="action-label">View Invoices</div>
         </Link>
       </div>
@@ -182,7 +183,7 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="kpi-grid">
         <div className="kpi-card highlight">
-          <div className="kpi-icon revenue">💰</div>
+          <div className="kpi-icon revenue"><DollarSign size={20} /></div>
           <div className="kpi-content">
             <h3 className="kpi-value">{formatCurrency(stats.revenue.paidRevenue)}</h3>
             <p className="kpi-label">Total Revenue</p>
@@ -192,7 +193,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-icon workorders">🔧</div>
+          <div className="kpi-icon workorders"><Wrench size={20} /></div>
           <div className="kpi-content">
             <h3 className="kpi-value">{stats.workOrders.open + stats.workOrders.inProgress}</h3>
             <p className="kpi-label">Active Work Orders</p>
@@ -202,7 +203,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-icon invoices">📄</div>
+          <div className="kpi-icon invoices"><FileText size={20} /></div>
           <div className="kpi-content">
             <h3 className="kpi-value">{stats.invoices.sent + stats.invoices.overdue}</h3>
             <p className="kpi-label">Pending Invoices</p>
@@ -212,7 +213,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-icon quotes">📋</div>
+          <div className="kpi-icon quotes"><ClipboardList size={20} /></div>
           <div className="kpi-content">
             <h3 className="kpi-value">{stats.quotes.sent}</h3>
             <p className="kpi-label">Open Quotes</p>
@@ -407,10 +408,10 @@ export default function DashboardPage() {
               {stats.recentActivity.map((activity) => (
                 <div key={activity.id} className="activity-item">
                   <div className="activity-icon">
-                    {activity.type === "WORK_ORDER" && "🔧"}
-                    {activity.type === "QUOTE" && "📋"}
-                    {activity.type === "TASK" && "✓"}
-                    {activity.type === "SIGNATURE" && "✍️"}
+                    {activity.type === "WORK_ORDER" && <Wrench size={14} />}
+                    {activity.type === "QUOTE" && <ClipboardList size={14} />}
+                    {activity.type === "TASK" && <CheckCircle size={14} />}
+                    {activity.type === "SIGNATURE" && <PenTool size={14} />}
                   </div>
                   <div className="activity-content">
                     <div className="activity-description">{activity.description}</div>

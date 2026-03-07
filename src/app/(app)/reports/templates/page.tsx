@@ -4,36 +4,18 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReportTemplate } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { Pencil, Eye, RefreshCw } from "lucide-react";
 import "../reports.css";
 
 type ListResponse<T> = {
   data?: T[];
 };
 
-const allowedRoles = ["ADMIN", "DISPATCHER"] as const;
-
 const formatDate = (value?: string | Date | null) => {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString();
-};
-
-const getDevRole = (): string | null => {
-  if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_DEV_ROLE ?? null;
-  }
-
-  try {
-    const raw = window.localStorage.getItem("devAuth");
-    if (!raw) {
-      return process.env.NEXT_PUBLIC_DEV_ROLE ?? null;
-    }
-    const parsed = JSON.parse(raw) as { role?: string };
-    return parsed.role ?? process.env.NEXT_PUBLIC_DEV_ROLE ?? null;
-  } catch {
-    return process.env.NEXT_PUBLIC_DEV_ROLE ?? null;
-  }
 };
 
 export default function ReportTemplatesPage() {
@@ -46,9 +28,7 @@ export default function ReportTemplatesPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
-  const [role, setRole] = useState<string | null>(null);
-
-  const canWrite = role ? allowedRoles.includes(role as (typeof allowedRoles)[number]) : true;
+  const canWrite = true;
 
   const loadTemplates = async () => {
     try {
@@ -71,7 +51,6 @@ export default function ReportTemplatesPage() {
   };
 
   useEffect(() => {
-    setRole(getDevRole());
     loadTemplates();
   }, []);
 
@@ -175,7 +154,7 @@ export default function ReportTemplatesPage() {
         <div className="card-header">
           <h3>Templates</h3>
           <button type="button" className="link-button" onClick={loadTemplates}>
-            Refresh
+            <RefreshCw size={14} style={{ marginRight: 4 }} /> Refresh
           </button>
         </div>
 
@@ -197,10 +176,10 @@ export default function ReportTemplatesPage() {
                   </div>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <Link className="link-button" href={`/reports/templates/${template.id}/builder`}>
-                      Builder
+                      <Pencil size={14} style={{ marginRight: 4 }} /> Builder
                     </Link>
                     <Link className="link-button" href={`/reports/templates/${template.id}`}>
-                      View
+                      <Eye size={14} style={{ marginRight: 4 }} /> View
                     </Link>
                   </div>
                 </div>

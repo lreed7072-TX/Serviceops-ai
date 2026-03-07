@@ -58,6 +58,9 @@
   transform: translateY(-50%);
   color: #9ca3af;
   font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .reports-search-input {
@@ -131,6 +134,8 @@
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
+  flex-shrink: 0;
+  color: #374151;
 }
 
 .reports-stat-icon.templates {
@@ -354,6 +359,10 @@
   font-size: 3rem;
   margin-bottom: 1rem;
   opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
 }
 
 .reports-empty-state h3 {
@@ -474,6 +483,7 @@
   justify-content: center;
   font-size: 1.25rem;
   flex-shrink: 0;
+  color: #f97316;
 }
 
 .reports-quick-action-text h4 {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReportTemplate } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
+import { FileText, CheckCircle, FilePlus, Eye, ClipboardList, ScrollText, Search, Plus } from "lucide-react";
 import "./reports.css";
 
 type ListResponse<T> = {
@@ -82,7 +83,7 @@ export default function ReportsPage() {
             Manage Templates
           </Link>
           <Link href="/reports/templates" className="reports-btn-primary">
-            + New Report
+            <Plus size={16} /> New Template
           </Link>
         </div>
       </div>
@@ -90,21 +91,21 @@ export default function ReportsPage() {
       {/* Stats */}
       <div className="reports-stats-grid">
         <div className="reports-stat-card">
-          <div className="reports-stat-icon templates">T</div>
+          <div className="reports-stat-icon templates"><FileText size={20} /></div>
           <div className="reports-stat-content">
             <h3>{templates.length}</h3>
             <p>Total Templates</p>
           </div>
         </div>
         <div className="reports-stat-card">
-          <div className="reports-stat-icon active">A</div>
+          <div className="reports-stat-icon active"><CheckCircle size={20} /></div>
           <div className="reports-stat-content">
             <h3>{activeCount}</h3>
             <p>Active Templates</p>
           </div>
         </div>
         <div className="reports-stat-card">
-          <div className="reports-stat-icon drafts">D</div>
+          <div className="reports-stat-icon drafts"><FilePlus size={20} /></div>
           <div className="reports-stat-content">
             <h3>{draftCount}</h3>
             <p>Drafts</p>
@@ -118,28 +119,28 @@ export default function ReportsPage() {
       </div>
       <div className="reports-quick-actions">
         <Link href="/reports/templates" className="reports-quick-action">
-          <div className="reports-quick-action-icon">+</div>
+          <div className="reports-quick-action-icon"><Plus size={20} /></div>
           <div className="reports-quick-action-text">
             <h4>Create Template</h4>
             <p>Design a new report layout</p>
           </div>
         </Link>
         <Link href="/visits" className="reports-quick-action">
-          <div className="reports-quick-action-icon">V</div>
+          <div className="reports-quick-action-icon"><Eye size={20} /></div>
           <div className="reports-quick-action-text">
             <h4>Visit Reports</h4>
             <p>Generate from completed visits</p>
           </div>
         </Link>
         <Link href="/work-orders" className="reports-quick-action">
-          <div className="reports-quick-action-icon">W</div>
+          <div className="reports-quick-action-icon"><ClipboardList size={20} /></div>
           <div className="reports-quick-action-text">
             <h4>Work Order Reports</h4>
             <p>Summaries from work orders</p>
           </div>
         </Link>
         <Link href="/reports/responses" className="reports-quick-action">
-          <div className="reports-quick-action-icon">F</div>
+          <div className="reports-quick-action-icon"><ScrollText size={20} /></div>
           <div className="reports-quick-action-text">
             <h4>Form Responses</h4>
             <p>View submitted field data</p>
@@ -158,7 +159,7 @@ export default function ReportsPage() {
       {/* Search and Filter */}
       <div className="reports-search-section">
         <div className="reports-search-wrapper">
-          <span className="reports-search-icon">S</span>
+          <span className="reports-search-icon"><Search size={16} /></span>
           <input
             type="text"
             className="reports-search-input"
@@ -190,7 +191,7 @@ export default function ReportsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="reports-empty-state">
-          <div className="reports-empty-icon">R</div>
+          <div className="reports-empty-icon"><FileText size={32} /></div>
           <h3>
             {search || statusFilter !== "ALL"
               ? "No matching templates"
@@ -203,7 +204,7 @@ export default function ReportsPage() {
           </p>
           {!search && statusFilter === "ALL" && (
             <Link href="/reports/templates" className="reports-btn-primary">
-              + Create First Template
+              <Plus size={16} /> Create First Template
             </Link>
           )}
         </div>

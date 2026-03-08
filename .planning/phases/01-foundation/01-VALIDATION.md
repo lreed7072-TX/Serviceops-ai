@@ -38,17 +38,19 @@ created: 2026-03-08
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 01-01-01 | 01 | 1 | FOUND-04 | code assertion | `grep -r "minorversion" src/lib/qbo/` | ✅ | ⬜ pending |
-| 01-01-02 | 01 | 1 | FOUND-03 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-mapper.test.ts` | ❌ W0 | ⬜ pending |
-| 01-01-03 | 01 | 1 | FOUND-01 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-client.test.ts` | ❌ W0 | ⬜ pending |
-| 01-01-04 | 01 | 1 | FOUND-02 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-client.test.ts` | ❌ W0 | ⬜ pending |
+| 01-00-01 | 00 | 0 | — | file check | `ls src/lib/qbo/__tests__/` | ✅ | ⬜ pending |
+| 01-01-01 | 01 | 1 | FOUND-04 | code assertion | `grep -r "minorversion" src/` | ✅ | ⬜ pending |
+| 01-01-02 | 01 | 1 | FOUND-02 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-client.test.ts` | ✅ W0 | ⬜ pending |
+| 01-01-03 | 01 | 1 | FOUND-03 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-mapper.test.ts` | ✅ W0 | ⬜ pending |
 | 01-02-01 | 02 | 1 | FOUND-05 | migration | `npx prisma migrate dev --name phase1-foundation` | ✅ | ⬜ pending |
 | 01-02-02 | 02 | 1 | FOUND-06 | migration | `npx prisma migrate dev --name phase1-foundation` | ✅ | ⬜ pending |
 | 01-02-03 | 02 | 1 | FOUND-05/06 | build | `npx tsc --noEmit` | ✅ | ⬜ pending |
-| 01-03-01 | 03 | 1 | FOUND-07 | build | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 01-04-01 | 04 | 1 | FOUND-08 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-mapper.test.ts` | ❌ W0 | ⬜ pending |
-| 01-04-02 | 04 | 1 | FOUND-08 | build | `npx tsc --noEmit` (no I/O imports) | ✅ | ⬜ pending |
-| 01-05-01 | 05 | 1 | FOUND-09 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-queue.test.ts` | ❌ W0 | ⬜ pending |
+| 01-03-01 | 03 | 2 | FOUND-07 | build | `npx tsc --noEmit` | ✅ W0 | ⬜ pending |
+| 01-04-01 | 04 | 2 | FOUND-08 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-mapper.test.ts` | ✅ W0 | ⬜ pending |
+| 01-04-02 | 04 | 2 | FOUND-08 | build | `npx tsc --noEmit` (no I/O imports) | ✅ | ⬜ pending |
+| 01-05-01 | 05 | 2 | FOUND-09 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-queue.test.ts` | ✅ W0 | ⬜ pending |
+| 01-06-01 | 06 | 2 | FOUND-01 | unit | `npx vitest run src/lib/qbo/__tests__/qbo-client.test.ts` | ✅ W0 | ⬜ pending |
+| 01-06-02 | 06 | 2 | FOUND-01 | build | `npx tsc --noEmit` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -70,7 +72,7 @@ created: 2026-03-08
 |----------|-------------|------------|-------------------|
 | Prisma migration succeeds | FOUND-05, FOUND-06 | Requires database connection | Run `npx prisma migrate dev --name phase1-foundation`, verify exit code 0 |
 | New tables exist with correct columns | FOUND-05 | Requires database | Check Prisma Studio or `\d "QboSyncJob"` in psql |
-| No hardcoded minorversion strings | FOUND-04 | Code search | `grep -rn "minorversion" src/lib/qbo/` — only constant def + append |
+| No hardcoded minorversion strings | FOUND-04 | Code search | `grep -rn "minorversion" src/` — only constant def + append in qbo-client.ts |
 
 ---
 

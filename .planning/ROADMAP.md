@@ -74,6 +74,8 @@
 
 ## Phase 3: Core Outbound
 
+**Status:** In Progress — Plan 01 complete (5 commits), Plans 02-05 remaining
+
 **Goal:** Deliver the table-stakes integration features: payment receipt processing, item/service sync (with correct ItemRef on invoices), estimate/quote sync, invoice email via QBO, webhook idempotency rewrite, and the integration health dashboard.
 
 **Requirements:** PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-03, SYNC-04, DASH-01, DASH-02, DASH-03, DASH-05

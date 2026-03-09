@@ -167,6 +167,7 @@ export type QboInvoice = {
   };
   TotalAmt: number;
   Balance: number;
+  status?: string; // "Voided" when invoice has been voided in QBO
   EmailStatus?: string;
   BillEmail?: QboEmailAddr;
   LinkedTxn?: QboLinkedTxn[];

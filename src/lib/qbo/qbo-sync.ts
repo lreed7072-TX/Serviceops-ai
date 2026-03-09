@@ -28,6 +28,71 @@ export async function getActiveConnection(orgId: string): Promise<QboConnection 
   });
 }
 
+// ============================================
+// ACCOUNT MAPPING PREREQUISITE GATE
+// ============================================
+
+/** All 5 required mapping categories for financial syncs */
+const REQUIRED_MAPPING_CATEGORIES = [
+  "labor_income",
+  "materials_income",
+  "service_income",
+  "job_cost_expense",
+  "subcontractor_expense",
+];
+
+/**
+ * Get a specific account mapping for an org and category.
+ * Returns the mapping if found, or throws a descriptive error.
+ */
+export async function getAccountMapping(
+  orgId: string,
+  category: string
+): Promise<{ qboAccountId: string; qboAccountName: string; qboAccountType: string }> {
+  const mapping = await prisma.qboAccountMap.findUnique({
+    where: {
+      orgId_category: { orgId, category },
+    },
+    select: {
+      qboAccountId: true,
+      qboAccountName: true,
+      qboAccountType: true,
+    },
+  });
+
+  if (!mapping) {
+    throw new Error(
+      `Account mapping required for "${category}" — configure in QBO Settings`
+    );
+  }
+
+  return mapping;
+}
+
+/**
+ * Check if all required account mappings are configured for an org.
+ * Returns { complete: true, missing: [] } when all 5 categories are mapped.
+ * Returns { complete: false, missing: [...] } when any are missing.
+ */
+export async function requireAccountMapping(
+  orgId: string
+): Promise<{ complete: boolean; missing: string[] }> {
+  const mappings = await prisma.qboAccountMap.findMany({
+    where: { orgId },
+    select: { category: true },
+  });
+
+  const mappedCategories = new Set(mappings.map((m) => m.category));
+  const missing = REQUIRED_MAPPING_CATEGORIES.filter(
+    (cat) => !mappedCategories.has(cat)
+  );
+
+  return {
+    complete: missing.length === 0,
+    missing,
+  };
+}
+
 /**
  * Sync a ServiceOps customer to QBO.
  * Creates new customer if not yet synced, updates if already synced.

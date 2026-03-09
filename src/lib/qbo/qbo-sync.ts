@@ -394,9 +394,118 @@ export async function syncCustomerToQbo(
   }
 }
 
+// ============================================
+// QUOTE -> ESTIMATE SYNC
+// ============================================
+
+/**
+ * Sync a ServiceOps Quote to QBO as an Estimate.
+ * Guards on quote status (must be SENT or APPROVED).
+ * Cascade-syncs customer and materials as needed.
+ */
+export async function syncQuoteToQbo(
+  orgId: string,
+  quoteId: string
+): Promise<{ success: boolean; qboEstimateId?: string; error?: string }> {
+  const connection = await getActiveConnection(orgId);
+  if (!connection) return { success: false, error: "No active QBO connection" };
+
+  const accountMapping = await requireAccountMapping(orgId);
+  if (!accountMapping.complete) {
+    return { success: false, error: `Account mapping required. Missing: ${accountMapping.missing.join(", ")}` };
+  }
+
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, orgId },
+    include: {
+      customer: true,
+      lineItems: { orderBy: { sortOrder: "asc" }, include: { material: true } },
+    },
+  });
+  if (!quote) return { success: false, error: "Quote not found" };
+
+  // Status guard: only sync SENT or APPROVED quotes
+  if (quote.status !== "SENT" && quote.status !== "APPROVED") {
+    return { success: false, error: `Quote must be SENT or APPROVED to sync (current: ${quote.status})` };
+  }
+
+  // Already synced — return existing
+  if (quote.qboEstimateId) {
+    return { success: true, qboEstimateId: quote.qboEstimateId };
+  }
+
+  try {
+    // Ensure customer is synced first
+    let qboCustomerId = quote.customer.qboCustomerId;
+    if (!qboCustomerId) {
+      const customerSync = await syncCustomerToQbo(orgId, quote.customerId);
+      if (!customerSync.success || !customerSync.qboCustomerId) {
+        throw new Error(`Failed to sync customer: ${customerSync.error}`);
+      }
+      qboCustomerId = customerSync.qboCustomerId;
+    }
+
+    // Cascade-sync materials on line items that have materialId but no qboItemId
+    for (const lineItem of quote.lineItems) {
+      if (lineItem.materialId && lineItem.material && !lineItem.material.qboItemId) {
+        await syncMaterialToQbo(orgId, lineItem.materialId);
+      }
+    }
+
+    // Re-fetch materials to get updated qboItemIds
+    const freshLineItems = await prisma.quoteLineItem.findMany({
+      where: { quoteId, orgId },
+      orderBy: { sortOrder: "asc" },
+      include: { material: true },
+    });
+
+    // Build estimate payload using mapper
+    const estimatePayload = toQboEstimate(
+      quote,
+      freshLineItems,
+      qboCustomerId,
+    );
+
+    // Add ItemRef on lines that have a synced material
+    if (Array.isArray(estimatePayload.Line)) {
+      for (let i = 0; i < estimatePayload.Line.length; i++) {
+        const lineItem = freshLineItems[i];
+        if (lineItem?.material?.qboItemId && estimatePayload.Line[i].SalesItemLineDetail) {
+          estimatePayload.Line[i].SalesItemLineDetail!.ItemRef = { value: lineItem.material.qboItemId };
+        }
+      }
+    }
+
+    const qboEstimate = await createEstimate(connection, estimatePayload);
+
+    await prisma.quote.update({
+      where: { id: quoteId },
+      data: { qboEstimateId: qboEstimate.Id, qboSyncedAt: new Date() },
+    });
+
+    await prisma.qboSyncLog.create({
+      data: { orgId, connectionId: connection.id, entityType: "estimate", entityId: quoteId, qboEntityId: qboEstimate.Id, action: "push", status: "success" },
+    });
+
+    return { success: true, qboEstimateId: qboEstimate.Id };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: { orgId, connectionId: connection.id, entityType: "estimate", entityId: quoteId, action: "push", status: "failed", errorMessage },
+    });
+    return { success: false, error: errorMessage };
+  }
+}
+
+// ============================================
+// INVOICE SYNC
+// ============================================
+
 /**
  * Sync a ServiceOps invoice to QBO.
  * Ensures the customer is synced first, then creates the invoice in QBO.
+ * Resolves ItemRef per line item via materialUsage chain.
+ * Adds LinkedTxn when invoice has a linked quote with a QBO Estimate.
  */
 export async function syncInvoiceToQbo(
   orgId: string,

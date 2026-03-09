@@ -1,7 +1,7 @@
 import { QboConnection } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { QboCustomer, QboInvoice, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount } from "./qbo-types";
-export type { QboCustomer, QboInvoice, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount };
+import type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount } from "./qbo-types";
+export type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount };
 
 // QBO API endpoints
 const QBO_SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com/v3/company";
@@ -399,6 +399,71 @@ export async function getInvoice(
     Invoice: QboInvoice;
   };
   return result.Invoice;
+}
+
+/**
+ * Get a payment from QBO by ID.
+ */
+export async function getPayment(
+  connection: QboConnection,
+  paymentId: string
+): Promise<QboPayment> {
+  const result = await qboRequest(connection, "GET", `payment/${paymentId}`) as {
+    Payment: QboPayment;
+  };
+  return result.Payment;
+}
+
+/**
+ * Create an item in QBO.
+ * itemData must include Name, Type, and IncomeAccountRef at minimum.
+ */
+export async function createItem(
+  connection: QboConnection,
+  itemData: Partial<QboItem>
+): Promise<QboItem> {
+  const result = await qboRequest(connection, "POST", "item", itemData as Record<string, unknown>) as {
+    Item: QboItem;
+  };
+  return result.Item;
+}
+
+/**
+ * Get an item from QBO by ID.
+ */
+export async function getItem(
+  connection: QboConnection,
+  qboItemId: string
+): Promise<QboItem> {
+  const result = await qboRequest(connection, "GET", `item/${qboItemId}`) as {
+    Item: QboItem;
+  };
+  return result.Item;
+}
+
+/**
+ * Update an item in QBO.
+ * Uses the fetch-merge-POST pattern to preserve unmanaged fields.
+ */
+export async function updateItem(
+  connection: QboConnection,
+  qboItemId: string,
+  itemData: Partial<QboItem>
+): Promise<QboItem> {
+  // 1. Fetch the full existing entity (includes SyncToken and all fields)
+  const existing = await getItem(connection, qboItemId);
+
+  // 2. Merge — spread existing entity, then override with provided fields
+  const merged: Record<string, unknown> = {
+    ...(existing as Record<string, unknown>),
+    ...(itemData as Record<string, unknown>),
+  };
+
+  // 3. POST the complete merged payload
+  const result = (await qboRequest(connection, "POST", "item", merged)) as {
+    Item: QboItem;
+  };
+  return result.Item;
 }
 
 /**

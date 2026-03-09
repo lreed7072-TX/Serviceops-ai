@@ -4,6 +4,7 @@ import { requireAuthSessionFirst } from "@/lib/auth";
 import { InvoiceStatus } from "@prisma/client";
 import { parseJson } from "@/lib/api-server";
 import { syncInvoiceToQbo, getActiveConnection } from "@/lib/qbo/qbo-sync";
+import { enqueue } from "@/lib/qbo/qbo-queue";
 
 // GET /api/invoices/[id]
 export async function GET(
@@ -122,6 +123,19 @@ export async function PATCH(
         });
       }
     });
+  }
+
+  // When status changes to CANCELED, trigger QBO void if synced
+  if (body?.status === "CANCELED" && existing.status !== "CANCELED") {
+    if (existing.qboInvoiceId) {
+      getActiveConnection(orgId).then((conn) => {
+        if (conn) {
+          enqueue(orgId, conn.id, "invoice", id, "void", 1).catch((err) => {
+            console.error("Failed to enqueue QBO void job:", err);
+          });
+        }
+      });
+    }
   }
 
   return NextResponse.json({ data: invoice });

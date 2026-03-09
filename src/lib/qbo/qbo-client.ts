@@ -220,7 +220,8 @@ async function qboRequest(
   connection: QboConnection,
   method: string,
   path: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown> | null,
+  options?: { contentType?: string }
 ): Promise<unknown> {
   const accessToken = await getValidAccessToken(connection);
   const base = `${getApiBase()}/${connection.realmId}/${path}`;
@@ -231,7 +232,7 @@ async function qboRequest(
   const headers: Record<string, string> = {
     "Authorization": `Bearer ${accessToken}`,
     "Accept": "application/json",
-    "Content-Type": "application/json",
+    "Content-Type": options?.contentType || "application/json",
   };
 
   const response = await fetch(url, {

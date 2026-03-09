@@ -3,11 +3,11 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-07)
 **Core value:** Every financial transaction flows to QBO automatically
-**Current focus:** Phase 3 in progress — Plan 01 complete, Plans 02-05 remaining
+**Current focus:** Phase 3 in progress — Plans 01-02 complete, Plans 03-05 remaining
 
 ## Current Phase
 Phase: 3
-Status: Executing — Plan 01 complete
+Status: Executing — Plans 01-02 complete
 Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-03, SYNC-04, DASH-01, DASH-02, DASH-03, DASH-05
 
 ## Phase History
@@ -94,8 +94,20 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - Added resolveOrCreateQboEntity collision helper (VEND-02)
   - Build passes, 0 errors
 
+- Phase 3, Plan 02: Complete (2026-03-09) — Sync functions: item, customer retrofit, quote, invoice (ItemRef+LinkedTxn), payment
+  - 6 commits: f91dbc3, fea9c05, 8df42fa, 6437788, e77dea7, 5b3c33d
+  - syncMaterialToQbo: Material → QBO NonInventory Item with collision handling
+  - syncLaborRateToQbo: LaborRate → QBO Service Item with collision handling
+  - syncCustomerToQbo: Retrofitted create path with resolveOrCreateQboEntity (email matching)
+  - syncQuoteToQbo: Quote → QBO Estimate with status guard, cascade customer/material sync, ItemRef on lines
+  - syncInvoiceToQbo: Rewritten with materialUsage→material ItemRef chain, LinkedTxn from estimate, cascade syncs
+  - processPaymentJob: QBO Payment → marks invoice PAID when Balance=0, logs partial payments
+  - createInvoice (qbo-client.ts): Extended with itemRef per line + linkedTxn param
+  - Build passes, 0 errors
+  - Requirements delivered: ITEM-01, ITEM-02, VEND-02, QUOT-01, QUOT-02, PAY-01
+
 ## Next Action
-Execute Phase 3, Plan 02: Sync functions (item, customer retrofit, quote, invoice, payment)
+Execute Phase 3, Plan 03: API routes — webhook rewrite, email, health/logs/trigger, cron flush
 
 ---
-*Last updated: 2026-03-09 after Phase 3 Plan 01 executed*
+*Last updated: 2026-03-09 after Phase 3 Plan 02 executed*

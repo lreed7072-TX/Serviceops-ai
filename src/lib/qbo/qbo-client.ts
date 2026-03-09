@@ -418,6 +418,122 @@ export async function getCompanyInfo(
 }
 
 /**
+ * Send a batch request to QBO (up to 30 operations per batch).
+ * Each operation can be a CRUD operation or a query.
+ * Returns an array of results — check each item for Fault.
+ * The overall HTTP response is always 200 when the batch is accepted;
+ * per-operation failures appear as Fault in individual items.
+ */
+export async function batchRequest(
+  connection: QboConnection,
+  operations: QboBatchOperation[]
+): Promise<QboBatchItemResponse[]> {
+  if (operations.length === 0) {
+    return [];
+  }
+  if (operations.length > 30) {
+    throw new Error(
+      `QBO batch limit is 30 operations, received ${operations.length}`
+    );
+  }
+
+  const result = (await qboRequest(connection, "POST", "batch", {
+    BatchItemRequest: operations,
+  })) as { BatchItemResponse: QboBatchItemResponse[] };
+
+  return result.BatchItemResponse || [];
+}
+
+/**
+ * Execute an IQL query against the QBO API and return the entity array.
+ * Caller provides the full IQL string and the entity name to extract.
+ * Returns an empty array if no results found.
+ *
+ * Example: queryEntities<QboAccount>(connection, "SELECT * FROM Account WHERE Active = true", "Account")
+ */
+export async function queryEntities<T>(
+  connection: QboConnection,
+  iql: string,
+  entityName: string
+): Promise<T[]> {
+  const result = (await qboRequest(
+    connection,
+    "GET",
+    `query?query=${encodeURIComponent(iql)}`
+  )) as { QueryResponse: Record<string, unknown> };
+
+  const entities = result.QueryResponse?.[entityName];
+  if (Array.isArray(entities)) {
+    return entities as T[];
+  }
+  return [];
+}
+
+/**
+ * Call the QBO Change Data Capture (CDC) endpoint.
+ * Returns all entities changed since the given timestamp.
+ * changedSince must be within the past 30 days.
+ */
+export async function cdcRequest(
+  connection: QboConnection,
+  entities: string[],
+  changedSince: Date
+): Promise<QboCdcResponse> {
+  const entityList = entities.join(",");
+  const sinceStr = changedSince.toISOString();
+
+  const result = (await qboRequest(
+    connection,
+    "GET",
+    `cdc?entities=${entityList}&changedSince=${encodeURIComponent(sinceStr)}`
+  )) as QboCdcResponse;
+
+  return result;
+}
+
+/**
+ * Void an invoice in QBO. The invoice is zeroed out but not deleted.
+ * Requires the current SyncToken for optimistic concurrency.
+ * Uses the ?operation=void query parameter — NOT a sparse update.
+ */
+export async function voidInvoice(
+  connection: QboConnection,
+  qboInvoiceId: string,
+  syncToken: string
+): Promise<{ Id: string; status: string }> {
+  const result = (await qboRequest(
+    connection,
+    "POST",
+    "invoice?operation=void",
+    { Id: qboInvoiceId, SyncToken: syncToken }
+  )) as { Invoice: { Id: string; status: string } };
+
+  return result.Invoice;
+}
+
+/**
+ * Send an invoice via QBO's email service.
+ * Uses the BillEmail.Address on the invoice unless sendTo is specified.
+ * Requires Content-Type: application/octet-stream (QBO quirk).
+ * Note: QBO enforces a daily email limit per realmId.
+ */
+export async function sendInvoiceEmail(
+  connection: QboConnection,
+  qboInvoiceId: string,
+  sendTo?: string
+): Promise<QboInvoice> {
+  const path = sendTo
+    ? `invoice/${qboInvoiceId}/send?sendTo=${encodeURIComponent(sendTo)}`
+    : `invoice/${qboInvoiceId}/send`;
+
+  const result = (await qboRequest(connection, "POST", path, null, {
+    contentType: "application/octet-stream",
+  })) as { Invoice: QboInvoice };
+
+  return result.Invoice;
+}
+
+/**
  * Verify a QBO webhook signature using HMAC-SHA256.
  */
 export function verifyWebhookSignature(

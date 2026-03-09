@@ -344,6 +344,7 @@ export async function getCustomer(
 
 /**
  * Create an invoice in QBO.
+ * Supports optional ItemRef per line item and LinkedTxn for estimate links.
  */
 export async function createInvoice(
   connection: QboConnection,
@@ -354,10 +355,12 @@ export async function createInvoice(
       amount: number;
       quantity?: number;
       unitPrice?: number;
+      itemRef?: string; // QBO Item ID for revenue categorization
     }>;
     dueDate?: string;
     docNumber?: string;
     taxRate?: number;
+    linkedTxn?: Array<{ TxnId: string; TxnType: string }>; // e.g. linked Estimate
   }
 ): Promise<QboInvoice> {
   const lines = invoiceData.lineItems.map((item) => ({
@@ -367,6 +370,7 @@ export async function createInvoice(
     SalesItemLineDetail: {
       Qty: item.quantity || 1,
       UnitPrice: item.unitPrice || item.amount,
+      ...(item.itemRef ? { ItemRef: { value: item.itemRef } } : {}),
     },
   }));
 
@@ -380,6 +384,9 @@ export async function createInvoice(
   }
   if (invoiceData.docNumber) {
     qboInvoice.DocNumber = invoiceData.docNumber;
+  }
+  if (invoiceData.linkedTxn) {
+    qboInvoice.LinkedTxn = invoiceData.linkedTxn;
   }
 
   const result = await qboRequest(connection, "POST", "invoice", qboInvoice) as {

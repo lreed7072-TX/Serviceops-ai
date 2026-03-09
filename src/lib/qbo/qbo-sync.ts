@@ -530,7 +530,13 @@ export async function syncInvoiceToQbo(
     where: { id: invoiceId, orgId },
     include: {
       customer: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      lineItems: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          materialUsage: { include: { material: true } },
+        },
+      },
+      quote: true, // For LinkedTxn resolution
     },
   });
 
@@ -554,22 +560,62 @@ export async function syncInvoiceToQbo(
       qboCustomerId = customerSync.qboCustomerId;
     }
 
-    // Build line items for QBO
-    const lineItems = invoice.lineItems.map((item) => ({
-      description: item.description,
-      amount: roundQboAmount(item.totalPrice),
-      quantity: roundQboAmount(item.quantity),
-      unitPrice: roundQboAmount(item.unitPrice),
-    }));
+    // Cascade-sync materials via materialUsage chain
+    for (const item of invoice.lineItems) {
+      if (item.materialUsageId && item.materialUsage?.materialId && item.materialUsage.material && !item.materialUsage.material.qboItemId) {
+        await syncMaterialToQbo(orgId, item.materialUsage.materialId);
+      }
+    }
 
-    // Create invoice in QBO
+    // Re-fetch line items with fresh material data after cascade syncs
+    const freshLineItems = await prisma.invoiceLineItem.findMany({
+      where: { invoiceId, orgId },
+      orderBy: { sortOrder: "asc" },
+      include: {
+        materialUsage: { include: { material: true } },
+      },
+    });
+
+    // Build line items with ItemRef resolution
+    const qboLines = freshLineItems.map((item) => {
+      let itemRef: string | undefined;
+      if (item.materialUsage?.material?.qboItemId) {
+        itemRef = item.materialUsage.material.qboItemId;
+      }
+      return {
+        description: item.description,
+        amount: roundQboAmount(item.totalPrice),
+        quantity: roundQboAmount(item.quantity),
+        unitPrice: roundQboAmount(item.unitPrice),
+        ...(itemRef ? { itemRef } : {}),
+      };
+    });
+
+    // Resolve LinkedTxn from estimate (quote -> QBO estimate link)
+    let linkedTxn: Array<{ TxnId: string; TxnType: string }> | undefined;
+    if (invoice.quoteId && invoice.quote) {
+      let qboEstimateId = invoice.quote.qboEstimateId;
+      if (!qboEstimateId) {
+        // Cascade-sync the quote as estimate first
+        const quoteSync = await syncQuoteToQbo(orgId, invoice.quoteId);
+        if (quoteSync.success && quoteSync.qboEstimateId) {
+          qboEstimateId = quoteSync.qboEstimateId;
+        }
+      }
+      if (qboEstimateId) {
+        linkedTxn = [{ TxnId: qboEstimateId, TxnType: "Estimate" }];
+      }
+    }
+
+    // Create invoice in QBO with ItemRef and LinkedTxn
     const qboInvoice = await createInvoice(connection, {
       customerRef: qboCustomerId,
-      lineItems,
+      lineItems: qboLines,
       dueDate: invoice.dueDate
         ? invoice.dueDate.toISOString().split("T")[0]
         : undefined,
       docNumber: invoice.invoiceNumber,
+      linkedTxn,
     });
 
     // Update our invoice with QBO ID

@@ -1,5 +1,7 @@
 import { QboConnection } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import type { QboCustomer, QboInvoice } from "./qbo-types";
+export type { QboCustomer, QboInvoice };
 
 // QBO API endpoints
 const QBO_SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com/v3/company";
@@ -20,37 +22,6 @@ export type TokenResponse = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number; // seconds
-};
-
-export type QboCustomer = {
-  Id: string;
-  DisplayName: string;
-  PrimaryEmailAddr?: { Address: string };
-  PrimaryPhone?: { FreeFormNumber: string };
-  BillAddr?: {
-    Line1?: string;
-    City?: string;
-    CountrySubDivisionCode?: string;
-    PostalCode?: string;
-  };
-};
-
-export type QboInvoice = {
-  Id: string;
-  DocNumber: string;
-  TotalAmt: number;
-  Balance: number;
-  DueDate?: string;
-  CustomerRef: { value: string; name?: string };
-  Line: Array<{
-    Amount: number;
-    Description?: string;
-    DetailType: string;
-    SalesItemLineDetail?: {
-      Qty?: number;
-      UnitPrice?: number;
-    };
-  }>;
 };
 
 /**

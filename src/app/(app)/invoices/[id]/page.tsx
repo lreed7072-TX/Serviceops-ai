@@ -28,6 +28,7 @@ type Invoice = {
   total: string | number;
   dueDate: string | null;
   paidAt: string | null;
+  qboInvoiceId: string | null;
   notes: string | null;
   terms: string | null;
   createdAt: string;
@@ -56,6 +57,7 @@ export default function InvoiceDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [sendingQbo, setSendingQbo] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const toast = useToast();
@@ -144,6 +146,28 @@ export default function InvoiceDetailPage() {
       setEmailing(false);
       setShowEmailConfirm(false);
       setPendingEmail(null);
+    }
+  };
+
+  const sendViaQbo = async () => {
+    if (!invoiceId || !invoice?.qboInvoiceId) return;
+    setSendingQbo(true);
+    try {
+      const res = await apiFetch("/api/integrations/qbo/send-invoice-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to send via QBO");
+      }
+      const data = await res.json();
+      toast.success(data.data.message);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send invoice via QBO");
+    } finally {
+      setSendingQbo(false);
     }
   };
 
@@ -285,6 +309,16 @@ export default function InvoiceDetailPage() {
           >
             {emailing ? "Sending..." : "Email to Customer"}
           </button>
+          {invoice.qboInvoiceId && (
+            <button
+              onClick={sendViaQbo}
+              disabled={sendingQbo}
+              className="btn btn-primary"
+              style={{ fontSize: 14, padding: "8px 16px" }}
+            >
+              {sendingQbo ? "Sending..." : "Send via QBO"}
+            </button>
+          )}
         </div>
 
         <h4 style={{ marginBottom: 8, marginTop: 16 }}>Update Status</h4>

@@ -165,6 +165,18 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - processVoidInvoiceInQbo: outbound cancel via void API (PAY-02 outbound)
   - Build passes, 0 QBO file errors
 
+- Phase 4, Plan 02: Complete (2026-03-09) — CDC cron route + flush dispatcher extension + vercel.json
+  - 3 commits: 9b8194a, 38d7585, 04413db
+  - Created GET /api/cron/qbo-cdc (212 lines): polls QBO CDC every 4h for Customer+Invoice changes
+  - First-run default lastPollAt = now - 4h; cursor advances only on success
+  - Multi-org isolation: per-org try/catch, failure cursor upsert, processing continues
+  - Dedup guard on (qboEntityId, entityType, status IN [pending,claimed]) before enqueue
+  - Writes qboEntityId + qboRealmId onto each created job row
+  - Extended qbo-flush dispatchJob switch: invoice:pull, customer:pull, invoice:void
+  - vercel.json now has 3 cron entries (generate-pms daily, qbo-flush 5min, qbo-cdc 4h)
+  - Build passes, 0 application file errors
+  - Requirements delivered (dispatch layer): SYNC-01, SYNC-02, PAY-02
+
 - Phase 4, Plan 03: Complete (2026-03-09) — Void trigger wired into invoice PATCH endpoint
   - 1 commit: dd9d078
   - Added `enqueue` import to invoice PATCH route
@@ -174,7 +186,7 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - Requirement delivered: PAY-02 (outbound cancel → QBO void trigger)
 
 ## Next Action
-Phase 4 Plan 03 complete. Proceed to Plan 04-04.
+Phase 4 Plan 02 complete. Proceed to Plan 04-04 (tests for CDC cron + inbound sync).
 
 ---
-*Last updated: 2026-03-09 after Phase 4 Plan 03 executed*
+*Last updated: 2026-03-09 after Phase 4 Plan 02 executed*

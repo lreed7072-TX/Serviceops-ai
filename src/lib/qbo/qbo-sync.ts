@@ -5,7 +5,15 @@ import {
   createInvoice,
   getValidAccessToken,
   queryEntities,
+  createItem,
+  getItem,
+  updateItem,
+  createEstimate,
+  getPayment,
+  getInvoice,
 } from "./qbo-client";
+import { toQboItem, toQboEstimate } from "./qbo-mapper";
+import type { QboItem, QboCustomer } from "./qbo-types";
 import { QboConnection } from "@prisma/client";
 
 /**
@@ -139,6 +147,82 @@ export async function resolveOrCreateQboEntity<T extends { Id: string }>(
   // No collision — create normally
   const entity = await createFn(displayName);
   return { entity, wasExisting: false };
+}
+
+// ============================================
+// MATERIAL / LABOR RATE ITEM SYNC
+// ============================================
+
+/**
+ * Sync a ServiceOps Material to QBO as a NonInventory Item.
+ * Creates new item if not yet synced, updates if already synced.
+ * Stores the QBO Item ID on the Material record.
+ */
+export async function syncMaterialToQbo(
+  orgId: string,
+  materialId: string
+): Promise<{ success: boolean; qboItemId?: string; error?: string }> {
+  const connection = await getActiveConnection(orgId);
+  if (!connection) return { success: false, error: "No active QBO connection" };
+
+  // Account mapping gate — materials need income account
+  const accountMapping = await requireAccountMapping(orgId);
+  if (!accountMapping.complete) {
+    return { success: false, error: `Account mapping required. Missing: ${accountMapping.missing.join(", ")}` };
+  }
+
+  const material = await prisma.material.findFirst({ where: { id: materialId, orgId } });
+  if (!material) return { success: false, error: "Material not found" };
+
+  try {
+    const incomeMapping = await getAccountMapping(orgId, "materials_income");
+    let qboItemId = material.qboItemId;
+
+    if (qboItemId) {
+      // Update existing
+      const existing = await getItem(connection, qboItemId);
+      const payload = toQboItem(
+        { name: material.name, description: material.manufacturer || undefined, unitCost: material.unitCost },
+        "NonInventory",
+        { value: incomeMapping.qboAccountId, name: incomeMapping.qboAccountName },
+        existing
+      );
+      await updateItem(connection, qboItemId, payload);
+    } else {
+      // Create new with collision check
+      const { entity } = await resolveOrCreateQboEntity<QboItem>(
+        connection,
+        "Item",
+        material.name,
+        (existing) => existing.Type === "NonInventory" && existing.Name === material.name,
+        async (finalName) => {
+          const payload = toQboItem(
+            { name: finalName, description: material.manufacturer || undefined, unitCost: material.unitCost },
+            "NonInventory",
+            { value: incomeMapping.qboAccountId, name: incomeMapping.qboAccountName }
+          );
+          return createItem(connection, payload);
+        }
+      );
+      qboItemId = entity.Id;
+
+      await prisma.material.update({
+        where: { id: materialId },
+        data: { qboItemId },
+      });
+    }
+
+    await prisma.qboSyncLog.create({
+      data: { orgId, connectionId: connection.id, entityType: "item", entityId: materialId, qboEntityId: qboItemId, action: "push", status: "success" },
+    });
+    return { success: true, qboItemId: qboItemId ?? undefined };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: { orgId, connectionId: connection.id, entityType: "item", entityId: materialId, action: "push", status: "failed", errorMessage },
+    });
+    return { success: false, error: errorMessage };
+  }
 }
 
 /**

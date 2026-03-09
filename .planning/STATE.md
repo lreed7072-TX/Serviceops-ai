@@ -185,8 +185,25 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - Build passes, 0 errors in application files
   - Requirement delivered: PAY-02 (outbound cancel → QBO void trigger)
 
+- Phase 4, Plan 04: Complete (2026-03-09) — Unit tests for inbound sync, CDC cron, and void flow
+  - 5 commits: 2e18d4d, c605a27, 526f5e9, cda8410, 03d9c0b
+  - inbound-customer.test.ts: 5 tests (processInboundCustomer + processCdcCustomerPull)
+  - cdc-invoice.test.ts: 6 tests (processCdcInvoiceChange: void, PAID, partial, no-op, orphan)
+  - void-invoice.test.ts: 4 tests (processVoidInvoiceInQbo: success, guard, no-qboId, no-conn)
+  - cdc-cron.test.ts: 4 tests (first-run, enqueue, failure no-advance, multi-org isolation)
+  - flush-inbound.test.ts: 3 tests (invoice:pull, customer:pull, invoice:void dispatch routing)
+  - 22 new tests all passing, 0 regressions in existing suite
+  - Requirements verified: PAY-02, SYNC-01, SYNC-02
+
+## Phase 4 Complete
+All 4 plans executed. Phase 4 deliverables:
+- Plan 01: processInboundCustomer, processCdcCustomerPull, processCdcInvoiceChange, processVoidInvoiceInQbo
+- Plan 02: GET /api/cron/qbo-cdc + flush dispatcher extended (invoice:pull, customer:pull, invoice:void) + vercel.json
+- Plan 03: PATCH /api/invoices/[id] wired — CANCELED transition enqueues invoice:void
+- Plan 04: 22 unit tests covering all Phase 4 functions and routes
+
 ## Next Action
-Phase 4 Plan 02 complete. Proceed to Plan 04-04 (tests for CDC cron + inbound sync).
+Phase 4 complete. All requirements PAY-02, SYNC-01, SYNC-02 delivered and tested.
 
 ---
-*Last updated: 2026-03-09 after Phase 4 Plan 02 executed*
+*Last updated: 2026-03-09 after Phase 4 Plan 04 executed*

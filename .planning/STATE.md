@@ -3,16 +3,17 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-07)
 **Core value:** Every financial transaction flows to QBO automatically
-**Current focus:** Phase 1 — Foundation & Bug Fixes
+**Current focus:** Phase 1 complete — ready for Phase 2
 
 ## Current Phase
 Phase: 1
-Status: Plans Ready
-Plans: 5/5
+Status: Complete
+Commits: 7 (a165f09 through 4b8c2d4)
 
 ## Phase History
 - Phase 1: Context completed 2026-03-08 (no gray areas — pure infrastructure)
-- Phase 1: Plans created 2026-03-08 (5 plans, 2 waves, 17 tasks)
+- Phase 1: Plans created 2026-03-08 (7 plans, 3 waves)
+- Phase 1: Executed 2026-03-08 (7 commits, all 9 FOUND requirements delivered)
 
 ## Decisions Log
 - Token refresh mutex: CAS flag on QboConnection (PgBouncer blocks SELECT FOR UPDATE)
@@ -20,9 +21,13 @@ Plans: 5/5
 - Decimal rounding: roundQboAmount() helper, .toFixed(2) before API
 - API version: Pin minorversion=75 as QBO_API_VERSION constant
 - Queue design: Prisma-based QboSyncJob, priority 1/5/9, 120s stale lock, 3 retries → dead_letter
-- Types scope: All QBO entity interfaces defined upfront (18 entities + common types)
+- Types scope: All QBO entity interfaces defined upfront (27 type exports)
 - Mapper pattern: Pure functions, no I/O, merge-based for updates
 - Vendor model: Deferred to Phase 5 (no standalone Vendor model exists yet)
+- Test stubs at src/__tests__/lib/qbo/ (matches vitest config include pattern)
+
+## Next Action
+Plan and execute Phase 2: Client Extensions + Account Mapping
 
 ---
-*Last updated: 2026-03-08 after Phase 1 plans created*
+*Last updated: 2026-03-08 after Phase 1 execution complete*

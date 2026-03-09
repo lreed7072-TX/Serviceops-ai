@@ -3,11 +3,11 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-07)
 **Core value:** Every financial transaction flows to QBO automatically
-**Current focus:** Phase 3 in progress — Plans 01-04 complete, Plan 05 remaining
+**Current focus:** Phase 3 COMPLETE — all 5 plans executed, all 13 requirements delivered
 
 ## Current Phase
 Phase: 3
-Status: Executing — Plans 01-04 complete
+Status: Complete — all 5 plans executed
 Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-03, SYNC-04, DASH-01, DASH-02, DASH-03, DASH-05
 
 ## Phase History
@@ -128,8 +128,16 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - Build passes, 0 errors
   - Requirements delivered (UI layer): PAY-03, DASH-01, DASH-02, DASH-03
 
+- Phase 3, Plan 05: Complete (2026-03-09) — Unit tests for sync, webhook, cron, mapper
+  - 3 commits: 5451dda, c86d848, 2d1a86d
+  - mapper-items.test.ts: 11 tests (toQboItem pure mapper + resolveOrCreateQboEntity collision helper)
+  - sync-functions.test.ts: 14 tests (syncMaterialToQbo, syncQuoteToQbo, syncInvoiceToQbo, processPaymentJob)
+  - webhook-cron.test.ts: 13 tests (webhook dedup + cron dispatcher routing)
+  - 38 new tests, all passing, 0 regressions in existing suite
+  - Requirements verified: PAY-01, ITEM-01, ITEM-02, VEND-02, QUOT-01, QUOT-02, SYNC-03, SYNC-04, DASH-05
+
 ## Next Action
-Execute Phase 3, Plan 05: Unit tests for sync, webhook, cron, mapper
+Phase 3 complete. Begin Phase 4 context gathering.
 
 ---
-*Last updated: 2026-03-09 after Phase 3 Plan 04 executed*
+*Last updated: 2026-03-09 after Phase 3 Plan 05 executed*

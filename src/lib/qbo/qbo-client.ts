@@ -1,7 +1,7 @@
 import { QboConnection } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { QboCustomer, QboInvoice } from "./qbo-types";
-export type { QboCustomer, QboInvoice };
+import type { QboCustomer, QboInvoice, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount } from "./qbo-types";
+export type { QboCustomer, QboInvoice, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount };
 
 // QBO API endpoints
 const QBO_SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com/v3/company";

@@ -165,8 +165,16 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - processVoidInvoiceInQbo: outbound cancel via void API (PAY-02 outbound)
   - Build passes, 0 QBO file errors
 
+- Phase 4, Plan 03: Complete (2026-03-09) — Void trigger wired into invoice PATCH endpoint
+  - 1 commit: dd9d078
+  - Added `enqueue` import to invoice PATCH route
+  - CANCELED transition guard: enqueues invoice:void (priority 1) fire-and-forget when qboInvoiceId exists
+  - Pre-update existing.qboInvoiceId check guards against enqueuing for non-QBO-synced invoices
+  - Build passes, 0 errors in application files
+  - Requirement delivered: PAY-02 (outbound cancel → QBO void trigger)
+
 ## Next Action
-Phase 4 Plan 01 complete. Proceed to Plan 04-02 (CDC polling engine — SYNC-01).
+Phase 4 Plan 03 complete. Proceed to Plan 04-04.
 
 ---
-*Last updated: 2026-03-09 after Phase 4 Plan 01 executed*
+*Last updated: 2026-03-09 after Phase 4 Plan 03 executed*

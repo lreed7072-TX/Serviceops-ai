@@ -467,6 +467,58 @@ export async function updateItem(
 }
 
 /**
+ * Create an estimate in QBO.
+ * estimateData must include CustomerRef and Line at minimum.
+ */
+export async function createEstimate(
+  connection: QboConnection,
+  estimateData: Partial<QboEstimate>
+): Promise<QboEstimate> {
+  const result = await qboRequest(connection, "POST", "estimate", estimateData as Record<string, unknown>) as {
+    Estimate: QboEstimate;
+  };
+  return result.Estimate;
+}
+
+/**
+ * Get an estimate from QBO by ID.
+ */
+export async function getEstimate(
+  connection: QboConnection,
+  qboEstimateId: string
+): Promise<QboEstimate> {
+  const result = await qboRequest(connection, "GET", `estimate/${qboEstimateId}`) as {
+    Estimate: QboEstimate;
+  };
+  return result.Estimate;
+}
+
+/**
+ * Update an estimate in QBO.
+ * Uses the fetch-merge-POST pattern to preserve unmanaged fields.
+ */
+export async function updateEstimate(
+  connection: QboConnection,
+  qboEstimateId: string,
+  estimateData: Partial<QboEstimate>
+): Promise<QboEstimate> {
+  // 1. Fetch the full existing entity (includes SyncToken and all fields)
+  const existing = await getEstimate(connection, qboEstimateId);
+
+  // 2. Merge — spread existing entity, then override with provided fields
+  const merged: Record<string, unknown> = {
+    ...(existing as Record<string, unknown>),
+    ...(estimateData as Record<string, unknown>),
+  };
+
+  // 3. POST the complete merged payload
+  const result = (await qboRequest(connection, "POST", "estimate", merged)) as {
+    Estimate: QboEstimate;
+  };
+  return result.Estimate;
+}
+
+/**
  * Get company info from QBO (used to display connected company name).
  */
 export async function getCompanyInfo(

@@ -7,6 +7,9 @@ import {
   syncLaborRateToQbo,
   syncQuoteToQbo,
   processPaymentJob,
+  processCdcInvoiceChange,
+  processCdcCustomerPull,
+  processVoidInvoiceInQbo,
 } from "@/lib/qbo/qbo-sync";
 import type { QboSyncJob } from "@prisma/client";
 
@@ -101,6 +104,34 @@ async function dispatchJob(job: QboSyncJob): Promise<void> {
       }
       const payResult = await processPaymentJob(job.orgId, qboPaymentId, realmId);
       if (!payResult.success) throw new Error(payResult.error || "Payment processing failed");
+      break;
+    }
+
+    case "invoice:pull": {
+      const qboInvoiceId = (payload.qboEntityId as string) || job.qboEntityId;
+      const realmId = (payload.realmId as string) || job.qboRealmId;
+      if (!qboInvoiceId || !realmId) {
+        throw new Error("invoice:pull missing qboEntityId or realmId");
+      }
+      const invPullResult = await processCdcInvoiceChange(job.orgId, qboInvoiceId, realmId);
+      if (!invPullResult.success) throw new Error(invPullResult.error || "Invoice CDC processing failed");
+      break;
+    }
+
+    case "customer:pull": {
+      const qboCustomerId = (payload.qboEntityId as string) || job.qboEntityId;
+      const realmId = (payload.realmId as string) || job.qboRealmId;
+      if (!qboCustomerId || !realmId) {
+        throw new Error("customer:pull missing qboEntityId or realmId");
+      }
+      const custPullResult = await processCdcCustomerPull(job.orgId, qboCustomerId, realmId);
+      if (!custPullResult.success) throw new Error(custPullResult.error || "Customer inbound sync failed");
+      break;
+    }
+
+    case "invoice:void": {
+      const voidResult = await processVoidInvoiceInQbo(job.orgId, job.entityId);
+      if (!voidResult.success) throw new Error(voidResult.error || "Invoice void failed");
       break;
     }
 

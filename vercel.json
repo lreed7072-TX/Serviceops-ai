@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/generate-pms",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/qbo-flush",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

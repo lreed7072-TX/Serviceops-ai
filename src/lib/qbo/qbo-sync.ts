@@ -8,6 +8,18 @@ import {
 import { QboConnection } from "@prisma/client";
 
 /**
+ * Round a Decimal/number to 2 decimal places for QBO API compatibility.
+ * QBO validates amounts to 2 decimal places; IEEE 754 floating point
+ * can produce artifacts like 123.45000000000000284217... from Prisma Decimal.
+ */
+function roundQboAmount(value: { toFixed(digits: number): string } | number | string): number {
+  if (typeof value === "object" && value !== null && "toFixed" in value) {
+    return Number(value.toFixed(2));
+  }
+  return Number(Number(value).toFixed(2));
+}
+
+/**
  * Get the active QBO connection for an org, or null if not connected.
  */
 export async function getActiveConnection(orgId: string): Promise<QboConnection | null> {
@@ -146,9 +158,9 @@ export async function syncInvoiceToQbo(
     // Build line items for QBO
     const lineItems = invoice.lineItems.map((item) => ({
       description: item.description,
-      amount: Number(item.totalPrice),
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
+      amount: roundQboAmount(item.totalPrice),
+      quantity: roundQboAmount(item.quantity),
+      unitPrice: roundQboAmount(item.unitPrice),
     }));
 
     // Create invoice in QBO

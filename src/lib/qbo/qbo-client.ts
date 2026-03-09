@@ -9,6 +9,9 @@ const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer
 
 const isSandbox = process.env.QBO_ENVIRONMENT !== "production";
 
+/** QBO API minor version — pinned to 75 (all versions below deprecated Aug 2025) */
+export const QBO_API_VERSION = "75";
+
 function getApiBase(): string {
   return isSandbox ? QBO_SANDBOX_BASE : QBO_PRODUCTION_BASE;
 }
@@ -194,7 +197,10 @@ async function qboRequest(
   body?: Record<string, unknown>
 ): Promise<unknown> {
   const accessToken = await getValidAccessToken(connection);
-  const url = `${getApiBase()}/${connection.realmId}/${path}`;
+  const base = `${getApiBase()}/${connection.realmId}/${path}`;
+  const url = base.includes("?")
+    ? `${base}&minorversion=${QBO_API_VERSION}`
+    : `${base}?minorversion=${QBO_API_VERSION}`;
 
   const headers: Record<string, string> = {
     "Authorization": `Bearer ${accessToken}`,
@@ -268,20 +274,29 @@ export async function updateCustomer(
     phone?: string | null;
   }
 ): Promise<QboCustomer> {
-  // First fetch to get SyncToken (required for updates)
+  // 1. Fetch the full existing entity (includes SyncToken and all fields)
   const existing = await getCustomer(connection, qboCustomerId);
 
-  const qboCustomer: Record<string, unknown> = {
-    Id: qboCustomerId,
-    SyncToken: (existing as Record<string, unknown>).SyncToken,
+  // 2. Merge — spread existing entity, then override only ServiceOps-managed fields
+  const merged: Record<string, unknown> = {
+    ...(existing as Record<string, unknown>),
     DisplayName: customerData.displayName,
   };
 
-  if (customerData.email) {
-    qboCustomer.PrimaryEmailAddr = { Address: customerData.email };
+  // Only override email/phone if explicitly provided
+  if (customerData.email !== undefined) {
+    merged.PrimaryEmailAddr = customerData.email
+      ? { Address: customerData.email }
+      : undefined;
+  }
+  if (customerData.phone !== undefined) {
+    merged.PrimaryPhone = customerData.phone
+      ? { FreeFormNumber: customerData.phone }
+      : undefined;
   }
 
-  const result = await qboRequest(connection, "POST", "customer", qboCustomer) as {
+  // 3. POST the complete merged payload
+  const result = (await qboRequest(connection, "POST", "customer", merged)) as {
     Customer: QboCustomer;
   };
   return result.Customer;

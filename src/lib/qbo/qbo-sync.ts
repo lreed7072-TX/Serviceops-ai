@@ -326,16 +326,30 @@ export async function syncCustomerToQbo(
         phone: customer.primaryPhone,
       });
     } else {
-      // Create new QBO customer
-      const qboCustomer = await createCustomer(connection, {
-        displayName: customer.name,
-        email: customer.primaryEmail,
-        phone: customer.primaryPhone,
-        billingStreet1: customer.billingStreet1,
-        billingCity: customer.billingCity,
-        billingState: customer.billingState,
-        billingPostalCode: customer.billingPostalCode,
-      });
+      // Create new QBO customer with DisplayName collision handling
+      const { entity: qboCustomer } = await resolveOrCreateQboEntity<QboCustomer>(
+        connection,
+        "Customer",
+        customer.name,
+        (existing) => {
+          // Match on email if available
+          if (customer.primaryEmail && existing.PrimaryEmailAddr?.Address) {
+            return existing.PrimaryEmailAddr.Address.toLowerCase() === customer.primaryEmail.toLowerCase();
+          }
+          return false;
+        },
+        async (finalDisplayName) => {
+          return createCustomer(connection, {
+            displayName: finalDisplayName,
+            email: customer.primaryEmail,
+            phone: customer.primaryPhone,
+            billingStreet1: customer.billingStreet1,
+            billingCity: customer.billingCity,
+            billingState: customer.billingState,
+            billingPostalCode: customer.billingPostalCode,
+          });
+        }
+      );
 
       qboCustomerId = qboCustomer.Id;
 

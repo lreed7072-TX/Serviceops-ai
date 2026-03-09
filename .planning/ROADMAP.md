@@ -110,6 +110,8 @@
 
 ## Phase 4: Inbound Sync
 
+**Status:** In Progress — Plan 01 complete (5 commits), Plans 02-04 remaining
+
 **Goal:** Close the bidirectional sync loop: CDC polling engine pulls all QBO entity changes every 4 hours, the full webhook dispatcher processes Payment and Invoice events correctly, and customer records flow from QBO into ServiceOpsIQ with conflict resolution.
 
 **Requirements:** PAY-02, SYNC-01, SYNC-02

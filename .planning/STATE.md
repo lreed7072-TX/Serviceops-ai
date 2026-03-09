@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-last_updated: "2026-03-09T16:51:40.534Z"
+status: in_progress
+last_updated: "2026-03-09T18:30:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 10
 ---
 
 # Project State: QBO Full Integration
@@ -149,8 +149,24 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - 38 new tests, all passing, 0 regressions in existing suite
   - Requirements verified: PAY-01, ITEM-01, ITEM-02, VEND-02, QUOT-01, QUOT-02, SYNC-03, SYNC-04, DASH-05
 
+## Phase 4 Decisions
+- `voidInvoice` and `getCustomer` imports added to qbo-sync.ts in task 03 commit (both needed for tasks 03 and 05)
+- InvoiceStatus string literals used directly ("CANCELED"/"PAID") — no extra import needed, matches Prisma enum values exactly
+- processCdcInvoiceChange handles QBO-only invoices (not in ServiceOps) gracefully: log + return success
+- processVoidInvoiceInQbo logs success (not error) on already-voided guard — idempotent semantics
+
+## Phase 4 Execution Log
+- Phase 4, Plan 01: Complete (2026-03-09) — QboInvoice type fix + 4 inbound sync functions
+  - 5 commits: 4a8c8ef, 1aa290c, 80c752b, 4d492df, 21d6c7b
+  - Added `status?: string` to QboInvoice for void detection
+  - processInboundCustomer: create/update with field-ownership split (SYNC-02)
+  - processCdcCustomerPull: cron dispatcher wrapper
+  - processCdcInvoiceChange: void + full/partial payment detection (PAY-02 inbound)
+  - processVoidInvoiceInQbo: outbound cancel via void API (PAY-02 outbound)
+  - Build passes, 0 QBO file errors
+
 ## Next Action
-Phase 3 complete. Begin Phase 4 context gathering.
+Phase 4 Plan 01 complete. Proceed to Plan 04-02 (CDC polling engine — SYNC-01).
 
 ---
-*Last updated: 2026-03-09 after Phase 3 Plan 05 executed*
+*Last updated: 2026-03-09 after Phase 4 Plan 01 executed*

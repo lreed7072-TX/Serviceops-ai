@@ -286,6 +286,213 @@
   color: #d97706;
 }
 
+/* ============================================
+   Account Mapping Section
+   ============================================ */
+
+.account-mapping-section {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.account-mapping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.account-mapping-header h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.mapping-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mapping-status-indicator.complete {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.mapping-status-indicator.incomplete {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.mapping-refresh-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  transition: background 200ms, border-color 200ms;
+}
+
+.mapping-refresh-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.mapping-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mapping Rows */
+.mapping-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapping-row {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f9fafb;
+}
+
+.mapping-row:last-child {
+  border-bottom: none;
+}
+
+.mapping-row-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.mapping-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #111827;
+  background: white;
+  cursor: pointer;
+  transition: border-color 200ms;
+  appearance: auto;
+}
+
+.mapping-select:hover {
+  border-color: #9ca3af;
+}
+
+.mapping-select:focus {
+  outline: none;
+  border-color: var(--accent, #f97316);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.mapping-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.mapping-account-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.mapping-account-type.income {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.mapping-account-type.expense {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.mapping-row-saving {
+  font-size: 0.75rem;
+  color: var(--accent, #f97316);
+  font-weight: 500;
+}
+
+.mapping-row-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Accounts Loading / Error State */
+.mapping-accounts-loading {
+  text-align: center;
+  padding: 24px;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.mapping-accounts-error {
+  text-align: center;
+  padding: 24px;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.mapping-accounts-error button {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--accent, #f97316);
+  background: white;
+  color: var(--accent, #f97316);
+  transition: background 200ms;
+}
+
+.mapping-accounts-error button:hover {
+  background: #fff7ed;
+}
+
+/* Warning Banner — incomplete mapping */
+.mapping-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.mapping-warning-banner svg {
+  flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .integration-card-header {
@@ -312,6 +519,16 @@
 
   .integration-card-body {
     padding: 16px;
+  }
+
+  .mapping-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .account-mapping-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

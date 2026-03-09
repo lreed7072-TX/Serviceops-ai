@@ -12,7 +12,7 @@ import {
   getPayment,
   getInvoice,
 } from "./qbo-client";
-import { toQboItem, toQboEstimate } from "./qbo-mapper";
+import { toQboItem, toQboEstimate, fromQboCustomer } from "./qbo-mapper";
 import type { QboItem, QboCustomer } from "./qbo-types";
 import { QboConnection } from "@prisma/client";
 
@@ -859,5 +859,107 @@ export async function processPaymentJob(
       },
     });
     return { success: false, error: errorMessage };
+  }
+}
+
+// ============================================
+// INBOUND CUSTOMER SYNC (SYNC-02)
+// ============================================
+
+/**
+ * Process an inbound QBO customer into ServiceOps.
+ * Handles create and update paths with field-ownership split:
+ * - QBO wins: name, primaryEmail, primaryPhone, billing address fields
+ * - ServiceOps wins: status, operational fields (not touched here)
+ *
+ * Lookup precedence:
+ * 1. Match by qboCustomerId (strongest link)
+ * 2. Fallback: match by primaryEmail (for pre-existing customers not yet linked)
+ */
+export async function processInboundCustomer(
+  orgId: string,
+  qboCustomer: QboCustomer,
+  connectionId: string
+): Promise<{ success: boolean; action: "created" | "updated" | "skipped"; error?: string }> {
+  try {
+    // Find existing customer by QBO ID first
+    let existing = await prisma.customer.findFirst({
+      where: { qboCustomerId: qboCustomer.Id, orgId },
+    });
+
+    // Fallback: match by email if QBO ID not found
+    if (!existing && qboCustomer.PrimaryEmailAddr?.Address) {
+      existing = await prisma.customer.findFirst({
+        where: { primaryEmail: qboCustomer.PrimaryEmailAddr.Address, orgId },
+      });
+    }
+
+    // Extract QBO-wins fields via pure mapper
+    const fields = fromQboCustomer(qboCustomer);
+
+    // Build metadata for logging — include qboActive flag if customer is inactive in QBO
+    const metadataBase: Record<string, unknown> = { source: "qbo_cdc" };
+    if (qboCustomer.Active === false) {
+      metadataBase.qboActive = false; // Note only — ServiceOps wins on status
+    }
+
+    if (existing) {
+      // Update path: apply QBO-wins fields, always set qboCustomerId link
+      await prisma.customer.update({
+        where: { id: existing.id },
+        data: { ...fields, qboCustomerId: qboCustomer.Id },
+      });
+
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId,
+          entityType: "customer",
+          entityId: existing.id,
+          qboEntityId: qboCustomer.Id,
+          action: "pull",
+          status: "success",
+          metadata: { ...metadataBase, fieldsUpdated: Object.keys(fields) },
+        },
+      });
+
+      return { success: true, action: "updated" };
+    } else {
+      // Create path: new customer record from QBO data
+      // createdByUserId is nullable on Customer model — omit for CDC-created records
+      const created = await prisma.customer.create({
+        data: { orgId, qboCustomerId: qboCustomer.Id, ...fields },
+      });
+
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId,
+          entityType: "customer",
+          entityId: created.id,
+          qboEntityId: qboCustomer.Id,
+          action: "pull",
+          status: "success",
+          metadata: { ...metadataBase, action: "created_inbound" },
+        },
+      });
+
+      return { success: true, action: "created" };
+    }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId,
+        entityType: "customer",
+        entityId: orgId,
+        qboEntityId: qboCustomer.Id,
+        action: "pull",
+        status: "failed",
+        errorMessage,
+      },
+    });
+    return { success: false, action: "skipped", error: errorMessage };
   }
 }

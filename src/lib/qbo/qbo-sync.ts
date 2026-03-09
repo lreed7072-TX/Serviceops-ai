@@ -1001,3 +1001,151 @@ export async function processCdcCustomerPull(
     return { success: false, error: errorMessage };
   }
 }
+
+// ============================================
+// INBOUND INVOICE CHANGE DETECTION (PAY-02)
+// ============================================
+
+/**
+ * Process a CDC Invoice change event from QBO.
+ * Detects voids, full payments, and partial payments.
+ *
+ * Detection order (in priority):
+ * 1. Void: status === "Voided" → mark CANCELED (no-op if already CANCELED)
+ * 2. Full payment: Balance === 0 → mark PAID with paidAt (no-op if already PAID)
+ * 3. Partial payment: 0 < Balance < TotalAmt → log only, no status change
+ * 4. No change: self-originated CDC entity — return success
+ *
+ * Uses string literal "CANCELED" / "PAID" which match Prisma InvoiceStatus enum values.
+ */
+export async function processCdcInvoiceChange(
+  orgId: string,
+  qboInvoiceId: string,
+  realmId: string
+): Promise<{ success: boolean; error?: string }> {
+  const connection = await prisma.qboConnection.findFirst({
+    where: { orgId, realmId, isActive: true },
+  });
+  if (!connection) return { success: false, error: `No active QBO connection for realm ${realmId}` };
+
+  try {
+    // Fetch current invoice state from QBO (includes status and Balance)
+    const qboInvoice = await getInvoice(connection, qboInvoiceId);
+
+    // Find matching ServiceOps invoice
+    const invoice = await prisma.invoice.findFirst({
+      where: { orgId, qboInvoiceId },
+    });
+
+    if (!invoice) {
+      // QBO invoice not tracked in ServiceOps — log and return success
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "invoice",
+          entityId: orgId,
+          qboEntityId: qboInvoiceId,
+          action: "pull",
+          status: "success",
+          metadata: { source: "qbo_cdc", note: "Invoice not found in ServiceOps — skipped" },
+        },
+      });
+      return { success: true };
+    }
+
+    // 1. Void detection
+    if (qboInvoice.status === "Voided") {
+      if (invoice.status === "CANCELED") {
+        return { success: true }; // No-op: already in correct state
+      }
+
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { status: "CANCELED" },
+      });
+
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "invoice",
+          entityId: invoice.id,
+          qboEntityId: qboInvoiceId,
+          action: "pull",
+          status: "success",
+          metadata: { source: "qbo_cdc", voided: true },
+        },
+      });
+
+      return { success: true };
+    }
+
+    // 2. Full payment detection
+    if (qboInvoice.Balance === 0) {
+      if (invoice.status === "PAID") {
+        return { success: true }; // No-op: already in correct state
+      }
+
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { status: "PAID", paidAt: new Date() },
+      });
+
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "invoice",
+          entityId: invoice.id,
+          qboEntityId: qboInvoiceId,
+          action: "pull",
+          status: "success",
+          metadata: { source: "qbo_cdc", fullyPaid: true, balance: 0 },
+        },
+      });
+
+      return { success: true };
+    }
+
+    // 3. Partial payment detection
+    if (qboInvoice.Balance > 0 && qboInvoice.Balance < qboInvoice.TotalAmt) {
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "invoice",
+          entityId: invoice.id,
+          qboEntityId: qboInvoiceId,
+          action: "pull",
+          status: "success",
+          metadata: {
+            source: "qbo_cdc",
+            remainingBalance: qboInvoice.Balance,
+            note: "Partial payment",
+          },
+        },
+      });
+
+      return { success: true };
+    }
+
+    // 4. No change (self-originated CDC entity or no actionable diff)
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "invoice",
+        entityId: orgId,
+        qboEntityId: qboInvoiceId,
+        action: "pull",
+        status: "failed",
+        errorMessage,
+      },
+    });
+    return { success: false, error: errorMessage };
+  }
+}

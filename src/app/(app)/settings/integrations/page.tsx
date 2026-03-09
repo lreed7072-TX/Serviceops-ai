@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle, RefreshCw, Activity } from "lucide-react";
 import "./integrations.css";
 
 type QboConnectionStatus = {
@@ -351,6 +352,24 @@ export default function IntegrationsPage() {
                 >
                   {disconnecting ? "Disconnecting..." : "Disconnect"}
                 </button>
+                <Link
+                  href="/settings/integrations/qbo-health"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 16px",
+                    fontSize: 14,
+                    color: "var(--accent, #f97316)",
+                    textDecoration: "none",
+                    border: "1px solid var(--accent, #f97316)",
+                    borderRadius: 6,
+                    fontWeight: 500,
+                  }}
+                >
+                  <Activity size={16} />
+                  View Sync Health
+                </Link>
               </div>
 
               {/* Sync Log Table */}

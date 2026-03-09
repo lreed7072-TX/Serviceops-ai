@@ -136,26 +136,81 @@ export async function refreshAccessToken(
 export async function getValidAccessToken(
   connection: QboConnection
 ): Promise<string> {
-  // Check if token is expired (with 5 min buffer)
+  // Check if token is still valid (with 5 min buffer)
   const now = new Date();
   const bufferMs = 5 * 60 * 1000;
   if (connection.accessTokenExpiry.getTime() - bufferMs > now.getTime()) {
     return connection.accessToken;
   }
 
-  // Token expired, refresh it
-  const tokens = await refreshAccessToken(connection);
-
-  await prisma.qboConnection.update({
-    where: { id: connection.id },
+  // Token expired — attempt to acquire refresh lock via CAS
+  const lockResult = await prisma.qboConnection.updateMany({
+    where: {
+      id: connection.id,
+      refreshInProgress: false,
+    },
     data: {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      accessTokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
+      refreshInProgress: true,
+      refreshLockedAt: new Date(),
     },
   });
 
-  return tokens.accessToken;
+  if (lockResult.count === 1) {
+    // This instance won the lock — perform the refresh
+    try {
+      const tokens = await refreshAccessToken(connection);
+      await prisma.qboConnection.update({
+        where: { id: connection.id },
+        data: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          accessTokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
+          refreshTokenExpiry: new Date(Date.now() + 100 * 24 * 60 * 60 * 1000),
+          refreshInProgress: false,
+          refreshLockedAt: null,
+        },
+      });
+      return tokens.accessToken;
+    } catch (err) {
+      // Always clear lock on failure
+      await prisma.qboConnection.updateMany({
+        where: { id: connection.id, refreshInProgress: true },
+        data: { refreshInProgress: false, refreshLockedAt: null },
+      }).catch(() => {}); // Swallow — already in error path
+      throw err;
+    }
+  }
+
+  // Lost the CAS — another instance is refreshing. Check for stale lock first.
+  const existing = await prisma.qboConnection.findUnique({
+    where: { id: connection.id },
+  });
+  if (
+    existing?.refreshLockedAt &&
+    Date.now() - existing.refreshLockedAt.getTime() > 30_000
+  ) {
+    // Stale lock — force clear and retry
+    await prisma.qboConnection.updateMany({
+      where: { id: connection.id, refreshInProgress: true },
+      data: { refreshInProgress: false, refreshLockedAt: null },
+    });
+    return getValidAccessToken(connection);
+  }
+
+  // Poll until the refresh completes
+  const MAX_POLLS = 5;
+  const POLL_INTERVAL_MS = 200;
+  for (let i = 0; i < MAX_POLLS; i++) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    const fresh = await prisma.qboConnection.findUnique({
+      where: { id: connection.id },
+    });
+    if (fresh && !fresh.refreshInProgress) {
+      return fresh.accessToken;
+    }
+  }
+
+  throw new Error("Token refresh lock timed out after polling");
 }
 
 /**

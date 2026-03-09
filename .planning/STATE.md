@@ -7,7 +7,7 @@ See: .planning/PROJECT.md (updated 2026-03-07)
 
 ## Current Phase
 Phase: 3
-Status: Not started — ready for context gathering
+Status: Context gathered — ready for planning
 Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-03, SYNC-04, DASH-01, DASH-02, DASH-03, DASH-05
 
 ## Phase History
@@ -65,8 +65,19 @@ Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-
   - Optimistic save per row with revert-on-failure
   - Yellow warning banner when mapping incomplete
 
+## Phase 3 Decisions
+- Payment: Mark PAID only when QBO invoice Balance=0 (no partial payment field on Invoice model)
+- Items: All materials sync as NonInventory type (no QBO inventory tracking)
+- DisplayName collision: Query-before-create, match on email (customers) or name+type (items), append "(SvcOps)" suffix on collision
+- Webhook rewrite: Thin dispatcher → enqueue to QboSyncJob → return 200 in <50ms
+- Dedup: Check existing pending/claimed job with same (entityType, qboEntityId, action) before enqueue
+- Queue flush: 30 jobs per invocation, sequential processing, every 5 minutes
+- Health dashboard: New page /settings/integrations/qbo-health
+- Estimate-to-invoice: LinkedTxn reference when quote has qboEstimateId
+- ItemRef cascade: Auto-sync materials/labor rates before invoice sync if missing qboItemId
+
 ## Next Action
-Start Phase 3: /gsd:discuss-phase 3
+Plan Phase 3: /gsd:plan-phase 3
 
 ---
-*Last updated: 2026-03-09 after Phase 2 verification passed*
+*Last updated: 2026-03-09 after Phase 3 context gathered*

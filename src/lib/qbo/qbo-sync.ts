@@ -11,6 +11,8 @@ import {
   createEstimate,
   getPayment,
   getInvoice,
+  getCustomer,
+  voidInvoice,
 } from "./qbo-client";
 import { toQboItem, toQboEstimate, fromQboCustomer } from "./qbo-mapper";
 import type { QboItem, QboCustomer } from "./qbo-types";
@@ -961,5 +963,41 @@ export async function processInboundCustomer(
       },
     });
     return { success: false, action: "skipped", error: errorMessage };
+  }
+}
+
+/**
+ * Wrapper called by the cron flush dispatcher for CDC customer events.
+ * Fetches the QBO customer by ID and delegates to processInboundCustomer().
+ */
+export async function processCdcCustomerPull(
+  orgId: string,
+  qboCustomerId: string,
+  realmId: string
+): Promise<{ success: boolean; error?: string }> {
+  const connection = await prisma.qboConnection.findFirst({
+    where: { orgId, realmId, isActive: true },
+  });
+  if (!connection) return { success: false, error: `No active QBO connection for realm ${realmId}` };
+
+  try {
+    const qboCustomer = await getCustomer(connection, qboCustomerId);
+    const result = await processInboundCustomer(orgId, qboCustomer, connection.id);
+    return { success: result.success, error: result.error };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "customer",
+        entityId: orgId,
+        qboEntityId: qboCustomerId,
+        action: "pull",
+        status: "failed",
+        errorMessage,
+      },
+    });
+    return { success: false, error: errorMessage };
   }
 }

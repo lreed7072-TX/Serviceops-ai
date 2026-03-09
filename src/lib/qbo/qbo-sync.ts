@@ -1149,3 +1149,85 @@ export async function processCdcInvoiceChange(
     return { success: false, error: errorMessage };
   }
 }
+
+// ============================================
+// OUTBOUND VOID (PAY-02)
+// ============================================
+
+/**
+ * Void a QBO invoice when the corresponding ServiceOps invoice is CANCELED.
+ * Fetches a fresh SyncToken before voiding (ServiceOps does not store SyncToken).
+ * Guards against voiding an already-voided invoice to prevent double-void errors.
+ * The existing retry infrastructure in qbo-queue handles stale SyncToken errors.
+ */
+export async function processVoidInvoiceInQbo(
+  orgId: string,
+  invoiceId: string
+): Promise<{ success: boolean; error?: string }> {
+  const connection = await getActiveConnection(orgId);
+  if (!connection) return { success: false, error: "No active QBO connection" };
+
+  try {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, orgId },
+    });
+
+    if (!invoice) return { success: false, error: "Invoice not found" };
+
+    if (!invoice.qboInvoiceId) {
+      return { success: false, error: "Invoice not synced to QBO" };
+    }
+
+    // Fetch fresh SyncToken — required for QBO void operation
+    const qboInvoice = await getInvoice(connection, invoice.qboInvoiceId);
+
+    // Guard: already voided in QBO — skip to prevent double-void error (Risk 7)
+    if (qboInvoice.status === "Voided") {
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "invoice",
+          entityId: invoiceId,
+          qboEntityId: invoice.qboInvoiceId,
+          action: "void",
+          status: "success",
+          metadata: { note: "Already voided in QBO — skipped" },
+        },
+      });
+      return { success: true };
+    }
+
+    // Void the invoice in QBO using fresh SyncToken
+    await voidInvoice(connection, invoice.qboInvoiceId, qboInvoice.SyncToken);
+
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        qboEntityId: invoice.qboInvoiceId,
+        action: "void",
+        status: "success",
+        metadata: { source: "serviceops_cancel" },
+      },
+    });
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        action: "void",
+        status: "failed",
+        errorMessage,
+      },
+    });
+    return { success: false, error: errorMessage };
+  }
+}

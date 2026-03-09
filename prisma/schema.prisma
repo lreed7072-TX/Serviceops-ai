@@ -328,6 +328,9 @@ model Org {
   workOrderPhotos        WorkOrderPhoto[]
   techPhotos             TechPhoto[]
   qboConnection          QboConnection?
+  qboSyncJobs            QboSyncJob[]
+  qboAccountMaps         QboAccountMap[]
+  qboCdcCursors          QboCdcCursor[]
   customerPortalTokens   CustomerPortalToken[]
   formResponses          FormResponse[]
 
@@ -877,6 +880,7 @@ model TimeEntry {
   // Accumulated seconds before current running segment
   accumulatedSeconds Int             @default(0)
   notes              String?
+  qboTimeActivityId  String?         // QBO TimeActivity entity ID after sync
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
@@ -1049,6 +1053,7 @@ model Material {
   maxQuantity    Decimal?  @db.Decimal(10, 2) // Max stock level
   location       String? // Storage location
   lastRestocked  DateTime? // Last time stock was added
+  qboItemId      String?   // QBO Item (Product/Service) entity ID after sync
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1202,6 +1207,8 @@ model Quote {
   approvedByName        String?
   rejectedAt            DateTime?
   rejectionReason       String?
+  qboEstimateId         String?     // QBO Estimate entity ID after sync
+  qboSyncedAt           DateTime?   // Last QBO sync timestamp
   convertedToOrderId    String?     @db.Uuid // Reference to created WO/SO/PJ
   convertedToOrderType  OrderType?
   createdByUserId       String      @db.Uuid
@@ -1292,6 +1299,7 @@ model LaborRate {
   description String?
   hourlyRate  Decimal  @db.Decimal(10, 2)
   isDefault   Boolean  @default(false)
+  qboItemId   String?  // QBO Item (Service) entity ID after sync
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1704,16 +1712,21 @@ model QboConnection {
   realmId           String // QBO Company ID
   accessToken       String    @db.Text
   refreshToken      String    @db.Text
-  accessTokenExpiry DateTime
-  companyName       String?
+  accessTokenExpiry  DateTime
+  refreshTokenExpiry DateTime?          // 100-day refresh token expiry for proactive monitoring
+  refreshInProgress  Boolean   @default(false) // CAS flag for token refresh mutex (FOUND-01)
+  refreshLockedAt    DateTime?          // Stale lock detection timestamp
+  companyName        String?
   isActive          Boolean   @default(true)
   connectedAt       DateTime  @default(now())
   lastSyncAt        DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  org      Org          @relation(fields: [orgId], references: [id])
-  syncLogs QboSyncLog[]
+  org        Org            @relation(fields: [orgId], references: [id])
+  syncLogs   QboSyncLog[]
+  syncJobs   QboSyncJob[]
+  cdcCursors QboCdcCursor[]
 
   @@index([orgId])
 }
@@ -1735,6 +1748,67 @@ model QboSyncLog {
 
   @@index([orgId, entityType])
   @@index([connectionId])
+}
+
+model QboSyncJob {
+  id           String    @id @default(uuid()) @db.Uuid
+  orgId        String    @db.Uuid
+  connectionId String    @db.Uuid
+  entityType   String    // "customer" | "invoice" | "estimate" | "item" | "employee" | "vendor" | "timeActivity" | "expense" | "payment" | "creditMemo"
+  entityId     String    @db.Uuid
+  action       String    // "push" | "pull" | "void" | "email"
+  priority     Int       @default(5) // 1=user-triggered real-time, 5=CDC-driven inbound, 9=bulk initial sync
+  status       String    @default("pending") // "pending" | "claimed" | "completed" | "failed" | "dead_letter"
+  payload      Json?
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(3)
+  lockedAt     DateTime?
+  lockedBy     String?   // Serverless instance identifier
+  completedAt  DateTime?
+  errorMessage String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  org        Org           @relation(fields: [orgId], references: [id])
+  connection QboConnection @relation(fields: [connectionId], references: [id])
+
+  @@index([orgId, status, priority])
+  @@index([status, lockedAt])
+  @@index([orgId, entityType, entityId, status])
+}
+
+model QboAccountMap {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @db.Uuid
+  category       String   // "labor_income" | "materials_income" | "service_income" | "job_cost_expense" | "subcontractor_expense"
+  qboAccountId   String
+  qboAccountName String
+  qboAccountType String   // "Income" | "Expense" | "Cost of Goods Sold"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, category])
+  @@index([orgId])
+}
+
+model QboCdcCursor {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @db.Uuid
+  connectionId   String   @db.Uuid
+  lastPollAt     DateTime
+  lastPollStatus String   @default("success") // "success" | "failed"
+  lastPollError  String?  @db.Text
+  entityTypes    String   // Comma-separated: "Customer,Invoice,Payment,Estimate,Item"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  org        Org           @relation(fields: [orgId], references: [id])
+  connection QboConnection @relation(fields: [connectionId], references: [id])
+
+  @@unique([orgId])
+  @@index([orgId])
 }
 
 // ============================================

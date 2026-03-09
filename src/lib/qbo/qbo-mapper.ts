@@ -14,6 +14,7 @@ import type {
   QboCustomer,
   QboInvoice,
   QboEstimate,
+  QboItem,
   QboLine,
   QboRef,
 } from "./qbo-types";
@@ -228,4 +229,48 @@ export function toQboEstimate(
   }
 
   return base as Partial<QboEstimate>;
+}
+
+// ============================================
+// ITEM MAPPERS
+// ============================================
+
+/**
+ * Outbound: Convert a ServiceOps Material or LaborRate to a QBO Item payload.
+ *
+ * - Materials map to Type: "NonInventory"
+ * - LaborRates map to Type: "Service"
+ * - incomeAccountRef comes from the org's account mapping
+ * - existingQbo enables merge for updates (preserves unmanaged fields)
+ */
+export function toQboItem(
+  source: { name: string; description?: string | null; unitCost?: number | null; hourlyRate?: unknown },
+  type: "NonInventory" | "Service",
+  incomeAccountRef: { value: string; name?: string },
+  existingQbo?: QboItem
+): Partial<QboItem> {
+  const base: Record<string, unknown> = existingQbo
+    ? { ...existingQbo }
+    : {};
+
+  base.Name = source.name;
+  base.Type = type;
+  base.IncomeAccountRef = incomeAccountRef;
+
+  if (source.description) {
+    base.Description = source.description;
+  }
+
+  // UnitPrice: use unitCost for materials, hourlyRate for labor
+  const price = type === "NonInventory"
+    ? source.unitCost
+    : (typeof source.hourlyRate === "object" && source.hourlyRate !== null && "toFixed" in source.hourlyRate)
+      ? Number((source.hourlyRate as { toFixed(d: number): string }).toFixed(2))
+      : Number(source.hourlyRate);
+
+  if (price != null && !isNaN(price)) {
+    base.UnitPrice = roundQboAmount(price);
+  }
+
+  return base as Partial<QboItem>;
 }

@@ -226,6 +226,75 @@ export async function syncMaterialToQbo(
 }
 
 /**
+ * Sync a ServiceOps LaborRate to QBO as a Service Item.
+ * Creates new item if not yet synced, updates if already synced.
+ * Stores the QBO Item ID on the LaborRate record.
+ */
+export async function syncLaborRateToQbo(
+  orgId: string,
+  laborRateId: string
+): Promise<{ success: boolean; qboItemId?: string; error?: string }> {
+  const connection = await getActiveConnection(orgId);
+  if (!connection) return { success: false, error: "No active QBO connection" };
+
+  const accountMapping = await requireAccountMapping(orgId);
+  if (!accountMapping.complete) {
+    return { success: false, error: `Account mapping required. Missing: ${accountMapping.missing.join(", ")}` };
+  }
+
+  const laborRate = await prisma.laborRate.findFirst({ where: { id: laborRateId, orgId } });
+  if (!laborRate) return { success: false, error: "Labor rate not found" };
+
+  try {
+    const incomeMapping = await getAccountMapping(orgId, "labor_income");
+    let qboItemId = laborRate.qboItemId;
+
+    if (qboItemId) {
+      const existing = await getItem(connection, qboItemId);
+      const payload = toQboItem(
+        { name: laborRate.name, description: laborRate.description, hourlyRate: laborRate.hourlyRate },
+        "Service",
+        { value: incomeMapping.qboAccountId, name: incomeMapping.qboAccountName },
+        existing
+      );
+      await updateItem(connection, qboItemId, payload);
+    } else {
+      const { entity } = await resolveOrCreateQboEntity<QboItem>(
+        connection,
+        "Item",
+        laborRate.name,
+        (existing) => existing.Type === "Service" && existing.Name === laborRate.name,
+        async (finalName) => {
+          const payload = toQboItem(
+            { name: finalName, description: laborRate.description, hourlyRate: laborRate.hourlyRate },
+            "Service",
+            { value: incomeMapping.qboAccountId, name: incomeMapping.qboAccountName }
+          );
+          return createItem(connection, payload);
+        }
+      );
+      qboItemId = entity.Id;
+
+      await prisma.laborRate.update({
+        where: { id: laborRateId },
+        data: { qboItemId },
+      });
+    }
+
+    await prisma.qboSyncLog.create({
+      data: { orgId, connectionId: connection.id, entityType: "item", entityId: laborRateId, qboEntityId: qboItemId, action: "push", status: "success" },
+    });
+    return { success: true, qboItemId: qboItemId ?? undefined };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: { orgId, connectionId: connection.id, entityType: "item", entityId: laborRateId, action: "push", status: "failed", errorMessage },
+    });
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
  * Sync a ServiceOps customer to QBO.
  * Creates new customer if not yet synced, updates if already synced.
  */

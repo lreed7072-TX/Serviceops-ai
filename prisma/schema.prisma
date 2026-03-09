@@ -1760,6 +1760,8 @@ model QboSyncJob {
   priority     Int       @default(5) // 1=user-triggered real-time, 5=CDC-driven inbound, 9=bulk initial sync
   status       String    @default("pending") // "pending" | "claimed" | "completed" | "failed" | "dead_letter"
   payload      Json?
+  qboEntityId  String?   // QBO entity ID (for webhook-originated jobs, dedup)
+  qboRealmId   String?   // QBO realm ID (for webhook-originated jobs)
   attempts     Int       @default(0)
   maxAttempts  Int       @default(3)
   lockedAt     DateTime?
@@ -1775,6 +1777,7 @@ model QboSyncJob {
   @@index([orgId, status, priority])
   @@index([status, lockedAt])
   @@index([orgId, entityType, entityId, status])
+  @@index([qboEntityId, entityType, status])
 }
 
 model QboAccountMap {

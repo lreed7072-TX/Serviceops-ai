@@ -747,3 +747,117 @@ export async function handleQboPaymentWebhook(payload: {
     }
   }
 }
+
+// ============================================
+// PAYMENT PROCESSING
+// ============================================
+
+/**
+ * Process a QBO Payment webhook event.
+ * Fetches the payment from QBO, matches to ServiceOps invoice(s),
+ * marks PAID when the linked invoice has Balance=0.
+ */
+export async function processPaymentJob(
+  orgId: string,
+  qboPaymentId: string,
+  realmId: string
+): Promise<{ success: boolean; error?: string }> {
+  const connection = await prisma.qboConnection.findFirst({
+    where: { orgId, realmId, isActive: true },
+  });
+  if (!connection) return { success: false, error: `No active QBO connection for realm ${realmId}` };
+
+  try {
+    // Fetch payment details from QBO
+    const payment = await getPayment(connection, qboPaymentId);
+
+    // Extract linked invoice IDs from payment lines
+    const linkedInvoiceIds: string[] = [];
+    if (payment.Line) {
+      for (const line of payment.Line) {
+        if (line.LinkedTxn) {
+          for (const txn of line.LinkedTxn) {
+            if (txn.TxnType === "Invoice") {
+              linkedInvoiceIds.push(txn.TxnId);
+            }
+          }
+        }
+      }
+    }
+
+    if (linkedInvoiceIds.length === 0) {
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId, connectionId: connection.id, entityType: "payment",
+          entityId: orgId, qboEntityId: qboPaymentId, action: "pull",
+          status: "success", metadata: { note: "Payment has no linked invoices" },
+        },
+      });
+      return { success: true };
+    }
+
+    // For each linked invoice, check if it exists in ServiceOps and if balance is 0
+    for (const qboInvoiceId of linkedInvoiceIds) {
+      const invoice = await prisma.invoice.findFirst({
+        where: { orgId, qboInvoiceId },
+      });
+
+      if (!invoice || invoice.status === "PAID") continue;
+
+      // Fetch the invoice from QBO to check current balance
+      const qboInvoice = await getInvoice(connection, qboInvoiceId);
+
+      if (qboInvoice.Balance === 0) {
+        // Fully paid — mark as PAID
+        await prisma.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            status: "PAID",
+            paidAt: payment.TxnDate ? new Date(payment.TxnDate) : new Date(),
+          },
+        });
+
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId, connectionId: connection.id, entityType: "payment",
+            entityId: invoice.id, qboEntityId: qboPaymentId, action: "pull",
+            status: "success",
+            metadata: {
+              paymentAmount: payment.TotalAmt,
+              paymentMethod: payment.PaymentMethodRef?.name || payment.PaymentMethodRef?.value || null,
+              paymentDate: payment.TxnDate,
+              invoiceBalance: qboInvoice.Balance,
+            },
+          },
+        });
+      } else {
+        // Partial payment — log but don't change status
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId, connectionId: connection.id, entityType: "payment",
+            entityId: invoice.id, qboEntityId: qboPaymentId, action: "pull",
+            status: "success",
+            metadata: {
+              note: "Partial payment — invoice not fully paid",
+              paymentAmount: payment.TotalAmt,
+              remainingBalance: qboInvoice.Balance,
+              paymentDate: payment.TxnDate,
+            },
+          },
+        });
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId, connectionId: connection.id, entityType: "payment",
+        entityId: orgId, qboEntityId: qboPaymentId, action: "pull",
+        status: "failed", errorMessage,
+      },
+    });
+    return { success: false, error: errorMessage };
+  }
+}

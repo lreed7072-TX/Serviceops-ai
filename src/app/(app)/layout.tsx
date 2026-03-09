@@ -61,6 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { kind: "link" as const, href: "/users", label: "Users", iconName: "UserCog" },
       { kind: "link" as const, href: "/settings/audit-logs", label: "Audit Logs", iconName: "Shield" },
       { kind: "link" as const, href: "/settings", label: "Settings", iconName: "Settings" },
+      { kind: "link" as const, href: "/settings/integrations/qbo-health", label: "QBO Health", iconName: "Activity" },
     ] : []),
   ];
 

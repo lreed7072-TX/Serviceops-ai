@@ -31,6 +31,7 @@ import {
   CalendarClock,
   PieChart,
   Contact,
+  Activity,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -59,6 +60,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   CalendarClock,
   PieChart,
   Contact,
+  Activity,
 };
 
 export type NavLink = {

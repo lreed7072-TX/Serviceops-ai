@@ -186,10 +186,20 @@ export async function syncCustomerToQbo(
 export async function syncInvoiceToQbo(
   orgId: string,
   invoiceId: string
-): Promise<{ success: boolean; qboInvoiceId?: string; error?: string }> {
+): Promise<{ success: boolean; qboInvoiceId?: string; error?: string; missingCategories?: string[] }> {
   const connection = await getActiveConnection(orgId);
   if (!connection) {
     return { success: false, error: "No active QBO connection" };
+  }
+
+  // Prerequisite gate: require account mapping before financial sync
+  const accountMapping = await requireAccountMapping(orgId);
+  if (!accountMapping.complete) {
+    return {
+      success: false,
+      error: `Account mapping required — configure in QBO Settings. Missing: ${accountMapping.missing.join(", ")}`,
+      missingCategories: accountMapping.missing,
+    };
   }
 
   const invoice = await prisma.invoice.findFirst({

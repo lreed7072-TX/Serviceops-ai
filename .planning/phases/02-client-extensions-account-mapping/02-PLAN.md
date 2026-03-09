@@ -2,8 +2,8 @@
 phase: 2
 plan: 02
 title: Account Mapping API Routes + Prerequisite Gate Helpers
-wave: 1
-depends_on: []
+wave: 2
+depends_on: [01]
 requirements: [ACCT-01, ACCT-03]
 files_modified:
   - src/app/api/integrations/qbo/accounts/route.ts
@@ -306,6 +306,7 @@ Replace with:
     return {
       success: false,
       error: `Account mapping required — configure in QBO Settings. Missing: ${accountMapping.missing.join(", ")}`,
+      missingCategories: accountMapping.missing,
     };
   }
 

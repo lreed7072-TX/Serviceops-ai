@@ -2,8 +2,8 @@
 phase: 2
 plan: 03
 title: Unit Tests for Client Extensions + Account Mapping Gate
-wave: 1
-depends_on: []
+wave: 2
+depends_on: [01, 02]
 requirements: [FOUND-10, ACCT-03]
 files_modified:
   - src/__tests__/lib/qbo/qbo-client.test.ts

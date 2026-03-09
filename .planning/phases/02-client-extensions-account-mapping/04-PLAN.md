@@ -2,7 +2,7 @@
 phase: 2
 plan: 04
 title: Account Mapping UI + Warning Banner on Integrations Page
-wave: 2
+wave: 3
 depends_on: [01, 02]
 requirements: [ACCT-01, ACCT-02, ACCT-03]
 files_modified:
@@ -295,13 +295,13 @@ type AccountMappingRecord = {
   qboAccountType: string;
 };
 
-const MAPPING_CATEGORIES = [
+const MAPPING_CATEGORIES: { key: string; label: string; filterType: string[] }[] = [
   { key: "labor_income", label: "Labor Income", filterType: ["Income"] },
   { key: "materials_income", label: "Materials Income", filterType: ["Income"] },
   { key: "service_income", label: "Service Fee Income", filterType: ["Income"] },
   { key: "job_cost_expense", label: "Job Cost Expense", filterType: ["Expense", "Cost of Goods Sold"] },
   { key: "subcontractor_expense", label: "Subcontractor Expense", filterType: ["Expense", "Cost of Goods Sold"] },
-] as const;
+];
 ```
 
 **C. Add state variables inside the component, after the existing state declarations:**
@@ -440,7 +440,7 @@ Inside the connected section (`status?.connected && status.connection` branch), 
 
 ```tsx
               {/* Account Mapping Warning Banner */}
-              {!allMapped && accounts.length > 0 && (
+              {!allMapped && status?.connected && (
                 <div className="mapping-warning-banner">
                   <AlertTriangle size={16} />
                   Account mapping incomplete ({mappedCount}/{MAPPING_CATEGORIES.length}) — financial syncs are blocked. Configure mapping below.

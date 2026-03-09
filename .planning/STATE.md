@@ -44,8 +44,15 @@ Requirements: FOUND-10, ACCT-01, ACCT-02, ACCT-03
   - Extended qboRequest() with optional contentType
   - Added batchRequest, queryEntities, cdcRequest, voidInvoice, sendInvoiceEmail
 
+- Phase 2, Plan 02: Complete (2026-03-09) — Account mapping API routes + prerequisite gate helpers
+  - 4 commits: a779b57, 60f9588, b354528, 506f3d2
+  - Created GET /api/integrations/qbo/accounts (live QBO fetch via queryEntities)
+  - Created GET/PUT /api/integrations/qbo/account-mapping (CRUD, ADMIN-only PUT, 5 categories)
+  - Added getAccountMapping() + requireAccountMapping() to qbo-sync.ts
+  - syncInvoiceToQbo() now gated — blocks with descriptive error when mapping incomplete
+
 ## Next Action
-Execute Phase 2, Plan 02 (next plan in wave 1)
+Execute Phase 2, Plan 03 (next plan in wave 1)
 
 ---
-*Last updated: 2026-03-09 after Phase 2 Plan 01 executed*
+*Last updated: 2026-03-09 after Phase 2 Plan 02 executed*

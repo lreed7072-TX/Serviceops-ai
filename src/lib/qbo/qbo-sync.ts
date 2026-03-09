@@ -4,6 +4,7 @@ import {
   updateCustomer,
   createInvoice,
   getValidAccessToken,
+  queryEntities,
 } from "./qbo-client";
 import { QboConnection } from "@prisma/client";
 
@@ -91,6 +92,53 @@ export async function requireAccountMapping(
     complete: missing.length === 0,
     missing,
   };
+}
+
+// ============================================
+// DISPLAYNAME COLLISION HANDLING
+// ============================================
+
+/**
+ * Resolve an existing QBO entity by DisplayName/Name, or create a new one.
+ * Implements VEND-02: query-before-create to avoid DisplayName collisions.
+ *
+ * Flow:
+ * 1. Query QBO for entities matching displayName
+ * 2. If found AND matchFn returns true: return existing entity (link, don't duplicate)
+ * 3. If found AND matchFn returns false: retry create with " (SvcOps)" suffix
+ * 4. If not found: create normally
+ */
+export async function resolveOrCreateQboEntity<T extends { Id: string }>(
+  connection: QboConnection,
+  entityType: string,
+  displayName: string,
+  matchFn: (existing: T) => boolean,
+  createFn: (finalDisplayName: string) => Promise<T>
+): Promise<{ entity: T; wasExisting: boolean }> {
+  // Query for existing entity with same DisplayName
+  const escapedName = displayName.replace(/'/g, "\\'");
+  const existing = await queryEntities<T>(
+    connection,
+    `SELECT * FROM ${entityType} WHERE DisplayName = '${escapedName}'`,
+    entityType
+  );
+
+  if (existing.length > 0) {
+    // Check if any existing entity is the same record
+    const match = existing.find(matchFn);
+    if (match) {
+      return { entity: match, wasExisting: true };
+    }
+
+    // Collision but no match — create with suffix
+    const suffixedName = `${displayName} (SvcOps)`;
+    const entity = await createFn(suffixedName);
+    return { entity, wasExisting: false };
+  }
+
+  // No collision — create normally
+  const entity = await createFn(displayName);
+  return { entity, wasExisting: false };
 }
 
 /**

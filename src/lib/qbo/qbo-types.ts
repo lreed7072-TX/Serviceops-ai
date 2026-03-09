@@ -515,6 +515,30 @@ export type QboCompanyInfo = {
 };
 
 // ============================================
+// BATCH API TYPES
+// ============================================
+
+/** A single operation in a QBO batch request */
+export type QboBatchOperation =
+  | {
+      bId: string;
+      operation: "create" | "update" | "delete";
+      [entity: string]: unknown;
+    }
+  | {
+      bId: string;
+      Query: string;
+    };
+
+/** A single response item from a QBO batch response */
+export type QboBatchItemResponse = {
+  bId: string;
+  Fault?: QboFault;
+  QueryResponse?: Record<string, unknown>;
+  [entity: string]: unknown;
+};
+
+// ============================================
 // RESPONSE WRAPPER TYPES
 // ============================================
 

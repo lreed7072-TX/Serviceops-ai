@@ -3,12 +3,12 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-07)
 **Core value:** Every financial transaction flows to QBO automatically
-**Current focus:** Phase 1 complete — ready for Phase 2
+**Current focus:** Phase 2 complete — ready for Phase 3
 
 ## Current Phase
-Phase: 2
-Status: Plans created — ready for execution
-Requirements: FOUND-10, ACCT-01, ACCT-02, ACCT-03
+Phase: 3
+Status: Not started — ready for context gathering
+Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-03, SYNC-04, DASH-01, DASH-02, DASH-03, DASH-05
 
 ## Phase History
 - Phase 1: Context completed 2026-03-08 (no gray areas — pure infrastructure)
@@ -16,6 +16,8 @@ Requirements: FOUND-10, ACCT-01, ACCT-02, ACCT-03
 - Phase 1: Executed 2026-03-08 (7 commits, all 9 FOUND requirements delivered)
 - Phase 2: Context gathered 2026-03-09 (user deferred all decisions to Claude)
 - Phase 2: Plans created 2026-03-09 (4 plans, 2 waves)
+- Phase 2: Executed 2026-03-09 (16 commits, all 4 requirements delivered — FOUND-10, ACCT-01, ACCT-02, ACCT-03)
+- Phase 2: Verified 2026-03-09 (15/15 UAT tests passed, 0 issues)
 
 ## Decisions Log
 - Token refresh mutex: CAS flag on QboConnection (PgBouncer blocks SELECT FOR UPDATE)
@@ -51,8 +53,20 @@ Requirements: FOUND-10, ACCT-01, ACCT-02, ACCT-03
   - Added getAccountMapping() + requireAccountMapping() to qbo-sync.ts
   - syncInvoiceToQbo() now gated — blocks with descriptive error when mapping incomplete
 
+- Phase 2, Plan 03: Complete (2026-03-09) — Unit tests for client extensions + account mapping gate
+  - 2 commits: 616e9fa, 6369bcb
+  - 17 new tests (10 client extension + 7 account mapping gate)
+  - All 17 passing, 0 failures
+
+- Phase 2, Plan 04: Complete (2026-03-09) — Account mapping UI + warning banner
+  - 2 commits: 59778de, 8aafc13
+  - Chart of Accounts Mapping section on integrations page
+  - 5 category dropdowns with filtered account types (Income vs Expense)
+  - Optimistic save per row with revert-on-failure
+  - Yellow warning banner when mapping incomplete
+
 ## Next Action
-Execute Phase 2, Plan 03 (next plan in wave 1)
+Start Phase 3: /gsd:discuss-phase 3
 
 ---
-*Last updated: 2026-03-09 after Phase 2 Plan 02 executed*
+*Last updated: 2026-03-09 after Phase 2 verification passed*

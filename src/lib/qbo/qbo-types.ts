@@ -559,3 +559,27 @@ export type QboCdcResponse = {
     } & Record<string, unknown>>;
   }>;
 };
+
+// ============================================
+// REPORTS API TYPES
+// ============================================
+
+export type QboReportRow = {
+  type: "Section" | "Data" | "GrandTotal";
+  Header?: { ColData: Array<{ value: string; id?: string }> };
+  Rows?: { Row: QboReportRow[] };
+  Summary?: { ColData: Array<{ value: string; id?: string }> };
+  ColData?: Array<{ value: string; id?: string }>;
+};
+
+export type QboReportResponse = {
+  Header: {
+    ReportName: string;
+    StartPeriod?: string;
+    EndPeriod?: string;
+    Currency?: string;
+    ReportBasis?: string;
+  };
+  Columns: { Column: Array<{ ColTitle: string; ColType: string }> };
+  Rows: { Row: QboReportRow[] };
+};

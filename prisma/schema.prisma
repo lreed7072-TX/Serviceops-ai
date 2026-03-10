@@ -248,6 +248,14 @@ enum VendorType {
   OTHER
 }
 
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CLOSED
+  CANCELED
+}
+
 enum TicketStatus {
   OPEN
   ASSIGNED
@@ -341,6 +349,8 @@ model Org {
   formResponses          FormResponse[]
   vendors              Vendor[]
   qboClassMaps         QboClassMap[]
+  purchaseOrders       PurchaseOrder[]
+  qboLocationMaps      QboLocationMap[]
 
   // CRM relations
   leadSources      LeadSource[]
@@ -1070,9 +1080,10 @@ model Material {
 
   org            Org                 @relation(fields: [orgId], references: [id])
   vendor         Vendor?             @relation(fields: [vendorId], references: [id])
-  usages         TaskMaterialUsage[]
-  quoteLineItems QuoteLineItem[]
-  stockMovements StockMovement[]
+  usages             TaskMaterialUsage[]
+  quoteLineItems     QuoteLineItem[]
+  stockMovements     StockMovement[]
+  purchaseOrderLines PurchaseOrderLine[]
 
   @@index([orgId])
   @@index([orgId, isActive])
@@ -1135,11 +1146,51 @@ model Vendor {
   qboSyncedAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  org         Org        @relation(fields: [orgId], references: [id])
-  materials   Material[]
+  org            Org              @relation(fields: [orgId], references: [id])
+  materials      Material[]
+  purchaseOrders PurchaseOrder[]
   @@index([orgId])
   @@index([orgId, isActive])
   @@index([orgId, vendorType])
+}
+
+model PurchaseOrder {
+  id                 String              @id @default(uuid()) @db.Uuid
+  orgId              String              @db.Uuid
+  poNumber           String
+  vendorId           String              @db.Uuid
+  status             PurchaseOrderStatus @default(DRAFT)
+  expectedDate       DateTime?
+  notes              String?             @db.Text
+  totalAmount        Decimal?            @db.Decimal(10, 2)
+  qboPurchaseOrderId String?
+  qboSyncedAt        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  org    Org                 @relation(fields: [orgId], references: [id])
+  vendor Vendor              @relation(fields: [vendorId], references: [id])
+  lines  PurchaseOrderLine[]
+
+  @@unique([orgId, poNumber])
+  @@index([orgId])
+  @@index([orgId, vendorId])
+  @@index([orgId, status])
+}
+
+model PurchaseOrderLine {
+  id              String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId String   @db.Uuid
+  materialId      String?  @db.Uuid
+  description     String
+  quantity        Float
+  unitPrice       Decimal  @db.Decimal(10, 2)
+  amount          Decimal  @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  material      Material?     @relation(fields: [materialId], references: [id])
 }
 
 model TaskMaterialUsage {
@@ -1532,6 +1583,8 @@ model WorkflowDefinition {
   lastGeneratedDate        DateTime?
   lastGeneratedWorkOrderId String?                  @db.Uuid
   autoGenerateWorkOrders   Boolean                  @default(false)
+  autoInvoice              Boolean                  @default(false)
+  autoInvoiceAmount        Decimal?                 @db.Decimal(10, 2)
   workOrderTitle           String?
   estimatedHours           Float?
   priority                 String? // LOW, MEDIUM, HIGH, CRITICAL
@@ -1867,6 +1920,21 @@ model QboClassMap {
   updatedAt    DateTime @updatedAt
   org          Org      @relation(fields: [orgId], references: [id])
   @@unique([orgId, orderType])
+  @@index([orgId])
+}
+
+model QboLocationMap {
+  id              String   @id @default(uuid()) @db.Uuid
+  orgId           String   @db.Uuid
+  siteId          String   @db.Uuid
+  qboLocationId   String
+  qboLocationName String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, siteId])
   @@index([orgId])
 }
 

@@ -1,7 +1,7 @@
 import { QboConnection } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount, QboEmployee, QboVendor, QboTimeActivity, QboBill, QboPurchase, QboCreditMemo, QboClass, QboPreferences } from "./qbo-types";
-export type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount, QboEmployee, QboVendor, QboTimeActivity, QboBill, QboPurchase, QboCreditMemo, QboClass, QboPreferences };
+import type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount, QboEmployee, QboVendor, QboTimeActivity, QboBill, QboPurchase, QboCreditMemo, QboClass, QboPreferences, QboPurchaseOrder, QboLocation, QboReportResponse, QboRef } from "./qbo-types";
+export type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount, QboEmployee, QboVendor, QboTimeActivity, QboBill, QboPurchase, QboCreditMemo, QboClass, QboPreferences, QboPurchaseOrder, QboLocation, QboReportResponse, QboRef };
 
 // QBO API endpoints
 const QBO_SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com/v3/company";
@@ -755,6 +755,51 @@ export async function getCreditMemo(connection: QboConnection, qboCreditMemoId: 
 }
 
 // ============================================
+// PURCHASE ORDER
+// ============================================
+
+export async function createPurchaseOrder(
+  connection: QboConnection,
+  data: Partial<QboPurchaseOrder>
+): Promise<QboPurchaseOrder> {
+  const result = (await qboRequest(
+    connection,
+    "POST",
+    "purchaseorder",
+    data as Record<string, unknown>
+  )) as { PurchaseOrder: QboPurchaseOrder };
+  return result.PurchaseOrder;
+}
+
+export async function getPurchaseOrder(
+  connection: QboConnection,
+  id: string
+): Promise<QboPurchaseOrder> {
+  const result = (await qboRequest(
+    connection,
+    "GET",
+    `purchaseorder/${id}`
+  )) as { PurchaseOrder: QboPurchaseOrder };
+  return result.PurchaseOrder;
+}
+
+export async function updatePurchaseOrder(
+  connection: QboConnection,
+  id: string,
+  data: Partial<QboPurchaseOrder>
+): Promise<QboPurchaseOrder> {
+  const existing = await getPurchaseOrder(connection, id);
+  const merged = { ...existing, ...data };
+  const result = (await qboRequest(
+    connection,
+    "POST",
+    "purchaseorder",
+    merged as Record<string, unknown>
+  )) as { PurchaseOrder: QboPurchaseOrder };
+  return result.PurchaseOrder;
+}
+
+// ============================================
 // PREFERENCES
 // ============================================
 
@@ -776,6 +821,33 @@ export async function queryClasses(connection: QboConnection): Promise<QboClass[
   return queryEntities<QboClass>(connection, "SELECT * FROM Class WHERE Active = true", "Class");
 }
 
+// ============================================
+// LOCATION (DEPARTMENT)
+// ============================================
+
+export async function createLocation(
+  connection: QboConnection,
+  data: { Name: string; SubDepartment?: boolean; ParentRef?: QboRef }
+): Promise<QboLocation> {
+  const result = (await qboRequest(
+    connection,
+    "POST",
+    "department",
+    data as Record<string, unknown>
+  )) as { Department: QboLocation };
+  return result.Department;
+}
+
+export async function queryLocations(
+  connection: QboConnection
+): Promise<QboLocation[]> {
+  return queryEntities<QboLocation>(
+    connection,
+    "SELECT * FROM Department WHERE Active = true",
+    "Department"
+  );
+}
+
 /**
  * Verify a QBO webhook signature using HMAC-SHA256.
  */
@@ -790,4 +862,23 @@ export function verifyWebhookSignature(
     .update(payload)
     .digest("base64");
   return hash === signature;
+}
+
+// ============================================
+// REPORTS
+// ============================================
+
+export async function runReport(
+  connection: QboConnection,
+  reportName: string,
+  params: Record<string, string> = {}
+): Promise<QboReportResponse> {
+  const queryString = new URLSearchParams(params).toString();
+  const path = `reports/${reportName}${queryString ? `?${queryString}` : ""}`;
+  const result = (await qboRequest(
+    connection,
+    "GET",
+    path
+  )) as QboReportResponse;
+  return result;
 }

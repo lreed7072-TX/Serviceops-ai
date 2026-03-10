@@ -23,6 +23,7 @@ import type {
   QboBill,
   QboPurchase,
   QboCreditMemo,
+  QboPurchaseOrder,
 } from "./qbo-types";
 import type {
   Customer,
@@ -520,4 +521,58 @@ export function toQboCreditMemo(
   }
 
   return result as Partial<QboCreditMemo>;
+}
+
+// ─── Purchase Order Mapper ─────────────────────────────────────
+
+export function toQboPurchaseOrder(
+  po: {
+    poNumber: string;
+    notes?: string | null;
+    expectedDate?: Date | null;
+    totalAmount?: unknown;
+  },
+  lines: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number | string;
+    amount: number | string;
+    material?: { name: string; qboItemId?: string | null } | null;
+  }>,
+  qboVendorId: string,
+  options?: {
+    classRef?: { value: string; name?: string };
+    departmentRef?: { value: string; name?: string };
+    apAccountRef?: { value: string; name?: string };
+  }
+): Partial<QboPurchaseOrder> {
+  const qboLines: QboLine[] = lines.map((line, idx) => ({
+    Id: String(idx + 1),
+    DetailType: "ItemBasedExpenseLineDetail" as const,
+    Amount: roundQboAmount(line.amount),
+    Description: line.description,
+    ItemBasedExpenseLineDetail: {
+      ItemRef: line.material?.qboItemId
+        ? { value: line.material.qboItemId, name: line.material.name }
+        : { value: "", name: line.description },
+      Qty: line.quantity,
+      UnitPrice: roundQboAmount(line.unitPrice),
+      ...(options?.classRef ? { ClassRef: options.classRef } : {}),
+    },
+  }));
+
+  const result: Partial<QboPurchaseOrder> = {
+    DocNumber: po.poNumber,
+    VendorRef: { value: qboVendorId },
+    Line: qboLines,
+    ...(po.notes ? { Memo: po.notes } : {}),
+    ...(po.expectedDate
+      ? { DueDate: po.expectedDate.toISOString().split("T")[0] }
+      : {}),
+    ...(options?.departmentRef ? { DepartmentRef: options.departmentRef } : {}),
+    ...(options?.classRef ? { ClassRef: options.classRef } : {}),
+    ...(options?.apAccountRef ? { APAccountRef: options.apAccountRef } : {}),
+  };
+
+  return result;
 }

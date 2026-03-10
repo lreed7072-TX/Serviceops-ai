@@ -10,6 +10,11 @@ import {
   processCdcInvoiceChange,
   processCdcCustomerPull,
   processVoidInvoiceInQbo,
+  syncVendorToQbo,
+  syncEmployeeToQbo,
+  syncTimeEntryToQbo,
+  syncExpenseToQbo,
+  syncCreditMemoToQbo,
 } from "@/lib/qbo/qbo-sync";
 import type { QboSyncJob } from "@prisma/client";
 
@@ -132,6 +137,36 @@ async function dispatchJob(job: QboSyncJob): Promise<void> {
     case "invoice:void": {
       const voidResult = await processVoidInvoiceInQbo(job.orgId, job.entityId);
       if (!voidResult.success) throw new Error(voidResult.error || "Invoice void failed");
+      break;
+    }
+
+    case "vendor:push": {
+      const vendorResult = await syncVendorToQbo(job.orgId, job.entityId);
+      if (!vendorResult.success) throw new Error(vendorResult.error || "Vendor sync failed");
+      break;
+    }
+
+    case "employee:push": {
+      const empResult = await syncEmployeeToQbo(job.orgId, job.entityId);
+      if (!empResult.success) throw new Error(empResult.error || "Employee sync failed");
+      break;
+    }
+
+    case "timeActivity:push": {
+      const taResult = await syncTimeEntryToQbo(job.orgId, job.entityId);
+      if (!taResult.success) throw new Error(taResult.error || "Time activity sync failed");
+      break;
+    }
+
+    case "expense:push": {
+      const expResult = await syncExpenseToQbo(job.orgId, job.entityId);
+      if (!expResult.success) throw new Error(expResult.error || "Expense sync failed");
+      break;
+    }
+
+    case "creditMemo:push": {
+      const cmResult = await syncCreditMemoToQbo(job.orgId, job.entityId);
+      if (!cmResult.success) throw new Error(cmResult.error || "Credit memo sync failed");
       break;
     }
 

@@ -13,9 +13,32 @@ import {
   getInvoice,
   getCustomer,
   voidInvoice,
+  createEmployee,
+  getEmployee,
+  updateEmployee,
+  createVendor,
+  getVendor,
+  updateVendor,
+  createClass,
+  queryClasses,
+  getPreferences,
+  createTimeActivity,
+  createBill,
+  createPurchase,
+  createCreditMemo,
 } from "./qbo-client";
-import { toQboItem, toQboEstimate, fromQboCustomer } from "./qbo-mapper";
-import type { QboItem, QboCustomer } from "./qbo-types";
+import {
+  toQboItem,
+  toQboEstimate,
+  fromQboCustomer,
+  toQboEmployee,
+  toQboVendor,
+  toQboTimeActivity,
+  toQboBill,
+  toQboPurchase,
+  toQboCreditMemo,
+} from "./qbo-mapper";
+import type { QboItem, QboCustomer, QboEmployee, QboVendor, QboRef, QboClass } from "./qbo-types";
 import { QboConnection } from "@prisma/client";
 
 /**
@@ -1230,4 +1253,660 @@ export async function processVoidInvoiceInQbo(
     });
     return { success: false, error: errorMessage };
   }
+}
+
+// ============================================
+// VENDOR SYNC (VEND-01)
+// ============================================
+
+/**
+ * Sync a ServiceOps Vendor to QBO.
+ * Creates new vendor if not yet synced, updates if already synced.
+ * Uses DisplayName collision handling for new vendors.
+ */
+export async function syncVendorToQbo(
+  orgId: string,
+  vendorId: string
+): Promise<{ success: boolean; qboVendorId?: string; error?: string }> {
+  try {
+    const connection = await getActiveConnection(orgId);
+    if (!connection) return { success: false, error: "No active QBO connection" };
+
+    const vendor = await prisma.vendor.findFirst({
+      where: { id: vendorId, orgId },
+    });
+    if (!vendor) return { success: false, error: "Vendor not found" };
+
+    let qboVendor;
+
+    if (vendor.qboVendorId) {
+      // Update existing
+      const existing = await getVendor(connection, vendor.qboVendorId);
+      const payload = toQboVendor(vendor, existing);
+      qboVendor = await updateVendor(connection, vendor.qboVendorId, payload);
+    } else {
+      // Create — use collision handling
+      const { entity } = await resolveOrCreateQboEntity<QboVendor>(
+        connection,
+        "Vendor",
+        vendor.name,
+        (existing) =>
+          !!vendor.email &&
+          existing.PrimaryEmailAddr?.Address?.toLowerCase() === vendor.email.toLowerCase(),
+        () => createVendor(connection, toQboVendor(vendor))
+      );
+      qboVendor = entity;
+    }
+
+    await prisma.vendor.update({
+      where: { id: vendorId },
+      data: { qboVendorId: qboVendor.Id, qboSyncedAt: new Date() },
+    });
+
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "vendor",
+        entityId: vendorId,
+        qboEntityId: qboVendor.Id,
+        action: "push",
+        status: "success",
+      },
+    });
+
+    return { success: true, qboVendorId: qboVendor.Id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      const conn = await getActiveConnection(orgId);
+      if (conn) {
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId,
+            connectionId: conn.id,
+            entityType: "vendor",
+            entityId: vendorId,
+            action: "push",
+            status: "failed",
+            errorMessage: message,
+          },
+        });
+      }
+    } catch {}
+    return { success: false, error: message };
+  }
+}
+
+// ============================================
+// EMPLOYEE SYNC (TIME-01)
+// ============================================
+
+/**
+ * Sync a ServiceOps TECH user to QBO as an Employee.
+ * Only users with role=TECH are eligible.
+ * Uses DisplayName collision handling for new employees.
+ */
+export async function syncEmployeeToQbo(
+  orgId: string,
+  userId: string
+): Promise<{ success: boolean; qboEmployeeId?: string; error?: string }> {
+  try {
+    const connection = await getActiveConnection(orgId);
+    if (!connection) return { success: false, error: "No active QBO connection" };
+
+    const user = await prisma.user.findFirst({
+      where: { id: userId, orgId, role: "TECH" },
+    });
+    if (!user) return { success: false, error: "User not found or not a TECH role" };
+
+    let qboEmployee;
+
+    if (user.qboEmployeeId) {
+      // Update existing
+      const existing = await getEmployee(connection, user.qboEmployeeId);
+      const payload = toQboEmployee(user, existing);
+      qboEmployee = await updateEmployee(connection, user.qboEmployeeId, payload);
+    } else {
+      // Create — use collision handling
+      const displayName = user.name ?? user.email.split("@")[0];
+      const { entity } = await resolveOrCreateQboEntity<QboEmployee>(
+        connection,
+        "Employee",
+        displayName,
+        (existing) =>
+          existing.PrimaryEmailAddr?.Address?.toLowerCase() === user.email.toLowerCase(),
+        () => createEmployee(connection, toQboEmployee(user))
+      );
+      qboEmployee = entity;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { qboEmployeeId: qboEmployee.Id },
+    });
+
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "employee",
+        entityId: userId,
+        qboEntityId: qboEmployee.Id,
+        action: "push",
+        status: "success",
+      },
+    });
+
+    return { success: true, qboEmployeeId: qboEmployee.Id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      const conn = await getActiveConnection(orgId);
+      if (conn) {
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId,
+            connectionId: conn.id,
+            entityType: "employee",
+            entityId: userId,
+            action: "push",
+            status: "failed",
+            errorMessage: message,
+          },
+        });
+      }
+    } catch {}
+    return { success: false, error: message };
+  }
+}
+
+// ============================================
+// TIME ENTRY → TIME ACTIVITY SYNC (TIME-02)
+// ============================================
+
+/**
+ * Sync a ServiceOps TimeEntry to QBO as a TimeActivity.
+ * Cascade-syncs employee and customer as needed.
+ * PM-generated WOs (sourceWorkflowId set) are non-billable.
+ * Uses class tracking when enabled.
+ */
+export async function syncTimeEntryToQbo(
+  orgId: string,
+  timeEntryId: string
+): Promise<{ success: boolean; qboTimeActivityId?: string; error?: string }> {
+  try {
+    const connection = await getActiveConnection(orgId);
+    if (!connection) return { success: false, error: "No active QBO connection" };
+
+    const timeEntry = await prisma.timeEntry.findFirst({
+      where: { id: timeEntryId, orgId },
+      include: {
+        user: true,
+        workOrder: {
+          include: { customer: true },
+        },
+      },
+    });
+    if (!timeEntry) return { success: false, error: "Time entry not found" };
+
+    // Guard: must be STOPPED
+    if (timeEntry.status !== "STOPPED") {
+      return { success: false, error: "TimeEntry must be STOPPED to sync" };
+    }
+
+    // Guard: user must be TECH
+    if (timeEntry.user.role !== "TECH") {
+      return { success: false, error: "Only TECH users sync as QBO employees" };
+    }
+
+    // Already synced guard
+    if (timeEntry.qboTimeActivityId) {
+      return { success: true, qboTimeActivityId: timeEntry.qboTimeActivityId };
+    }
+
+    // Cascade employee sync
+    let qboEmployeeId = timeEntry.user.qboEmployeeId;
+    if (!qboEmployeeId) {
+      const empResult = await syncEmployeeToQbo(orgId, timeEntry.userId);
+      if (!empResult.success) {
+        return { success: false, error: `Employee sync failed: ${empResult.error}` };
+      }
+      qboEmployeeId = empResult.qboEmployeeId!;
+    }
+
+    // Cascade customer sync
+    const customer = timeEntry.workOrder.customer;
+    let qboCustomerId = customer.qboCustomerId;
+    if (!qboCustomerId) {
+      const custResult = await syncCustomerToQbo(orgId, customer.id);
+      if (!custResult.success) {
+        return { success: false, error: `Customer sync failed: ${custResult.error}` };
+      }
+      // Re-fetch for qboCustomerId
+      const refreshed = await prisma.customer.findFirst({
+        where: { id: customer.id, orgId },
+        select: { qboCustomerId: true },
+      });
+      qboCustomerId = refreshed?.qboCustomerId ?? null;
+    }
+    if (!qboCustomerId) {
+      return { success: false, error: "Customer QBO sync failed to produce qboCustomerId" };
+    }
+
+    // Billable classification: PM-generated WOs are non-billable
+    const billable = !timeEntry.workOrder.sourceWorkflowId;
+
+    // Class tracking
+    const classRef = await resolveOrCreateQboClass(connection, orgId, timeEntry.workOrder.orderType);
+
+    // Build payload
+    const payload = toQboTimeActivity(
+      timeEntry,
+      qboEmployeeId,
+      qboCustomerId,
+      { classRef: classRef ?? undefined, billable }
+    );
+
+    const result = await createTimeActivity(connection, payload);
+
+    // Store qboTimeActivityId
+    await prisma.timeEntry.update({
+      where: { id: timeEntryId },
+      data: { qboTimeActivityId: result.Id },
+    });
+
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "timeActivity",
+        entityId: timeEntryId,
+        qboEntityId: result.Id,
+        action: "push",
+        status: "success",
+      },
+    });
+
+    return { success: true, qboTimeActivityId: result.Id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      const conn = await getActiveConnection(orgId);
+      if (conn) {
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId,
+            connectionId: conn.id,
+            entityType: "timeActivity",
+            entityId: timeEntryId,
+            action: "push",
+            status: "failed",
+            errorMessage: message,
+          },
+        });
+      }
+    } catch {}
+    return { success: false, error: message };
+  }
+}
+
+// ============================================
+// EXPENSE SYNC — BILL / PURCHASE (EXP-01)
+// ============================================
+
+/**
+ * Sync a ServiceOps StockMovement (PURCHASE) to QBO as a Bill or Purchase.
+ * Bill path: vendor is linked → create Bill with vendor reference.
+ * Purchase path: no vendor → create Purchase (cash/check expense).
+ * Uses account mapping for expense categorization.
+ */
+export async function syncExpenseToQbo(
+  orgId: string,
+  stockMovementId: string
+): Promise<{ success: boolean; qboExpenseId?: string; error?: string }> {
+  try {
+    const connection = await getActiveConnection(orgId);
+    if (!connection) return { success: false, error: "No active QBO connection" };
+
+    // Account mapping gate
+    const accountMapping = await requireAccountMapping(orgId);
+
+    const movement = await prisma.stockMovement.findFirst({
+      where: { id: stockMovementId, orgId },
+      include: {
+        material: {
+          include: { vendor: true },
+        },
+      },
+    });
+    if (!movement) return { success: false, error: "Stock movement not found" };
+
+    // Guard: must be PURCHASE
+    if (movement.movementType !== "PURCHASE") {
+      return { success: false, error: "Only PURCHASE movements sync as expenses" };
+    }
+
+    // Guard: totalCost must exist
+    if (!movement.totalCost || Number(movement.totalCost) === 0) {
+      return { success: false, error: "No cost on movement — skipping" };
+    }
+
+    // Already synced guard
+    if (movement.qboBillId || movement.qboPurchaseId) {
+      return {
+        success: true,
+        qboExpenseId: movement.qboBillId || movement.qboPurchaseId || undefined,
+      };
+    }
+
+    // Determine expense account category
+    const expenseCategory =
+      movement.material.vendor?.vendorType === "SUBCONTRACTOR"
+        ? "subcontractor_expense"
+        : "job_cost_expense";
+    const expenseMapping = await getAccountMapping(orgId, expenseCategory);
+    const expenseAccountRef = { value: expenseMapping.qboAccountId, name: expenseMapping.qboAccountName ?? undefined };
+
+    // Class tracking — attempt to resolve from linked work orders
+    let classRef: QboRef | null = null;
+    // StockMovement doesn't directly link to WO, so classRef stays undefined for now
+    // Could be enhanced to trace through material usage → task → WO in a future iteration
+
+    if (movement.material.vendorId && movement.material.vendor) {
+      // BILL path — vendor is linked
+      const vendor = movement.material.vendor;
+
+      // Cascade vendor sync
+      let qboVendorId = vendor.qboVendorId;
+      if (!qboVendorId) {
+        const vendorResult = await syncVendorToQbo(orgId, vendor.id);
+        if (!vendorResult.success) {
+          return { success: false, error: `Vendor sync failed: ${vendorResult.error}` };
+        }
+        qboVendorId = vendorResult.qboVendorId!;
+      }
+
+      const payload = toQboBill(
+        movement,
+        movement.material,
+        qboVendorId,
+        expenseAccountRef,
+        { classRef: classRef ?? undefined }
+      );
+
+      const bill = await createBill(connection, payload);
+
+      await prisma.stockMovement.update({
+        where: { id: stockMovementId },
+        data: { qboBillId: bill.Id },
+      });
+
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "expense",
+          entityId: stockMovementId,
+          qboEntityId: bill.Id,
+          action: "push",
+          status: "success",
+          metadata: { type: "bill" },
+        },
+      });
+
+      return { success: true, qboExpenseId: bill.Id };
+    } else {
+      // PURCHASE path — no vendor
+      const payload = toQboPurchase(
+        movement,
+        movement.material,
+        expenseAccountRef,
+        { classRef: classRef ?? undefined }
+      );
+
+      const purchase = await createPurchase(connection, payload);
+
+      await prisma.stockMovement.update({
+        where: { id: stockMovementId },
+        data: { qboPurchaseId: purchase.Id },
+      });
+
+      await prisma.qboSyncLog.create({
+        data: {
+          orgId,
+          connectionId: connection.id,
+          entityType: "expense",
+          entityId: stockMovementId,
+          qboEntityId: purchase.Id,
+          action: "push",
+          status: "success",
+          metadata: { type: "purchase" },
+        },
+      });
+
+      return { success: true, qboExpenseId: purchase.Id };
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      const conn = await getActiveConnection(orgId);
+      if (conn) {
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId,
+            connectionId: conn.id,
+            entityType: "expense",
+            entityId: stockMovementId,
+            action: "push",
+            status: "failed",
+            errorMessage: message,
+          },
+        });
+      }
+    } catch {}
+    return { success: false, error: message };
+  }
+}
+
+// ============================================
+// CREDIT MEMO SYNC (QUOT-03)
+// ============================================
+
+/**
+ * Sync a credit memo to QBO for a previously-synced invoice.
+ * Requires the invoice to already have a qboInvoiceId.
+ * Cascade-syncs customer as needed. Uses class tracking from WO.
+ */
+export async function syncCreditMemoToQbo(
+  orgId: string,
+  invoiceId: string
+): Promise<{ success: boolean; qboCreditMemoId?: string; error?: string }> {
+  try {
+    const connection = await getActiveConnection(orgId);
+    if (!connection) return { success: false, error: "No active QBO connection" };
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, orgId },
+      include: { customer: true, lineItems: true, workOrder: true },
+    });
+    if (!invoice) return { success: false, error: "Invoice not found" };
+
+    // Guard: must be synced to QBO
+    if (!invoice.qboInvoiceId) {
+      return { success: false, error: "Invoice must be synced to QBO before issuing credit memo" };
+    }
+
+    // Already synced guard
+    if (invoice.qboCreditMemoId) {
+      return { success: true, qboCreditMemoId: invoice.qboCreditMemoId };
+    }
+
+    // Cascade customer sync
+    let qboCustomerId = invoice.customer.qboCustomerId;
+    if (!qboCustomerId) {
+      const custResult = await syncCustomerToQbo(orgId, invoice.customerId);
+      if (!custResult.success) {
+        return { success: false, error: `Customer sync failed: ${custResult.error}` };
+      }
+      const refreshed = await prisma.customer.findFirst({
+        where: { id: invoice.customerId, orgId },
+        select: { qboCustomerId: true },
+      });
+      qboCustomerId = refreshed?.qboCustomerId ?? null;
+    }
+    if (!qboCustomerId) {
+      return { success: false, error: "Customer QBO sync failed" };
+    }
+
+    // Class tracking from work order
+    let classRef: QboRef | undefined;
+    if (invoice.workOrder) {
+      const resolved = await resolveOrCreateQboClass(connection, orgId, invoice.workOrder.orderType);
+      classRef = resolved ?? undefined;
+    }
+
+    const payload = toQboCreditMemo(
+      invoice,
+      invoice.lineItems,
+      qboCustomerId,
+      invoice.qboInvoiceId,
+      { classRef }
+    );
+
+    const result = await createCreditMemo(connection, payload);
+
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { qboCreditMemoId: result.Id },
+    });
+
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "creditMemo",
+        entityId: invoiceId,
+        qboEntityId: result.Id,
+        action: "push",
+        status: "success",
+      },
+    });
+
+    return { success: true, qboCreditMemoId: result.Id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      const conn = await getActiveConnection(orgId);
+      if (conn) {
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId,
+            connectionId: conn.id,
+            entityType: "creditMemo",
+            entityId: invoiceId,
+            action: "push",
+            status: "failed",
+            errorMessage: message,
+          },
+        });
+      }
+    } catch {}
+    return { success: false, error: message };
+  }
+}
+
+// ============================================
+// QBO CLASS TRACKING
+// ============================================
+
+/**
+ * Resolve or auto-create a QBO Class for an OrderType.
+ * Caches mappings in qboClassMap table.
+ * Returns null if class tracking is disabled or on any error
+ * (class tracking failure must NEVER block a sync).
+ */
+export async function resolveOrCreateQboClass(
+  connection: QboConnection,
+  orgId: string,
+  orderType: string
+): Promise<QboRef | null> {
+  try {
+    // Check if class tracking is enabled
+    if (!connection.classTrackingEnabled) {
+      return null;
+    }
+
+    // Check cache
+    const existing = await prisma.qboClassMap.findUnique({
+      where: { orgId_orderType: { orgId, orderType } },
+    });
+    if (existing) {
+      return { value: existing.qboClassId, name: existing.qboClassName };
+    }
+
+    // Auto-create QBO Class
+    const classNameMap: Record<string, string> = {
+      WORK_ORDER: "Work Order",
+      SALES_ORDER: "Sales Order",
+      PROJECT: "Project",
+      MAINTENANCE: "Maintenance",
+    };
+    const className = classNameMap[orderType] || orderType;
+
+    const qboClass = await createClass(connection, { Name: className });
+
+    // Cache the mapping
+    await prisma.qboClassMap.upsert({
+      where: { orgId_orderType: { orgId, orderType } },
+      create: {
+        orgId,
+        orderType,
+        qboClassId: qboClass.Id,
+        qboClassName: className,
+      },
+      update: {
+        qboClassId: qboClass.Id,
+        qboClassName: className,
+      },
+    });
+
+    return { value: qboClass.Id, name: className };
+  } catch (err) {
+    // Class tracking failure must NEVER block a sync
+    console.error(`[qbo-sync] Failed to resolve QBO class for ${orderType}:`, err);
+    return null;
+  }
+}
+
+// ============================================
+// QBO PREFERENCES CACHE
+// ============================================
+
+/**
+ * Fetch QBO company preferences and cache class/location tracking flags.
+ * Called after OAuth connect and periodically to keep flags current.
+ */
+export async function fetchAndCachePreferences(
+  connection: QboConnection
+): Promise<{ classTrackingEnabled: boolean; locationTrackingEnabled: boolean }> {
+  const prefs = await getPreferences(connection);
+
+  const classTrackingEnabled =
+    prefs.AccountingInfoPrefs?.ClassTrackingPerTxn === true ||
+    prefs.AccountingInfoPrefs?.ClassTrackingPerTxnLine === true;
+
+  const locationTrackingEnabled =
+    prefs.AccountingInfoPrefs?.TrackDepartments === true;
+
+  await prisma.qboConnection.update({
+    where: { id: connection.id },
+    data: {
+      classTrackingEnabled,
+      locationTrackingEnabled,
+      preferencesLastCheckedAt: new Date(),
+    },
+  });
+
+  return { classTrackingEnabled, locationTrackingEnabled };
 }

@@ -15,6 +15,7 @@ import {
   syncTimeEntryToQbo,
   syncExpenseToQbo,
   syncCreditMemoToQbo,
+  syncPurchaseOrderToQbo,
 } from "@/lib/qbo/qbo-sync";
 import type { QboSyncJob } from "@prisma/client";
 
@@ -167,6 +168,12 @@ async function dispatchJob(job: QboSyncJob): Promise<void> {
     case "creditMemo:push": {
       const cmResult = await syncCreditMemoToQbo(job.orgId, job.entityId);
       if (!cmResult.success) throw new Error(cmResult.error || "Credit memo sync failed");
+      break;
+    }
+
+    case "purchaseOrder:push": {
+      const poResult = await syncPurchaseOrderToQbo(job.orgId, job.entityId);
+      if (!poResult.success) throw new Error(poResult.error || "PO sync failed");
       break;
     }
 

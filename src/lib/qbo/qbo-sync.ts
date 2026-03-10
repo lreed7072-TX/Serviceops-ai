@@ -26,6 +26,10 @@ import {
   createBill,
   createPurchase,
   createCreditMemo,
+  createLocation,
+  createPurchaseOrder,
+  getPurchaseOrder,
+  updatePurchaseOrder,
 } from "./qbo-client";
 import {
   toQboItem,
@@ -37,8 +41,9 @@ import {
   toQboBill,
   toQboPurchase,
   toQboCreditMemo,
+  toQboPurchaseOrder,
 } from "./qbo-mapper";
-import type { QboItem, QboCustomer, QboEmployee, QboVendor, QboRef, QboClass } from "./qbo-types";
+import type { QboItem, QboCustomer, QboEmployee, QboVendor, QboRef, QboClass, QboPurchaseOrder } from "./qbo-types";
 import { QboConnection } from "@prisma/client";
 
 /**
@@ -491,6 +496,9 @@ export async function syncQuoteToQbo(
       classRef = resolved ?? undefined;
     }
 
+    // Resolve DepartmentRef from quote siteId
+    const quoteDepartmentRef = await resolveOrCreateQboLocation(connection, orgId, quote.siteId) ?? undefined;
+
     // Build estimate payload using mapper
     const estimatePayload = toQboEstimate(
       quote,
@@ -501,6 +509,11 @@ export async function syncQuoteToQbo(
     // Apply ClassRef to estimate payload
     if (classRef) {
       (estimatePayload as Record<string, unknown>).ClassRef = { value: classRef.value, name: classRef.name };
+    }
+
+    // Apply DepartmentRef to estimate payload
+    if (quoteDepartmentRef) {
+      (estimatePayload as Record<string, unknown>).DepartmentRef = { value: quoteDepartmentRef.value, name: quoteDepartmentRef.name };
     }
 
     // Add ItemRef on lines that have a synced material
@@ -641,6 +654,9 @@ export async function syncInvoiceToQbo(
       }
     }
 
+    // Resolve DepartmentRef from invoice siteId
+    const invoiceDepartmentRef = await resolveOrCreateQboLocation(connection, orgId, invoice.siteId) ?? undefined;
+
     // Resolve LinkedTxn from estimate (quote -> QBO estimate link)
     let linkedTxn: Array<{ TxnId: string; TxnType: string }> | undefined;
     if (invoice.quoteId && invoice.quote) {
@@ -667,6 +683,7 @@ export async function syncInvoiceToQbo(
       docNumber: invoice.invoiceNumber,
       linkedTxn,
       classRef: classRef ? { value: classRef.value, name: classRef.name } : undefined,
+      departmentRef: invoiceDepartmentRef ? { value: invoiceDepartmentRef.value, name: invoiceDepartmentRef.name } : undefined,
     });
 
     // Update our invoice with QBO ID
@@ -1526,12 +1543,15 @@ export async function syncTimeEntryToQbo(
     // Class tracking
     const classRef = await resolveOrCreateQboClass(connection, orgId, timeEntry.workOrder.orderType);
 
+    // Location (Department) tracking from WO siteId
+    const timeDepartmentRef = await resolveOrCreateQboLocation(connection, orgId, timeEntry.workOrder?.siteId) ?? undefined;
+
     // Build payload
     const payload = toQboTimeActivity(
       timeEntry,
       qboEmployeeId,
       qboCustomerId,
-      { classRef: classRef ?? undefined, billable }
+      { classRef: classRef ?? undefined, billable, departmentRef: timeDepartmentRef }
     );
 
     const result = await createTimeActivity(connection, payload);
@@ -1639,6 +1659,10 @@ export async function syncExpenseToQbo(
     // StockMovement doesn't directly link to WO, so classRef stays undefined for now
     // Could be enhanced to trace through material usage → task → WO in a future iteration
 
+    // DepartmentRef — StockMovement has no direct siteId or workOrderId
+    // Could be enhanced to trace through material usage → task → WO → site in a future iteration
+    const expenseDepartmentRef: QboRef | undefined = undefined;
+
     if (movement.material.vendorId && movement.material.vendor) {
       // BILL path — vendor is linked
       const vendor = movement.material.vendor;
@@ -1658,7 +1682,7 @@ export async function syncExpenseToQbo(
         movement.material,
         qboVendorId,
         expenseAccountRef,
-        { classRef: classRef ?? undefined }
+        { classRef: classRef ?? undefined, departmentRef: expenseDepartmentRef }
       );
 
       const bill = await createBill(connection, payload);
@@ -1688,7 +1712,7 @@ export async function syncExpenseToQbo(
         movement,
         movement.material,
         expenseAccountRef,
-        { classRef: classRef ?? undefined }
+        { classRef: classRef ?? undefined, departmentRef: expenseDepartmentRef }
       );
 
       const purchase = await createPurchase(connection, payload);
@@ -1792,12 +1816,15 @@ export async function syncCreditMemoToQbo(
       classRef = resolved ?? undefined;
     }
 
+    // Location (Department) tracking from invoice siteId
+    const cmDepartmentRef = await resolveOrCreateQboLocation(connection, orgId, invoice.siteId) ?? undefined;
+
     const payload = toQboCreditMemo(
       invoice,
       invoice.lineItems,
       qboCustomerId,
       invoice.qboInvoiceId,
-      { classRef }
+      { classRef, departmentRef: cmDepartmentRef }
     );
 
     const result = await createCreditMemo(connection, payload);
@@ -1902,6 +1929,192 @@ export async function resolveOrCreateQboClass(
     // Class tracking failure must NEVER block a sync
     console.error(`[qbo-sync] Failed to resolve QBO class for ${orderType}:`, err);
     return null;
+  }
+}
+
+// ============================================
+// PURCHASE ORDER SYNC (PO-01)
+// ============================================
+
+/**
+ * Sync a ServiceOps PurchaseOrder to QBO.
+ * Cascade-syncs vendor as needed. Resolves ClassRef and DepartmentRef.
+ */
+export async function syncPurchaseOrderToQbo(
+  orgId: string,
+  poId: string
+): Promise<{ success: boolean; qboPurchaseOrderId?: string; error?: string }> {
+  try {
+    const connection = await getActiveConnection(orgId);
+    if (!connection) return { success: false, error: "No active QBO connection" };
+
+    // Fetch PO with lines and vendor
+    const po = await prisma.purchaseOrder.findUnique({
+      where: { id: poId },
+      include: {
+        lines: { include: { material: true } },
+        vendor: true,
+      },
+    });
+    if (!po) return { success: false, error: `PurchaseOrder ${poId} not found` };
+    if (po.orgId !== orgId) return { success: false, error: "Org mismatch" };
+
+    // Cascade: sync vendor to QBO if needed
+    if (!po.vendor.qboVendorId) {
+      const vendorResult = await syncVendorToQbo(orgId, po.vendorId);
+      if (!vendorResult.success) {
+        return { success: false, error: `Vendor sync failed: ${vendorResult.error}` };
+      }
+    }
+
+    // Re-fetch vendor to get qboVendorId after potential cascade sync
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: po.vendorId },
+      select: { qboVendorId: true },
+    });
+    if (!vendor?.qboVendorId) {
+      return { success: false, error: "Vendor has no qboVendorId after sync" };
+    }
+
+    // Resolve ClassRef and DepartmentRef
+    const classRef = await resolveOrCreateQboClass(connection, orgId, "PURCHASE") ?? undefined;
+    // PO does not have a direct siteId; omit DepartmentRef
+    const departmentRef = undefined;
+
+    // Map to QBO payload
+    const qboPayload = toQboPurchaseOrder(
+      {
+        poNumber: po.poNumber,
+        notes: po.notes,
+        expectedDate: po.expectedDate,
+        totalAmount: po.totalAmount,
+      },
+      po.lines.map((l) => ({
+        description: l.description,
+        quantity: l.quantity,
+        unitPrice: Number(l.unitPrice),
+        amount: Number(l.amount),
+        material: l.material
+          ? { name: l.material.name, qboItemId: l.material.qboItemId }
+          : null,
+      })),
+      vendor.qboVendorId,
+      { classRef, departmentRef }
+    );
+
+    // Create or update in QBO
+    let qboPO: QboPurchaseOrder;
+    if (po.qboPurchaseOrderId) {
+      qboPO = await updatePurchaseOrder(connection, po.qboPurchaseOrderId, qboPayload);
+    } else {
+      qboPO = await createPurchaseOrder(connection, qboPayload);
+    }
+
+    // Update local record
+    await prisma.purchaseOrder.update({
+      where: { id: poId },
+      data: {
+        qboPurchaseOrderId: qboPO.Id,
+        qboSyncedAt: new Date(),
+      },
+    });
+
+    // Log success
+    await prisma.qboSyncLog.create({
+      data: {
+        orgId,
+        connectionId: connection.id,
+        entityType: "purchaseOrder",
+        entityId: poId,
+        qboEntityId: qboPO.Id,
+        action: "push",
+        status: "success",
+      },
+    });
+
+    return { success: true, qboPurchaseOrderId: qboPO.Id };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`[QBO] syncPurchaseOrderToQbo failed for ${poId}:`, errorMessage);
+
+    // Log failure
+    try {
+      const connection = await getActiveConnection(orgId);
+      if (connection) {
+        await prisma.qboSyncLog.create({
+          data: {
+            orgId,
+            connectionId: connection.id,
+            entityType: "purchaseOrder",
+            entityId: poId,
+            action: "push",
+            status: "failed",
+            errorMessage,
+          },
+        });
+      }
+    } catch { /* logging failure should not propagate */ }
+
+    return { success: false, error: errorMessage };
+  }
+}
+
+// ============================================
+// QBO LOCATION (DEPARTMENT) TRACKING
+// ============================================
+
+/**
+ * Resolve or auto-create a QBO Location (Department) for a Site.
+ * Caches mappings in qboLocationMap table.
+ * Returns null if location tracking is disabled or on any error
+ * (location tracking failure must NEVER block a sync).
+ */
+export async function resolveOrCreateQboLocation(
+  connection: QboConnection,
+  orgId: string,
+  siteId: string | null | undefined
+): Promise<QboRef | null> {
+  try {
+    if (!siteId) return null;
+    if (!connection.locationTrackingEnabled) return null;
+
+    // Check cache first
+    const existing = await prisma.qboLocationMap.findUnique({
+      where: { orgId_siteId: { orgId, siteId } },
+    });
+    if (existing) {
+      return { value: existing.qboLocationId, name: existing.qboLocationName };
+    }
+
+    // Fetch site name for the QBO Location name
+    const site = await prisma.site.findUnique({
+      where: { id: siteId },
+      select: { name: true },
+    });
+    const locationName = site?.name || `Site ${siteId.slice(0, 8)}`;
+
+    // Auto-create in QBO
+    const qboLocation = await createLocation(connection, { Name: locationName });
+
+    // Cache the mapping
+    await prisma.qboLocationMap.upsert({
+      where: { orgId_siteId: { orgId, siteId } },
+      update: {
+        qboLocationId: qboLocation.Id,
+        qboLocationName: locationName,
+      },
+      create: {
+        orgId,
+        siteId,
+        qboLocationId: qboLocation.Id,
+        qboLocationName: locationName,
+      },
+    });
+
+    return { value: qboLocation.Id, name: locationName };
+  } catch (err) {
+    console.error(`[QBO] Failed to resolve location for site ${siteId}:`, err);
+    return null; // Never block a sync
   }
 }
 

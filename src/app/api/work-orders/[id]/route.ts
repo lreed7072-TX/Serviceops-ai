@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthSessionFirst } from "@/lib/auth";
+import { enqueue } from "@/lib/qbo/qbo-queue";
 
 function jsonResponse(data: any, status = 200) {
   return NextResponse.json(data, { status });
@@ -239,6 +240,91 @@ export async function PATCH(
         asset: { select: { id: true, name: true, serialNumber: true, assetTag: true } },
       },
     });
+
+    // PM Auto-Invoice: create invoice when PM work order completes
+    // Note: existing.status is guaranteed not COMPLETED (early return guard above)
+    if (status === "COMPLETED") {
+      try {
+        // Check if WO came from a PM schedule with autoInvoice=true
+        const completedWO = await prisma.workOrder.findUnique({
+          where: { id },
+          select: { sourceWorkflowId: true, customerId: true, siteId: true, orderType: true },
+        });
+
+        if (completedWO?.sourceWorkflowId) {
+          const schedule = await prisma.workflowDefinition.findUnique({
+            where: { id: completedWO.sourceWorkflowId },
+            select: { autoInvoice: true, autoInvoiceAmount: true, name: true },
+          });
+
+          if (schedule?.autoInvoice) {
+            // Generate next invoice number
+            const lastInvoice = await prisma.invoice.findFirst({
+              where: { orgId: auth.orgId },
+              orderBy: { createdAt: "desc" },
+              select: { invoiceNumber: true },
+            });
+            const nextNumber = lastInvoice
+              ? String(parseInt(lastInvoice.invoiceNumber.replace(/\D/g, "") || "0") + 1).padStart(5, "0")
+              : "00001";
+            const invoiceNumber = `INV-${nextNumber}`;
+
+            // Determine line items
+            const lineAmount = schedule.autoInvoiceAmount
+              ? Number(schedule.autoInvoiceAmount)
+              : 0;
+
+            // Create invoice
+            const pmInvoice = await prisma.invoice.create({
+              data: {
+                orgId: auth.orgId,
+                customerId: completedWO.customerId,
+                siteId: completedWO.siteId,
+                workOrderId: id,
+                invoiceNumber,
+                title: `PM Invoice: ${schedule.name}`,
+                status: "DRAFT",
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Net 30
+                subtotal: lineAmount,
+                tax: 0,
+                total: lineAmount,
+                createdByUserId: auth.userId,
+                lineItems: {
+                  create: [
+                    {
+                      orgId: auth.orgId,
+                      itemType: "SERVICE",
+                      description: `Preventive Maintenance: ${schedule.name}`,
+                      quantity: 1,
+                      unitPrice: lineAmount,
+                      totalPrice: lineAmount,
+                    },
+                  ],
+                },
+              },
+            });
+
+            // Enqueue QBO sync (fire-and-forget)
+            try {
+              const qboConnection = await prisma.qboConnection.findFirst({
+                where: { orgId: auth.orgId, isActive: true },
+              });
+              if (qboConnection) {
+                await enqueue(auth.orgId, qboConnection.id, "invoice", pmInvoice.id, "push", 5);
+              }
+            } catch (enqueueErr) {
+              console.error("[PM Auto-Invoice] QBO enqueue failed:", enqueueErr);
+              // Don't fail the WO update — invoice was created successfully
+            }
+
+            console.log(`[PM Auto-Invoice] Created ${invoiceNumber} for WO ${id} (schedule: ${schedule.name})`);
+          }
+        }
+      } catch (pmErr) {
+        console.error("[PM Auto-Invoice] Failed:", pmErr);
+        // Don't fail the WO PATCH — PM auto-invoice is best-effort
+      }
+    }
 
     return jsonResponse({ data: workOrder, message: "Work order updated successfully" });
   } catch (error) {

@@ -365,7 +365,7 @@ export function toQboTimeActivity(
   timeEntry: { startedAt: Date; accumulatedSeconds: number; notes: string | null },
   qboEmployeeId: string,
   qboCustomerId: string,
-  options?: { qboItemId?: string; classRef?: QboRef; billable?: boolean; hourlyRate?: number }
+  options?: { qboItemId?: string; classRef?: QboRef; departmentRef?: QboRef; billable?: boolean; hourlyRate?: number }
 ): Partial<QboTimeActivity> {
   const txnDate = timeEntry.startedAt instanceof Date
     ? timeEntry.startedAt.toISOString().split("T")[0]
@@ -396,6 +396,10 @@ export function toQboTimeActivity(
     result.ClassRef = options.classRef;
   }
 
+  if (options?.departmentRef) {
+    result.DepartmentRef = options.departmentRef;
+  }
+
   if (options?.hourlyRate != null) {
     result.HourlyRate = roundQboAmount(options.hourlyRate);
   }
@@ -412,7 +416,7 @@ export function toQboBill(
   material: { name: string },
   qboVendorId: string,
   expenseAccountRef: { value: string; name?: string },
-  options?: { classRef?: QboRef }
+  options?: { classRef?: QboRef; departmentRef?: QboRef }
 ): Partial<QboBill> {
   const txnDate = stockMovement.createdAt instanceof Date
     ? stockMovement.createdAt.toISOString().split("T")[0]
@@ -441,6 +445,10 @@ export function toQboBill(
     result.DocNumber = stockMovement.reference;
   }
 
+  if (options?.departmentRef) {
+    result.DepartmentRef = options.departmentRef;
+  }
+
   return result as Partial<QboBill>;
 }
 
@@ -452,7 +460,7 @@ export function toQboPurchase(
   stockMovement: { totalCost: unknown; reference: string | null; notes: string | null; createdAt: Date },
   material: { name: string },
   expenseAccountRef: { value: string; name?: string },
-  options?: { classRef?: QboRef }
+  options?: { classRef?: QboRef; departmentRef?: QboRef }
 ): Partial<QboPurchase> {
   const txnDate = stockMovement.createdAt instanceof Date
     ? stockMovement.createdAt.toISOString().split("T")[0]
@@ -481,6 +489,10 @@ export function toQboPurchase(
     result.DocNumber = stockMovement.reference;
   }
 
+  if (options?.departmentRef) {
+    result.DepartmentRef = options.departmentRef;
+  }
+
   return result as Partial<QboPurchase>;
 }
 
@@ -493,7 +505,7 @@ export function toQboCreditMemo(
   lineItems: Array<{ description: string; totalPrice: unknown; quantity: unknown; unitPrice: unknown }>,
   qboCustomerId: string,
   qboInvoiceId: string,
-  options?: { classRef?: QboRef }
+  options?: { classRef?: QboRef; departmentRef?: QboRef }
 ): Partial<QboCreditMemo> {
   const lines: QboLine[] = lineItems.map((item) => ({
     Amount: roundQboAmount(item.totalPrice as number),
@@ -514,6 +526,10 @@ export function toQboCreditMemo(
 
   if (options?.classRef) {
     result.ClassRef = options.classRef;
+  }
+
+  if (options?.departmentRef) {
+    result.DepartmentRef = options.departmentRef;
   }
 
   if (invoice.notes) {

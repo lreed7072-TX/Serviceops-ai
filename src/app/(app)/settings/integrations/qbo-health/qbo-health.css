@@ -115,6 +115,37 @@
 }
 
 /* ============================================
+   Class Tracking Warning Banner
+   ============================================ */
+
+.qbo-health__warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #fef3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  margin-top: 20px;
+  color: #856404;
+}
+
+.qbo-health__warning-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.qbo-health__warning-banner strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.qbo-health__warning-banner p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ============================================
    Queue Stats Bar
    ============================================ */
 

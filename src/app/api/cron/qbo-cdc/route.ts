@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cdcRequest } from "@/lib/qbo/qbo-client";
 import { enqueue } from "@/lib/qbo/qbo-queue";
+import { fetchAndCachePreferences } from "@/lib/qbo/qbo-sync";
 import type { QboCdcResponse } from "@/lib/qbo/qbo-types";
 import type { QboConnection } from "@prisma/client";
 
@@ -36,6 +37,17 @@ export async function GET(req: NextRequest) {
 
     // Process each org independently — one failure does not block others
     for (const connection of connections) {
+      // Refresh QBO preferences (cached 23 hours)
+      const twentyThreeHoursAgo = new Date(Date.now() - 23 * 60 * 60 * 1000);
+      if (!connection.preferencesLastCheckedAt || connection.preferencesLastCheckedAt < twentyThreeHoursAgo) {
+        try {
+          await fetchAndCachePreferences(connection);
+        } catch (prefError) {
+          console.error(`[qbo-cdc] Failed to fetch preferences for org ${connection.orgId}:`, prefError);
+          // Non-fatal — continue with CDC poll even if preferences fetch fails
+        }
+      }
+
       try {
         await pollOrgCdc(connection, stats);
       } catch (err) {

@@ -361,6 +361,7 @@ export async function createInvoice(
     docNumber?: string;
     taxRate?: number;
     linkedTxn?: Array<{ TxnId: string; TxnType: string }>; // e.g. linked Estimate
+    classRef?: { value: string; name?: string }; // QBO Class for P&L segmentation
   }
 ): Promise<QboInvoice> {
   const lines = invoiceData.lineItems.map((item) => ({
@@ -387,6 +388,9 @@ export async function createInvoice(
   }
   if (invoiceData.linkedTxn) {
     qboInvoice.LinkedTxn = invoiceData.linkedTxn;
+  }
+  if (invoiceData.classRef) {
+    qboInvoice.ClassRef = { value: invoiceData.classRef.value, name: invoiceData.classRef.name };
   }
 
   const result = await qboRequest(connection, "POST", "invoice", qboInvoice) as {

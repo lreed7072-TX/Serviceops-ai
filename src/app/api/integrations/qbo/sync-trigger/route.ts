@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { entityType } = body; // "customers" | "invoices" | "items" | "estimates"
 
-  if (!entityType || !["customers", "invoices", "items", "estimates"].includes(entityType)) {
+  if (!entityType || !["customers", "invoices", "items", "estimates", "vendors", "employees"].includes(entityType)) {
     return NextResponse.json(
-      { error: "entityType must be one of: customers, invoices, items, estimates" },
+      { error: "entityType must be one of: customers, invoices, items, estimates, vendors, employees" },
       { status: 400 }
     );
   }
@@ -74,6 +74,24 @@ export async function POST(req: NextRequest) {
     });
     for (const q of quotes) {
       await enqueue(orgId, connection.id, "estimate", q.id, "push", 1);
+      enqueued++;
+    }
+  } else if (entityType === "vendors") {
+    const vendors = await prisma.vendor.findMany({
+      where: { orgId, isActive: true, qboVendorId: null },
+      select: { id: true },
+    });
+    for (const v of vendors) {
+      await enqueue(orgId, connection.id, "vendor", v.id, "push", 1);
+      enqueued++;
+    }
+  } else if (entityType === "employees") {
+    const techs = await prisma.user.findMany({
+      where: { orgId, role: "TECH", qboEmployeeId: null },
+      select: { id: true },
+    });
+    for (const t of techs) {
+      await enqueue(orgId, connection.id, "employee", t.id, "push", 1);
       enqueued++;
     }
   }

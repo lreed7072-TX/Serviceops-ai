@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     select: {
       id: true, realmId: true, companyName: true, connectedAt: true,
       lastSyncAt: true, accessTokenExpiry: true, refreshTokenExpiry: true,
+      classTrackingEnabled: true, locationTrackingEnabled: true,
     },
   });
 
@@ -71,6 +72,8 @@ export async function GET(req: NextRequest) {
         lastSyncAt: connection.lastSyncAt,
         tokenExpiresAt: connection.accessTokenExpiry,
         refreshTokenExpiresAt: connection.refreshTokenExpiry,
+        classTrackingEnabled: connection.classTrackingEnabled,
+        locationTrackingEnabled: connection.locationTrackingEnabled,
       },
       entityStats,
       queueStats: {

@@ -29,6 +29,7 @@ type Invoice = {
   dueDate: string | null;
   paidAt: string | null;
   qboInvoiceId: string | null;
+  qboCreditMemoId: string | null;
   notes: string | null;
   terms: string | null;
   createdAt: string;
@@ -60,6 +61,7 @@ export default function InvoiceDetailPage() {
   const [sendingQbo, setSendingQbo] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -168,6 +170,33 @@ export default function InvoiceDetailPage() {
       toast.error(e?.message ?? "Failed to send invoice via QBO");
     } finally {
       setSendingQbo(false);
+    }
+  };
+
+  const fetchInvoice = async () => {
+    if (!invoiceId) return;
+    try {
+      const res = await apiFetch(`/api/invoices/${invoiceId}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setInvoice(data.data);
+      }
+    } catch {
+      // Silently fail on refresh
+    }
+  };
+
+  const handleIssueCredit = async () => {
+    if (!invoice) return;
+    try {
+      const res = await apiFetch(`/api/invoices/${invoice.id}/credit`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to issue credit");
+      toast.success(data.message);
+      setShowCreditConfirm(false);
+      fetchInvoice();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to issue credit");
     }
   };
 
@@ -317,6 +346,16 @@ export default function InvoiceDetailPage() {
               style={{ fontSize: 14, padding: "8px 16px" }}
             >
               {sendingQbo ? "Sending..." : "Send via QBO"}
+            </button>
+          )}
+          {invoice.qboInvoiceId && !invoice.qboCreditMemoId &&
+           (invoice.status === "PAID" || invoice.status === "SENT") && (
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowCreditConfirm(true)}
+              style={{ fontSize: 14, padding: "8px 16px", borderColor: "var(--accent, #f97316)", color: "var(--accent, #f97316)" }}
+            >
+              Issue Credit
             </button>
           )}
         </div>
@@ -490,6 +529,17 @@ export default function InvoiceDetailPage() {
           )}
         </div>
       )}
+
+      {/* Credit Memo Confirmation */}
+      <ConfirmDialog
+        open={showCreditConfirm}
+        onClose={() => setShowCreditConfirm(false)}
+        onConfirm={handleIssueCredit}
+        title="Issue Credit Memo"
+        message="This will create a credit memo in QuickBooks for the full invoice amount. Continue?"
+        confirmLabel="Issue Credit"
+        variant="default"
+      />
 
       {/* Email Confirmation */}
       <ConfirmDialog

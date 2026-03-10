@@ -484,12 +484,24 @@ export async function syncQuoteToQbo(
       include: { material: true },
     });
 
+    // Resolve ClassRef from quote's converted order type (if applicable)
+    let classRef: QboRef | undefined;
+    if (quote.convertedToOrderType) {
+      const resolved = await resolveOrCreateQboClass(connection, orgId, quote.convertedToOrderType);
+      classRef = resolved ?? undefined;
+    }
+
     // Build estimate payload using mapper
     const estimatePayload = toQboEstimate(
       quote,
       freshLineItems,
       qboCustomerId,
     );
+
+    // Apply ClassRef to estimate payload
+    if (classRef) {
+      (estimatePayload as Record<string, unknown>).ClassRef = { value: classRef.value, name: classRef.name };
+    }
 
     // Add ItemRef on lines that have a synced material
     if (Array.isArray(estimatePayload.Line)) {
@@ -616,6 +628,19 @@ export async function syncInvoiceToQbo(
       };
     });
 
+    // Resolve ClassRef from work order type
+    let classRef: QboRef | undefined;
+    if (invoice.workOrderId) {
+      const workOrder = await prisma.workOrder.findFirst({
+        where: { id: invoice.workOrderId, orgId },
+        select: { orderType: true },
+      });
+      if (workOrder) {
+        const resolved = await resolveOrCreateQboClass(connection, orgId, workOrder.orderType);
+        classRef = resolved ?? undefined;
+      }
+    }
+
     // Resolve LinkedTxn from estimate (quote -> QBO estimate link)
     let linkedTxn: Array<{ TxnId: string; TxnType: string }> | undefined;
     if (invoice.quoteId && invoice.quote) {
@@ -632,7 +657,7 @@ export async function syncInvoiceToQbo(
       }
     }
 
-    // Create invoice in QBO with ItemRef and LinkedTxn
+    // Create invoice in QBO with ItemRef, LinkedTxn, and ClassRef
     const qboInvoice = await createInvoice(connection, {
       customerRef: qboCustomerId,
       lineItems: qboLines,
@@ -641,6 +666,7 @@ export async function syncInvoiceToQbo(
         : undefined,
       docNumber: invoice.invoiceNumber,
       linkedTxn,
+      classRef: classRef ? { value: classRef.value, name: classRef.name } : undefined,
     });
 
     // Update our invoice with QBO ID

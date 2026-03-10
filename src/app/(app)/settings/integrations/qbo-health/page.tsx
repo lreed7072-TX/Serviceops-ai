@@ -29,6 +29,8 @@ type ConnectionInfo = {
   lastSyncAt: string | null;
   tokenExpiresAt: string | null;
   refreshTokenExpiresAt: string | null;
+  classTrackingEnabled: boolean | null;
+  locationTrackingEnabled: boolean | null;
 };
 
 type EntityStat = {
@@ -306,6 +308,17 @@ export default function QboHealthPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Class Tracking Warning ── */}
+      {conn.classTrackingEnabled === false && (
+        <div className="qbo-health__warning-banner">
+          <AlertTriangle size={18} />
+          <div>
+            <strong>Class tracking is disabled in QuickBooks</strong>
+            <p>Enable it under Account and Settings &gt; Advanced &gt; Categories to segment your P&amp;L by work type.</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Queue Stats Bar ── */}
       {qs && (

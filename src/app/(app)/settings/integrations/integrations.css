@@ -493,6 +493,27 @@
   flex-shrink: 0;
 }
 
+/* Red Dot Indicator — inactive connection */
+.integration-status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.integration-status-dot--error {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .integration-card-header {

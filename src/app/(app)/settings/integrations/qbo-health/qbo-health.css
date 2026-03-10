@@ -146,6 +146,45 @@
 }
 
 /* ============================================
+   Token Expired Error Banner
+   ============================================ */
+
+.qbo-health__error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  margin-top: 20px;
+  margin-bottom: 16px;
+}
+
+.qbo-health__error-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.qbo-health__error-banner strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.qbo-health__error-banner p {
+  font-size: 13px;
+  color: #fca5a5;
+  margin: 0;
+}
+
+.qbo-health__reconnect-link {
+  color: var(--accent, #f97316);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+/* ============================================
    Queue Stats Bar
    ============================================ */
 

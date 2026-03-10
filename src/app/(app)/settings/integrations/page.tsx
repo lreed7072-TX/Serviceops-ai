@@ -66,6 +66,7 @@ export default function IntegrationsPage() {
   const [mappings, setMappings] = useState<Record<string, AccountMappingRecord>>({});
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
   const [mappingError, setMappingError] = useState<{ category: string; message: string } | null>(null);
+  const [qboConnectionInactive, setQboConnectionInactive] = useState(false);
 
   // Check for callback params
   useEffect(() => {
@@ -128,6 +129,12 @@ export default function IntegrationsPage() {
       if (res.ok) {
         const json = await res.json();
         setStatus(json.data);
+        // Detect inactive connection (connection exists but not connected)
+        if (json.data?.connection && !json.data?.connected) {
+          setQboConnectionInactive(true);
+        } else {
+          setQboConnectionInactive(false);
+        }
       }
     } catch {
       // ignore
@@ -293,6 +300,9 @@ export default function IntegrationsPage() {
           </div>
           <div className={`integration-status-badge ${status?.connected ? "connected" : "disconnected"}`}>
             {status?.connected ? "Connected" : "Not Connected"}
+            {qboConnectionInactive && (
+              <span className="integration-status-dot integration-status-dot--error" title="Connection lost — reconnect required" />
+            )}
           </div>
         </div>
 

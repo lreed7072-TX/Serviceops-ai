@@ -309,6 +309,17 @@ export default function QboHealthPage() {
         </div>
       </div>
 
+      {/* ── Token Expired Error Banner ── */}
+      {health && !health.connected && (
+        <div className="qbo-health__error-banner">
+          <XCircle size={18} />
+          <div>
+            <strong>QBO connection lost — tokens expired</strong>
+            <p>No data is syncing. <a href="/settings/integrations?reconnect=true" className="qbo-health__reconnect-link">Click to reconnect.</a></p>
+          </div>
+        </div>
+      )}
+
       {/* ── Class Tracking Warning ── */}
       {conn.classTrackingEnabled === false && (
         <div className="qbo-health__warning-banner">
@@ -316,6 +327,17 @@ export default function QboHealthPage() {
           <div>
             <strong>Class tracking is disabled in QuickBooks</strong>
             <p>Enable it under Account and Settings &gt; Advanced &gt; Categories to segment your P&amp;L by work type.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Location Tracking Warning ── */}
+      {conn.locationTrackingEnabled === false && (
+        <div className="qbo-health__warning-banner">
+          <AlertTriangle size={18} />
+          <div>
+            <strong>Location tracking is disabled in QuickBooks</strong>
+            <p>Enable it under Account and Settings &gt; Advanced &gt; Categories to segment your P&amp;L by site.</p>
           </div>
         </div>
       )}

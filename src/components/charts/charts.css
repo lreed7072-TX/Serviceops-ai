@@ -136,3 +136,209 @@
     font-size: 12px;
   }
 }
+
+/* ─── QBO Financial Reports ─────────────────────────────────── */
+
+.analytics__tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--border, #374151);
+  padding-bottom: 0;
+}
+
+.analytics__tab {
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: var(--transition, 200ms);
+}
+
+.analytics__tab:hover {
+  color: var(--text-primary, #f3f4f6);
+}
+
+.analytics__tab--active {
+  color: var(--accent, #f97316);
+  border-bottom-color: var(--accent, #f97316);
+}
+
+.qbo-financial {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.qbo-financial__controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: var(--surface, #111827);
+  border-radius: 8px;
+  border: 1px solid var(--border, #374151);
+}
+
+.qbo-financial__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qbo-financial__toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.qbo-financial__toggle-buttons {
+  display: flex;
+  border: 1px solid var(--border, #374151);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.qbo-financial__toggle-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition, 200ms);
+}
+
+.qbo-financial__toggle-btn--active {
+  background: var(--accent, #f97316);
+  color: white;
+}
+
+.qbo-financial__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qbo-financial__filter label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.qbo-financial__filter-input {
+  padding: 6px 12px;
+  background: var(--bg-secondary, #1f2937);
+  border: 1px solid var(--border, #374151);
+  border-radius: 6px;
+  color: var(--text-primary, #f3f4f6);
+  font-size: 13px;
+  width: 160px;
+}
+
+.qbo-financial__charts {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.qbo-financial__chart-section {
+  background: var(--surface, #111827);
+  border: 1px solid var(--border, #374151);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.qbo-financial__chart-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #f3f4f6);
+  margin: 0 0 8px;
+}
+
+.qbo-financial__chart-section h4 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #9ca3af);
+  margin: 0 0 12px;
+}
+
+.qbo-financial__net {
+  font-size: 14px;
+  color: var(--text-secondary, #9ca3af);
+  margin: 0 0 16px;
+}
+
+.qbo-financial__positive {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.qbo-financial__negative {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.qbo-financial__chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.qbo-financial__chart-half {
+  min-width: 0;
+}
+
+.qbo-financial__loading {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 14px;
+}
+
+.qbo-financial__error {
+  text-align: center;
+  padding: 24px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.qbo-financial__empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 14px;
+}
+
+.qbo-financial__empty-chart {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .qbo-financial__controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .qbo-financial__chart-row {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics__tabs {
+    overflow-x: auto;
+  }
+}

@@ -7,15 +7,20 @@ import MaterialUsageChart from "@/components/charts/MaterialUsageChart";
 import QuoteFunnelChart from "@/components/charts/QuoteFunnelChart";
 import CustomerRevenueChart from "@/components/charts/CustomerRevenueChart";
 import TechPerformanceChart from "@/components/charts/TechPerformanceChart";
+import QboFinancialCharts from "@/components/charts/QboFinancialCharts";
 import "@/components/charts/charts.css";
 
 type DateRange = "7d" | "30d" | "90d" | "custom";
+type AnalyticsTab = "operations" | "qbo_financial";
 
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>("30d");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("operations");
+  const [qboConnected, setQboConnected] = useState(false);
+  const [qboConnectionInfo, setQboConnectionInfo] = useState<{ classTrackingEnabled?: boolean; locationTrackingEnabled?: boolean } | null>(null);
 
   // Analytics data states
   const [revenueData, setRevenueData] = useState<any>(null);
@@ -85,6 +90,25 @@ export default function AnalyticsPage() {
     fetchAnalytics();
   }, [dateRange, startDate, endDate]);
 
+  // Check QBO connection status
+  useEffect(() => {
+    async function checkQboConnection() {
+      try {
+        const res = await fetch("/api/integrations/qbo/health");
+        if (res.ok) {
+          const data = await res.json();
+          setQboConnected(data.connected === true || data.data?.connected === true);
+          const connData = data.data || data;
+          setQboConnectionInfo({
+            classTrackingEnabled: connData.connection?.classTrackingEnabled,
+            locationTrackingEnabled: connData.connection?.locationTrackingEnabled,
+          });
+        }
+      } catch { /* QBO not connected */ }
+    }
+    checkQboConnection();
+  }, []);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -142,9 +166,37 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Main Dashboard */}
+      {/* Tab Navigation */}
       <div className="analytics-container">
-        
+        <div className="analytics__tabs">
+          <button
+            className={`analytics__tab ${activeTab === "operations" ? "analytics__tab--active" : ""}`}
+            onClick={() => setActiveTab("operations")}
+          >
+            Operations
+          </button>
+          {qboConnected && (
+            <button
+              className={`analytics__tab ${activeTab === "qbo_financial" ? "analytics__tab--active" : ""}`}
+              onClick={() => setActiveTab("qbo_financial")}
+            >
+              QBO Financial
+            </button>
+          )}
+        </div>
+
+        {activeTab === "qbo_financial" && qboConnected && (
+          <QboFinancialCharts
+            startDate={getDateRange().start}
+            endDate={getDateRange().end}
+            qboConnected={qboConnected}
+            classTrackingEnabled={qboConnectionInfo?.classTrackingEnabled}
+            locationTrackingEnabled={qboConnectionInfo?.locationTrackingEnabled}
+          />
+        )}
+
+        {activeTab === "operations" && (
+        <>
         {/* KPI Grid */}
         <div className="analytics-kpi-grid">
           {/* Revenue KPI */}
@@ -271,6 +323,8 @@ export default function AnalyticsPage() {
           <CustomerRevenueChart data={revenueData?.topCustomers || []} />
           <TechPerformanceChart data={workOrderData?.technicianPerformance || []} />
         </div>
+        </>
+        )}
       </div>
     </div>
   );

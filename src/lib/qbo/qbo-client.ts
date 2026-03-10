@@ -1,7 +1,7 @@
 import { QboConnection } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount } from "./qbo-types";
-export type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount };
+import type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount, QboEmployee, QboVendor, QboTimeActivity, QboBill, QboPurchase, QboCreditMemo, QboClass, QboPreferences } from "./qbo-types";
+export type { QboCustomer, QboInvoice, QboPayment, QboItem, QboEstimate, QboBatchOperation, QboBatchItemResponse, QboCdcResponse, QboAccount, QboEmployee, QboVendor, QboTimeActivity, QboBill, QboPurchase, QboCreditMemo, QboClass, QboPreferences };
 
 // QBO API endpoints
 const QBO_SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com/v3/company";
@@ -655,6 +655,121 @@ export async function sendInvoiceEmail(
   })) as { Invoice: QboInvoice };
 
   return result.Invoice;
+}
+
+// ============================================
+// EMPLOYEE CRUD
+// ============================================
+
+export async function createEmployee(connection: QboConnection, data: Partial<QboEmployee>): Promise<QboEmployee> {
+  const result = (await qboRequest(connection, "POST", "employee", data as Record<string, unknown>)) as { Employee: QboEmployee };
+  return result.Employee;
+}
+
+export async function getEmployee(connection: QboConnection, qboEmployeeId: string): Promise<QboEmployee> {
+  const result = (await qboRequest(connection, "GET", `employee/${qboEmployeeId}`)) as { Employee: QboEmployee };
+  return result.Employee;
+}
+
+export async function updateEmployee(connection: QboConnection, qboEmployeeId: string, data: Partial<QboEmployee>): Promise<QboEmployee> {
+  const existing = await getEmployee(connection, qboEmployeeId);
+  const merged = { ...existing, ...data, Id: existing.Id, SyncToken: existing.SyncToken } as Record<string, unknown>;
+  const result = (await qboRequest(connection, "POST", "employee", merged)) as { Employee: QboEmployee };
+  return result.Employee;
+}
+
+// ============================================
+// VENDOR CRUD
+// ============================================
+
+export async function createVendor(connection: QboConnection, data: Partial<QboVendor>): Promise<QboVendor> {
+  const result = (await qboRequest(connection, "POST", "vendor", data as Record<string, unknown>)) as { Vendor: QboVendor };
+  return result.Vendor;
+}
+
+export async function getVendor(connection: QboConnection, qboVendorId: string): Promise<QboVendor> {
+  const result = (await qboRequest(connection, "GET", `vendor/${qboVendorId}`)) as { Vendor: QboVendor };
+  return result.Vendor;
+}
+
+export async function updateVendor(connection: QboConnection, qboVendorId: string, data: Partial<QboVendor>): Promise<QboVendor> {
+  const existing = await getVendor(connection, qboVendorId);
+  const merged = { ...existing, ...data, Id: existing.Id, SyncToken: existing.SyncToken } as Record<string, unknown>;
+  const result = (await qboRequest(connection, "POST", "vendor", merged)) as { Vendor: QboVendor };
+  return result.Vendor;
+}
+
+// ============================================
+// TIME ACTIVITY
+// ============================================
+
+export async function createTimeActivity(connection: QboConnection, data: Partial<QboTimeActivity>): Promise<QboTimeActivity> {
+  const result = (await qboRequest(connection, "POST", "timeactivity", data as Record<string, unknown>)) as { TimeActivity: QboTimeActivity };
+  return result.TimeActivity;
+}
+
+export async function getTimeActivity(connection: QboConnection, qboTimeActivityId: string): Promise<QboTimeActivity> {
+  const result = (await qboRequest(connection, "GET", `timeactivity/${qboTimeActivityId}`)) as { TimeActivity: QboTimeActivity };
+  return result.TimeActivity;
+}
+
+// ============================================
+// BILL
+// ============================================
+
+export async function createBill(connection: QboConnection, data: Partial<QboBill>): Promise<QboBill> {
+  const result = (await qboRequest(connection, "POST", "bill", data as Record<string, unknown>)) as { Bill: QboBill };
+  return result.Bill;
+}
+
+export async function getBill(connection: QboConnection, qboBillId: string): Promise<QboBill> {
+  const result = (await qboRequest(connection, "GET", `bill/${qboBillId}`)) as { Bill: QboBill };
+  return result.Bill;
+}
+
+// ============================================
+// PURCHASE
+// ============================================
+
+export async function createPurchase(connection: QboConnection, data: Partial<QboPurchase>): Promise<QboPurchase> {
+  const result = (await qboRequest(connection, "POST", "purchase", data as Record<string, unknown>)) as { Purchase: QboPurchase };
+  return result.Purchase;
+}
+
+// ============================================
+// CREDIT MEMO
+// ============================================
+
+export async function createCreditMemo(connection: QboConnection, data: Partial<QboCreditMemo>): Promise<QboCreditMemo> {
+  const result = (await qboRequest(connection, "POST", "creditmemo", data as Record<string, unknown>)) as { CreditMemo: QboCreditMemo };
+  return result.CreditMemo;
+}
+
+export async function getCreditMemo(connection: QboConnection, qboCreditMemoId: string): Promise<QboCreditMemo> {
+  const result = (await qboRequest(connection, "GET", `creditmemo/${qboCreditMemoId}`)) as { CreditMemo: QboCreditMemo };
+  return result.CreditMemo;
+}
+
+// ============================================
+// PREFERENCES
+// ============================================
+
+export async function getPreferences(connection: QboConnection): Promise<QboPreferences> {
+  const result = (await qboRequest(connection, "GET", "preferences")) as { Preferences: QboPreferences };
+  return result.Preferences;
+}
+
+// ============================================
+// CLASS
+// ============================================
+
+export async function createClass(connection: QboConnection, data: { Name: string }): Promise<QboClass> {
+  const result = (await qboRequest(connection, "POST", "class", data as Record<string, unknown>)) as { Class: QboClass };
+  return result.Class;
+}
+
+export async function queryClasses(connection: QboConnection): Promise<QboClass[]> {
+  return queryEntities<QboClass>(connection, "SELECT * FROM Class WHERE Active = true", "Class");
 }
 
 /**

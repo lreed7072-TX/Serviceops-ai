@@ -242,6 +242,12 @@ enum TicketUrgency {
   EMERGENCY
 }
 
+enum VendorType {
+  SUPPLIER
+  SUBCONTRACTOR
+  OTHER
+}
+
 enum TicketStatus {
   OPEN
   ASSIGNED
@@ -333,6 +339,8 @@ model Org {
   qboCdcCursors          QboCdcCursor[]
   customerPortalTokens   CustomerPortalToken[]
   formResponses          FormResponse[]
+  vendors              Vendor[]
+  qboClassMaps         QboClassMap[]
 
   // CRM relations
   leadSources      LeadSource[]
@@ -353,6 +361,7 @@ model User {
   name      String?
   role      Role     @default(TECH)
   isActive  Boolean  @default(true)
+  qboEmployeeId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1054,11 +1063,13 @@ model Material {
   location       String? // Storage location
   lastRestocked  DateTime? // Last time stock was added
   qboItemId      String?   // QBO Item (Product/Service) entity ID after sync
+  vendorId       String?   @db.Uuid
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   org            Org                 @relation(fields: [orgId], references: [id])
+  vendor         Vendor?             @relation(fields: [vendorId], references: [id])
   usages         TaskMaterialUsage[]
   quoteLineItems QuoteLineItem[]
   stockMovements StockMovement[]
@@ -1090,6 +1101,8 @@ model StockMovement {
   totalCost         Decimal?          @db.Decimal(12, 2) // Total transaction cost
   reference         String? // PO #, WO #, adjustment reason
   notes             String?
+  qboBillId     String?
+  qboPurchaseId String?
   performedByUserId String            @db.Uuid
   createdAt         DateTime          @default(now())
 
@@ -1101,6 +1114,32 @@ model StockMovement {
   @@index([orgId, materialId])
   @@index([orgId, movementType])
   @@index([orgId, createdAt])
+}
+
+model Vendor {
+  id          String     @id @default(uuid()) @db.Uuid
+  orgId       String     @db.Uuid
+  name        String
+  companyName String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  postalCode  String?
+  vendorType  VendorType @default(SUPPLIER)
+  tax1099     Boolean    @default(false)
+  isActive    Boolean    @default(true)
+  notes       String?    @db.Text
+  qboVendorId String?
+  qboSyncedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  org         Org        @relation(fields: [orgId], references: [id])
+  materials   Material[]
+  @@index([orgId])
+  @@index([orgId, isActive])
+  @@index([orgId, vendorType])
 }
 
 model TaskMaterialUsage {
@@ -1348,6 +1387,7 @@ model Invoice {
   terms           String?       @db.Text
   qboInvoiceId    String? // QuickBooks invoice ID
   qboSyncedAt     DateTime? // Last synced to QBO
+  qboCreditMemoId String?
   createdByUserId String        @db.Uuid
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -1720,6 +1760,9 @@ model QboConnection {
   isActive          Boolean   @default(true)
   connectedAt       DateTime  @default(now())
   lastSyncAt        DateTime?
+  classTrackingEnabled    Boolean?
+  locationTrackingEnabled Boolean?
+  preferencesLastCheckedAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -1811,6 +1854,19 @@ model QboCdcCursor {
   connection QboConnection @relation(fields: [connectionId], references: [id])
 
   @@unique([orgId])
+  @@index([orgId])
+}
+
+model QboClassMap {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @db.Uuid
+  orderType    String
+  qboClassId   String
+  qboClassName String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  org          Org      @relation(fields: [orgId], references: [id])
+  @@unique([orgId, orderType])
   @@index([orgId])
 }
 

@@ -17,6 +17,12 @@ import type {
   QboItem,
   QboLine,
   QboRef,
+  QboEmployee,
+  QboVendor,
+  QboTimeActivity,
+  QboBill,
+  QboPurchase,
+  QboCreditMemo,
 } from "./qbo-types";
 import type {
   Customer,
@@ -273,4 +279,245 @@ export function toQboItem(
   }
 
   return base as Partial<QboItem>;
+}
+
+// ============================================
+// EMPLOYEE MAPPERS
+// ============================================
+
+export function toQboEmployee(
+  user: { name: string | null; email: string },
+  existingQbo?: QboEmployee
+): Partial<QboEmployee> {
+  const base: Record<string, unknown> = existingQbo ? { ...existingQbo } : {};
+
+  const displayName = user.name ?? user.email.split("@")[0];
+  base.DisplayName = displayName;
+
+  // Split name into given/family
+  if (user.name) {
+    const parts = user.name.split(" ");
+    base.GivenName = parts[0];
+    base.FamilyName = parts.length > 1 ? parts.slice(1).join(" ") : undefined;
+  }
+
+  base.PrimaryEmailAddr = { Address: user.email };
+  base.BillableTime = true;
+
+  return base as Partial<QboEmployee>;
+}
+
+// ============================================
+// VENDOR MAPPERS
+// ============================================
+
+export function toQboVendor(
+  vendor: {
+    name: string;
+    companyName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    tax1099: boolean;
+  },
+  existingQbo?: QboVendor
+): Partial<QboVendor> {
+  const base: Record<string, unknown> = existingQbo ? { ...existingQbo } : {};
+
+  base.DisplayName = vendor.name;
+
+  if (vendor.companyName) {
+    base.CompanyName = vendor.companyName;
+  }
+
+  if (vendor.email) {
+    base.PrimaryEmailAddr = { Address: vendor.email };
+  }
+
+  if (vendor.phone) {
+    base.PrimaryPhone = { FreeFormNumber: vendor.phone };
+  }
+
+  if (vendor.address || vendor.city || vendor.state || vendor.postalCode) {
+    base.BillAddr = {
+      Line1: vendor.address || undefined,
+      City: vendor.city || undefined,
+      CountrySubDivisionCode: vendor.state || undefined,
+      PostalCode: vendor.postalCode || undefined,
+    };
+  }
+
+  base.Vendor1099 = vendor.tax1099;
+  base.PrintOnCheckName = vendor.companyName ?? vendor.name;
+
+  return base as Partial<QboVendor>;
+}
+
+// ============================================
+// TIME ACTIVITY MAPPERS
+// ============================================
+
+export function toQboTimeActivity(
+  timeEntry: { startedAt: Date; accumulatedSeconds: number; notes: string | null },
+  qboEmployeeId: string,
+  qboCustomerId: string,
+  options?: { qboItemId?: string; classRef?: QboRef; billable?: boolean; hourlyRate?: number }
+): Partial<QboTimeActivity> {
+  const txnDate = timeEntry.startedAt instanceof Date
+    ? timeEntry.startedAt.toISOString().split("T")[0]
+    : String(timeEntry.startedAt).split("T")[0];
+
+  const hours = Math.floor(timeEntry.accumulatedSeconds / 3600);
+  const minutes = Math.round((timeEntry.accumulatedSeconds % 3600) / 60);
+
+  const result: Record<string, unknown> = {
+    TxnDate: txnDate,
+    NameOf: "Employee",
+    EmployeeRef: { value: qboEmployeeId },
+    CustomerRef: { value: qboCustomerId },
+    Hours: hours,
+    Minutes: minutes,
+    BillableStatus: options?.billable === false ? "NotBillable" : "Billable",
+  };
+
+  if (timeEntry.notes) {
+    result.Description = timeEntry.notes;
+  }
+
+  if (options?.qboItemId) {
+    result.ItemRef = { value: options.qboItemId };
+  }
+
+  if (options?.classRef) {
+    result.ClassRef = options.classRef;
+  }
+
+  if (options?.hourlyRate != null) {
+    result.HourlyRate = roundQboAmount(options.hourlyRate);
+  }
+
+  return result as Partial<QboTimeActivity>;
+}
+
+// ============================================
+// BILL MAPPERS
+// ============================================
+
+export function toQboBill(
+  stockMovement: { totalCost: unknown; unitCost: unknown; quantity: unknown; reference: string | null; notes: string | null; createdAt: Date },
+  material: { name: string },
+  qboVendorId: string,
+  expenseAccountRef: { value: string; name?: string },
+  options?: { classRef?: QboRef }
+): Partial<QboBill> {
+  const txnDate = stockMovement.createdAt instanceof Date
+    ? stockMovement.createdAt.toISOString().split("T")[0]
+    : String(stockMovement.createdAt).split("T")[0];
+
+  const amount = roundQboAmount(stockMovement.totalCost as number);
+  const qty = Number(stockMovement.quantity);
+
+  const line: QboLine = {
+    Amount: amount,
+    DetailType: "AccountBasedExpenseLineDetail",
+    Description: `${material.name} x${qty}`,
+    AccountBasedExpenseLineDetail: {
+      AccountRef: expenseAccountRef,
+      ...(options?.classRef ? { ClassRef: options.classRef } : {}),
+    },
+  };
+
+  const result: Record<string, unknown> = {
+    VendorRef: { value: qboVendorId },
+    TxnDate: txnDate,
+    Line: [line],
+  };
+
+  if (stockMovement.reference) {
+    result.DocNumber = stockMovement.reference;
+  }
+
+  return result as Partial<QboBill>;
+}
+
+// ============================================
+// PURCHASE MAPPERS
+// ============================================
+
+export function toQboPurchase(
+  stockMovement: { totalCost: unknown; reference: string | null; notes: string | null; createdAt: Date },
+  material: { name: string },
+  expenseAccountRef: { value: string; name?: string },
+  options?: { classRef?: QboRef }
+): Partial<QboPurchase> {
+  const txnDate = stockMovement.createdAt instanceof Date
+    ? stockMovement.createdAt.toISOString().split("T")[0]
+    : String(stockMovement.createdAt).split("T")[0];
+
+  const amount = roundQboAmount(stockMovement.totalCost as number);
+
+  const line: QboLine = {
+    Amount: amount,
+    DetailType: "AccountBasedExpenseLineDetail",
+    Description: material.name,
+    AccountBasedExpenseLineDetail: {
+      AccountRef: expenseAccountRef,
+      ...(options?.classRef ? { ClassRef: options.classRef } : {}),
+    },
+  };
+
+  const result: Record<string, unknown> = {
+    PaymentType: "Cash",
+    AccountRef: expenseAccountRef,
+    TxnDate: txnDate,
+    Line: [line],
+  };
+
+  if (stockMovement.reference) {
+    result.DocNumber = stockMovement.reference;
+  }
+
+  return result as Partial<QboPurchase>;
+}
+
+// ============================================
+// CREDIT MEMO MAPPERS
+// ============================================
+
+export function toQboCreditMemo(
+  invoice: { total: unknown; invoiceNumber: string; notes: string | null },
+  lineItems: Array<{ description: string; totalPrice: unknown; quantity: unknown; unitPrice: unknown }>,
+  qboCustomerId: string,
+  qboInvoiceId: string,
+  options?: { classRef?: QboRef }
+): Partial<QboCreditMemo> {
+  const lines: QboLine[] = lineItems.map((item) => ({
+    Amount: roundQboAmount(item.totalPrice as number),
+    Description: item.description,
+    DetailType: "SalesItemLineDetail",
+    SalesItemLineDetail: {
+      Qty: roundQboAmount(item.quantity as number),
+      UnitPrice: roundQboAmount(item.unitPrice as number),
+    },
+  }));
+
+  const result: Record<string, unknown> = {
+    CustomerRef: { value: qboCustomerId },
+    LinkedTxn: [{ TxnId: qboInvoiceId, TxnType: "Invoice" }],
+    DocNumber: `CM-${invoice.invoiceNumber}`,
+    Line: lines,
+  };
+
+  if (options?.classRef) {
+    result.ClassRef = options.classRef;
+  }
+
+  if (invoice.notes) {
+    result.CustomerMemo = { value: invoice.notes };
+  }
+
+  return result as Partial<QboCreditMemo>;
 }

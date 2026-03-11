@@ -279,6 +279,11 @@ Return ONLY valid JSON with no markdown formatting, code fences, or text outside
  * Wildcard matching is done via startsWith checks.
  */
 export function getSystemPromptForEvent(triggerEvent: string): string {
+  // Asset predictive analysis after WO completion (must check before startsWith)
+  if (triggerEvent === "work_order.completed.asset_analysis") {
+    return SYSTEM_PROMPT_PREDICTIVE_MAINTENANCE;
+  }
+
   // Report generation — completed work orders
   if (triggerEvent.startsWith("work_order.completed")) {
     return SYSTEM_PROMPT_REPORT_GENERATION;

@@ -307,7 +307,10 @@ export async function processAiJob(
     // 1. Build context based on trigger event prefix
     let context: AssetContext | WorkOrderContext | SchedulingContext | QuoteContext;
 
-    if (job.triggerEvent.startsWith("work_order.completed")) {
+    if (job.triggerEvent === "work_order.completed.asset_analysis") {
+      // Asset-level predictive analysis after WO completion
+      context = await buildAssetContext(job.orgId, job.entityId);
+    } else if (job.triggerEvent.startsWith("work_order.completed")) {
       context = await buildWorkOrderContext(job.orgId, job.entityId);
     } else if (job.triggerEvent.startsWith("work_order.created")) {
       context = await buildSchedulingContext(job.orgId, job.entityId);
@@ -396,7 +399,7 @@ export async function processAiJob(
             title: (insight.title as string) || "AI Insight",
             summary: (insight.summary as string) || "",
             details: insight.details
-              ? (insight as unknown as Prisma.InputJsonValue)
+              ? (insight.details as unknown as Prisma.InputJsonValue)
               : Prisma.JsonNull,
             confidence:
               typeof insight.confidence === "number"
@@ -405,7 +408,7 @@ export async function processAiJob(
             actionRecommended:
               (insight.actionRecommended as string) || null,
             llmModel: AI_INSIGHT_MODEL,
-            tokensUsed,
+            tokensUsed: null, // Token tracking lives on AiInsightJob record
             durationMs,
             expiresAt,
           },
@@ -436,7 +439,7 @@ export async function processAiJob(
           await notifyMultipleUsers(
             adminIds,
             job.orgId,
-            "WORK_ORDER_STATUS_CHANGED",
+            "AI_INSIGHT",
             `AI Insight: ${insight.title}`,
             insight.summary,
             undefined,

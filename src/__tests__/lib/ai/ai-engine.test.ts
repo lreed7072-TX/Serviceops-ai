@@ -196,7 +196,7 @@ describe("ai-engine", () => {
       expect(createCall.data.entityId).toBe("wo-1");
       expect(createCall.data.insightType).toBe("REPORT_DRAFT");
       expect(createCall.data.llmModel).toBe("claude-sonnet-4-20250514");
-      expect(createCall.data.tokensUsed).toBe(700);
+      expect(createCall.data.tokensUsed).toBeNull();
 
       // Verify job was marked complete
       expect(mockCompleteAiJob).toHaveBeenCalledWith("job-1", expect.objectContaining({
@@ -230,7 +230,7 @@ describe("ai-engine", () => {
       expect(mockNotifyMultipleUsers).toHaveBeenCalledWith(
         ["admin-1", "admin-2"],
         "org-1",
-        "WORK_ORDER_STATUS_CHANGED",
+        "AI_INSIGHT",
         expect.stringContaining("AI Insight"),
         expect.any(String),
         undefined,

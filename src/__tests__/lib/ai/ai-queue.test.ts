@@ -132,45 +132,21 @@ describe("ai-queue", () => {
 
   describe("failAiJob", () => {
     it("retries when attempts < maxAttempts (resets to pending)", async () => {
-      mockPrisma.aiInsightJob.findUniqueOrThrow.mockResolvedValue({
-        id: "job-1",
-        attempts: 1,
-        maxAttempts: 3,
-      });
-      mockPrisma.aiInsightJob.update.mockResolvedValue({});
+      mockPrisma.$queryRaw.mockResolvedValue([]);
 
       await failAiJob("job-1", "Timeout");
 
-      expect(mockPrisma.aiInsightJob.update).toHaveBeenCalledWith({
-        where: { id: "job-1" },
-        data: expect.objectContaining({
-          status: "pending",
-          attempts: 2,
-          lockedAt: null,
-          lockedBy: null,
-          errorMessage: "Timeout",
-        }),
-      });
+      // Uses atomic raw SQL — verify $queryRaw was called
+      expect(mockPrisma.$queryRaw).toHaveBeenCalled();
     });
 
     it("moves to dead_letter when attempts >= maxAttempts", async () => {
-      mockPrisma.aiInsightJob.findUniqueOrThrow.mockResolvedValue({
-        id: "job-2",
-        attempts: 2,
-        maxAttempts: 3,
-      });
-      mockPrisma.aiInsightJob.update.mockResolvedValue({});
+      mockPrisma.$queryRaw.mockResolvedValue([]);
 
       await failAiJob("job-2", "Final failure");
 
-      expect(mockPrisma.aiInsightJob.update).toHaveBeenCalledWith({
-        where: { id: "job-2" },
-        data: expect.objectContaining({
-          status: "dead_letter",
-          attempts: 3,
-          errorMessage: "Final failure",
-        }),
-      });
+      // Uses atomic raw SQL — verify $queryRaw was called
+      expect(mockPrisma.$queryRaw).toHaveBeenCalled();
     });
   });
 

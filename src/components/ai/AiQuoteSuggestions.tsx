@@ -92,52 +92,43 @@ export default function AiQuoteSuggestions({
         unitPrice: item.unitPrice,
       });
 
-      setAcceptedIndices((prev) => new Set(prev).add(index));
-
-      // If all items are accepted or dismissed, acknowledge the insight
-      const newAccepted = new Set(acceptedIndices).add(index);
-      const allHandled =
-        suggestions.length > 0 &&
-        suggestions.every(
-          (_, i) => newAccepted.has(i) || dismissedIndices.has(i)
-        );
-
-      if (allHandled && insightId) {
-        try {
-          await apiFetch(`/api/ai/insights/${insightId}/acknowledge`, {
+      setAcceptedIndices((prev) => {
+        const newAccepted = new Set(prev).add(index);
+        // Check if all items handled using current dismissed state
+        const allHandled =
+          suggestions.length > 0 &&
+          suggestions.every(
+            (_, i) => newAccepted.has(i) || dismissedIndices.has(i)
+          );
+        if (allHandled && insightId) {
+          apiFetch(`/api/ai/insights/${insightId}/acknowledge`, {
             method: "PATCH",
-          });
-        } catch {
-          // Silently fail
+          }).catch(() => {});
         }
-      }
+        return newAccepted;
+      });
     },
-    [suggestions, acceptedIndices, dismissedIndices, insightId, onAcceptItem]
+    [suggestions, dismissedIndices, insightId, onAcceptItem]
   );
 
   const handleDismiss = useCallback(
     async (index: number) => {
-      setDismissedIndices((prev) => new Set(prev).add(index));
-
-      // If all items are accepted or dismissed, acknowledge the insight
-      const newDismissed = new Set(dismissedIndices).add(index);
-      const allHandled =
-        suggestions.length > 0 &&
-        suggestions.every(
-          (_, i) => acceptedIndices.has(i) || newDismissed.has(i)
-        );
-
-      if (allHandled && insightId) {
-        try {
-          await apiFetch(`/api/ai/insights/${insightId}/acknowledge`, {
+      setDismissedIndices((prev) => {
+        const newDismissed = new Set(prev).add(index);
+        const allHandled =
+          suggestions.length > 0 &&
+          suggestions.every(
+            (_, i) => acceptedIndices.has(i) || newDismissed.has(i)
+          );
+        if (allHandled && insightId) {
+          apiFetch(`/api/ai/insights/${insightId}/acknowledge`, {
             method: "PATCH",
-          });
-        } catch {
-          // Silently fail
+          }).catch(() => {});
         }
-      }
+        return newDismissed;
+      });
     },
-    [suggestions, acceptedIndices, dismissedIndices, insightId]
+    [suggestions, acceptedIndices, insightId]
   );
 
   if (loading || suggestions.length === 0) return null;

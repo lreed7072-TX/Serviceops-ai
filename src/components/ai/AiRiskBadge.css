@@ -1,13 +1,10 @@
 /* AI Risk Badge */
 
-:root {
+.ai-risk-badge {
   --ai-risk-low: #22c55e;
   --ai-risk-medium: #eab308;
   --ai-risk-high: #f97316;
   --ai-risk-critical: #ef4444;
-}
-
-.ai-risk-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;

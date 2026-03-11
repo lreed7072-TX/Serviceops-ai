@@ -140,24 +140,29 @@ export async function failAiJob(
   jobId: string,
   errorMessage: string
 ): Promise<void> {
-  const job = await prisma.aiInsightJob.findUniqueOrThrow({
-    where: { id: jobId },
-  });
+  const now = new Date();
 
-  const newAttempts = job.attempts + 1;
-  const isDead = newAttempts >= job.maxAttempts;
-
-  await prisma.aiInsightJob.update({
-    where: { id: jobId },
-    data: {
-      status: isDead ? "dead_letter" : "pending",
-      attempts: newAttempts,
-      lockedAt: null,
-      lockedBy: null,
-      errorMessage,
-      ...(isDead ? { failedAt: new Date() } : {}),
-    },
-  });
+  // Atomic increment + status transition — no read-modify-write race
+  await prisma.$queryRaw(
+    Prisma.sql`
+      UPDATE "AiInsightJob"
+      SET
+        attempts = attempts + 1,
+        status = CASE
+          WHEN attempts + 1 >= "maxAttempts" THEN 'dead_letter'
+          ELSE 'pending'
+        END,
+        "lockedAt" = NULL,
+        "lockedBy" = NULL,
+        "errorMessage" = ${errorMessage},
+        "failedAt" = CASE
+          WHEN attempts + 1 >= "maxAttempts" THEN ${now}
+          ELSE NULL
+        END,
+        "updatedAt" = ${now}
+      WHERE id = ${jobId}::uuid
+    `
+  );
 }
 
 /**

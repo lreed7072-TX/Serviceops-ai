@@ -101,16 +101,17 @@ export async function handleCopilotMessage(
   }
 
   // 2. Fetch recent messages for context
-  const existingMessages = await prisma.aiMessage.findMany({
+  // Load most recent messages (desc) then reverse for chronological order
+  const existingMessages = (await prisma.aiMessage.findMany({
     where: { conversationId: conversation.id },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
     take: MAX_CONTEXT_MESSAGES,
     select: {
       role: true,
       content: true,
       toolCalls: true,
     },
-  });
+  })).reverse();
 
   // 3. Build message history for Claude
   const claudeMessages: Anthropic.MessageParam[] = [];
@@ -207,11 +208,17 @@ export async function handleCopilotMessage(
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const block of toolUseBlocks) {
       if (block.type === "tool_use") {
-        const toolResult = await executeCopilotTool(
-          block.name,
-          (block.input as Record<string, unknown>) || {},
-          orgId
-        );
+        let toolResult: string;
+        try {
+          toolResult = await executeCopilotTool(
+            block.name,
+            (block.input as Record<string, unknown>) || {},
+            orgId
+          );
+        } catch (err) {
+          console.error(`[copilot] Tool ${block.name} failed:`, err);
+          toolResult = JSON.stringify({ error: "Tool execution failed. Please try a different query." });
+        }
         toolResults.push({
           type: "tool_result",
           tool_use_id: block.id,

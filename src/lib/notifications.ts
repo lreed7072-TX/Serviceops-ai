@@ -8,7 +8,8 @@ export type NotificationType =
   | "PM_SCHEDULE_DUE"
   | "QUOTE_APPROVED"
   | "QUOTE_REJECTED"
-  | "INVOICE_PAID";
+  | "INVOICE_PAID"
+  | "AI_INSIGHT";
 
 interface CreateNotificationParams {
   userId: string;

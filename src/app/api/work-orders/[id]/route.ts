@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { enqueue } from "@/lib/qbo/qbo-queue";
+import { triggerWorkOrderCompleted } from "@/lib/ai/ai-triggers";
 
 function jsonResponse(data: any, status = 200) {
   return NextResponse.json(data, { status });
@@ -324,6 +325,9 @@ export async function PATCH(
         console.error("[PM Auto-Invoice] Failed:", pmErr);
         // Don't fail the WO PATCH — PM auto-invoice is best-effort
       }
+
+      // Fire AI analysis trigger (fire-and-forget)
+      triggerWorkOrderCompleted(auth.orgId, id, workOrder.assetId ?? null).catch(console.error);
     }
 
     return jsonResponse({ data: workOrder, message: "Work order updated successfully" });

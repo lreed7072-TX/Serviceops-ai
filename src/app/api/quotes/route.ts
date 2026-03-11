@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { QuoteStatus } from "@prisma/client";
+import { triggerQuoteCreated } from "@/lib/ai/ai-triggers";
 
 export const runtime = "nodejs";
 
@@ -184,6 +185,9 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Fire AI analysis trigger (fire-and-forget)
+    triggerQuoteCreated(auth.orgId, quote.id).catch(console.error);
 
     return NextResponse.json({ data: quote }, { status: 201 });
   } catch (error) {

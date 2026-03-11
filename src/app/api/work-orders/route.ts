@@ -9,6 +9,7 @@ import {
   WorkOrderStatus,
   WorkPackageType,
 } from "@prisma/client";
+import { triggerWorkOrderCreated } from "@/lib/ai/ai-triggers";
 
 export const runtime = "nodejs";
 
@@ -178,6 +179,9 @@ export async function POST(request: Request) {
       name: pkg.name,
     })),
   });
+
+  // Fire AI analysis trigger (fire-and-forget)
+  triggerWorkOrderCreated(auth.orgId, workOrder.id).catch(console.error);
 
   return NextResponse.json({ data: workOrder }, { status: 201 });
 }

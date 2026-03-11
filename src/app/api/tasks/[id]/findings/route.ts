@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { FindingPriority } from "@prisma/client";
+import { triggerFindingCreated } from "@/lib/ai/ai-triggers";
 
 export const runtime = "nodejs";
 
@@ -60,9 +61,11 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   const task = await prisma.taskInstance.findFirst({
     where: { id: taskId, orgId: auth.orgId },
-    select: { id: true },
+    select: { id: true, workOrder: { select: { assetId: true } } },
   });
   if (!task) return jsonError("Task not found.", 404);
+
+  const assetId = task.workOrder?.assetId ?? null;
 
   const body = await parseJson<FindingPayload>(request);
   if (!body?.category || !body?.details?.trim()) {
@@ -92,6 +95,11 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     },
   });
+
+  // Fire AI trigger for new finding
+  if (assetId) {
+    triggerFindingCreated(auth.orgId, assetId, body.category, body.details).catch(console.error);
+  }
 
   return NextResponse.json({ data: finding }, { status: 201 });
 }

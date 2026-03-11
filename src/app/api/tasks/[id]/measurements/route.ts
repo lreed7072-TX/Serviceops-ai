@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson } from "@/lib/api-server";
 import { requireAuthSessionFirst } from "@/lib/auth";
 import { MeasurementType } from "@prisma/client";
+import { triggerMeasurementRecorded } from "@/lib/ai/ai-triggers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,15 +76,17 @@ export async function POST(request: Request, { params }: RouteParams) {
   const authResult = await requireAuthSessionFirst(request);
   if ("error" in authResult) return authResult.error;
 
-  // Verify task exists
+  // Verify task exists and resolve assetId for AI triggers
   const task = await prisma.taskInstance.findFirst({
     where: { id: taskId, orgId: authResult.auth.orgId },
-    select: { id: true },
+    select: { id: true, workOrder: { select: { assetId: true } } },
   });
 
   if (!task) {
     return jsonError("Task not found.", 404);
   }
+
+  const assetId = task.workOrder?.assetId ?? null;
 
   const body = await parseJson<CaptureMeasurementPayload>(request);
   if (!body) {
@@ -122,6 +125,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     });
 
+    // Fire AI trigger for measurement update
+    if (assetId && body.numericValue != null) {
+      triggerMeasurementRecorded(authResult.auth.orgId, assetId, {
+        name: existing.name,
+        value: body.numericValue,
+      }).catch(console.error);
+    }
+
     return NextResponse.json({ data: updated });
   }
 
@@ -158,6 +169,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       capturedByUser: { select: { id: true, name: true, email: true } },
     },
   });
+
+  // Fire AI trigger for new measurement
+  if (assetId && body.numericValue != null) {
+    triggerMeasurementRecorded(authResult.auth.orgId, assetId, {
+      name: body.name!,
+      value: body.numericValue,
+    }).catch(console.error);
+  }
 
   return NextResponse.json({ data: measurement }, { status: 201 });
 }

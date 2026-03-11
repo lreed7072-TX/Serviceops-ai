@@ -1,0 +1,120 @@
+/* AI Draft Summary Card */
+
+.ai-draft-summary-card {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ai-draft-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #dbeafe;
+  border-bottom: 1px solid #bfdbfe;
+  flex-wrap: wrap;
+}
+
+.ai-draft-summary-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-draft-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.ai-draft-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.ai-draft-confidence {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 2px 6px;
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+.ai-draft-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-draft-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-draft-btn-copy {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.ai-draft-btn-copy:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.ai-draft-btn-use {
+  background: #f97316;
+  color: #fff;
+}
+
+.ai-draft-btn-use:hover {
+  background: #ea580c;
+}
+
+.ai-draft-summary-body {
+  padding: 16px;
+}
+
+.ai-draft-text {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: #1f2937;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .ai-draft-summary-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ai-draft-actions {
+    width: 100%;
+  }
+
+  .ai-draft-btn {
+    flex: 1;
+    text-align: center;
+  }
+}

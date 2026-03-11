@@ -6,6 +6,7 @@ import SearchTrigger from "@/components/search/SearchTrigger";
 import SearchProvider from "@/components/search/SearchProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import AiCopilot from "@/components/ai/AiCopilot";
 import SidebarNav from "@/components/SidebarNav";
 import type { NavItem } from "@/components/SidebarNav";
 import "./shell.css";
@@ -82,6 +83,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <SearchProvider />
+      <AiCopilot />
     </div>
   );
 }

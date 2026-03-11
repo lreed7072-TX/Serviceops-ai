@@ -10,6 +10,8 @@ import TaskList from "@/components/tasks/TaskList";
 import SignaturePanel from "@/components/signatures/SignaturePanel";
 import { Building2, MapPin, Users, Clock, FileText, CheckSquare, PenTool, Zap, Printer, Download, Mail, Play, Square, Pause, Trash2, Edit, XCircle, ClipboardList, CalendarDays, AlertTriangle, User } from "lucide-react";
 import AiInsightsCard from "@/components/ai/AiInsightsCard";
+import AiSuggestedTechBadge from "@/components/ai/AiSuggestedTechBadge";
+import AiDraftSummary from "@/components/ai/AiDraftSummary";
 import "./work-order-detail.css";
 
 interface TaskMeasurement {
@@ -787,6 +789,9 @@ export default function WorkOrderDetailPage() {
           <span className="section-icon"><Users size={18} /></span>
           Team Assignment
         </h2>
+        {workOrderId && (
+          <AiSuggestedTechBadge entityId={workOrderId} />
+        )}
         <div className="team-assignment-section">
           {/* Currently Assigned Techs */}
           {assignedTechs.length > 0 ? (
@@ -1064,6 +1069,13 @@ export default function WorkOrderDetailPage() {
           </>
         )}
       </div>
+
+      {/* AI Draft Summary — for completed work orders */}
+      {workOrder.status === WorkOrderStatus.COMPLETED && (
+        <div className="wo-section">
+          <AiDraftSummary entityId={workOrder.id} />
+        </div>
+      )}
 
       {/* AI Insights */}
       <div className="wo-section">

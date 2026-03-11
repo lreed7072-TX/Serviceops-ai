@@ -7,6 +7,11 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import "./PMScheduleCard.css";
 
+interface AiIntervalSuggestion {
+  recommendedDays: number;
+  insightId: string;
+}
+
 interface PMScheduleCardProps {
   schedule: {
     id: string;
@@ -32,6 +37,7 @@ interface PMScheduleCardProps {
       status: string;
     } | null;
   };
+  aiSuggestion?: AiIntervalSuggestion | null;
   onRefresh: () => void;
 }
 
@@ -42,7 +48,7 @@ const FREQ_LABELS: Record<string, string> = {
   YEARLY: "year",
 };
 
-export default function PMScheduleCard({ schedule, onRefresh }: PMScheduleCardProps) {
+export default function PMScheduleCard({ schedule, aiSuggestion, onRefresh }: PMScheduleCardProps) {
   const router = useRouter();
   const toast = useToast();
   const [generating, setGenerating] = useState(false);
@@ -139,7 +145,14 @@ export default function PMScheduleCard({ schedule, onRefresh }: PMScheduleCardPr
         )}
         <div className="pm-info-row">
           <span className="pm-label">Frequency:</span>
-          <span className="pm-value">{getFrequencyLabel()}</span>
+          <span className="pm-value">
+            {getFrequencyLabel()}
+            {aiSuggestion && (
+              <span className="ai-interval-badge" title="AI recommends a different PM interval based on asset data">
+                AI: {aiSuggestion.recommendedDays}d
+              </span>
+            )}
+          </span>
         </div>
         {schedule.nextScheduledDate && (
           <div className="pm-info-row">

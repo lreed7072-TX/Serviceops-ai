@@ -30,11 +30,24 @@ interface PMSchedule {
   } | null;
 }
 
+interface AiInsight {
+  id: string;
+  insightType: string;
+  entityType: string;
+  entityId: string;
+  details: Record<string, unknown> | null;
+}
+
+interface AiIntervalMap {
+  [assetId: string]: { recommendedDays: number; insightId: string };
+}
+
 export default function PMSchedulesPage() {
   const [schedules, setSchedules] = useState<PMSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ACTIVE");
   const [viewMode, setViewMode] = useState<"grid" | "calendar">("grid");
+  const [aiIntervalMap, setAiIntervalMap] = useState<AiIntervalMap>({});
 
   const fetchSchedules = async () => {
     try {
@@ -53,9 +66,34 @@ export default function PMSchedulesPage() {
     }
   };
 
+  const fetchAiIntervalSuggestions = async () => {
+    try {
+      const res = await apiFetch(
+        "/api/ai/insights?insightType=MAINTENANCE_FORECAST&activeOnly=true"
+      );
+      if (res.ok) {
+        const json = await res.json();
+        const insights: AiInsight[] = Array.isArray(json.data) ? json.data : [];
+        const map: AiIntervalMap = {};
+        for (const insight of insights) {
+          if (insight.entityType === "Asset" && insight.entityId && insight.details) {
+            const days = (insight.details as Record<string, unknown>).recommendedIntervalDays;
+            if (typeof days === "number") {
+              map[insight.entityId] = { recommendedDays: days, insightId: insight.id };
+            }
+          }
+        }
+        setAiIntervalMap(map);
+      }
+    } catch {
+      // Non-critical — silently fail
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     fetchSchedules();
+    fetchAiIntervalSuggestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
@@ -153,6 +191,7 @@ export default function PMSchedulesPage() {
             <PMScheduleCard
               key={schedule.id}
               schedule={schedule}
+              aiSuggestion={schedule.asset ? aiIntervalMap[schedule.asset.id] ?? null : null}
               onRefresh={fetchSchedules}
             />
           ))}

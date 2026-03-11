@@ -1,0 +1,176 @@
+/* AI Quote Suggestions Panel */
+
+.ai-quote-suggestions {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.ai-quote-suggestions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+}
+
+.ai-quote-suggestions-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-quote-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #f97316;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.ai-quote-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #9a3412;
+}
+
+.ai-quote-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #f97316;
+  color: #fff;
+}
+
+.ai-quote-suggestions-list {
+  padding: 0;
+}
+
+.ai-quote-suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s ease;
+}
+
+.ai-quote-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.ai-quote-suggestion-item:hover {
+  background: #fafbfc;
+}
+
+.ai-suggestion-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-suggestion-description {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.ai-suggestion-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.ai-suggestion-qty,
+.ai-suggestion-price,
+.ai-suggestion-total {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ai-suggestion-total {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.ai-suggestion-justification {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.ai-suggestion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ai-suggestion-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.ai-suggestion-btn-accept {
+  background: #f97316;
+  color: #fff;
+}
+
+.ai-suggestion-btn-accept:hover {
+  background: #ea580c;
+}
+
+.ai-suggestion-btn-dismiss {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.ai-suggestion-btn-dismiss:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+@media (max-width: 640px) {
+  .ai-quote-suggestion-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ai-suggestion-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .ai-suggestion-btn {
+    flex: 1;
+    text-align: center;
+  }
+}

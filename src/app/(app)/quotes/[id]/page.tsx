@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteStatus, QuoteLineItemType } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import AiQuoteSuggestions from "@/components/ai/AiQuoteSuggestions";
 import "./quote-detail.css";
 
 interface QuoteLineItem {
@@ -270,6 +271,49 @@ export default function QuoteDetailPage() {
     }
   };
 
+  const handleAcceptAiItem = useCallback(
+    async (item: { description: string; quantity: number; unitPrice: number }) => {
+      if (!quote) return;
+      try {
+        // Append the AI-suggested item to existing line items via PATCH
+        const existingItems = quote.lineItems.map((li) => ({
+          itemType: li.itemType,
+          description: li.description,
+          quantity: Number(li.quantity),
+          unitPrice: Number(li.unitPrice),
+          totalPrice: Number(li.totalPrice),
+        }));
+
+        const newItem = {
+          itemType: "SERVICE" as QuoteLineItemType,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.quantity * item.unitPrice,
+        };
+
+        const response = await fetch(`/api/quotes/${quote.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lineItems: [...existingItems, newItem],
+          }),
+        });
+        if (response.ok) {
+          toast.success(`Added "${item.description}" to quote`);
+          await fetchQuote();
+        } else {
+          const error = await response.json();
+          toast.error(error.error || "Failed to add line item");
+        }
+      } catch (error) {
+        console.error("Failed to add AI suggested item:", error);
+        toast.error("An error occurred while adding line item");
+      }
+    },
+    [quote, toast]
+  );
+
   if (loading) {
     return (
       <div className="quote-detail-container">
@@ -481,6 +525,16 @@ export default function QuoteDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* AI Line Item Suggestions */}
+        {quote.status !== QuoteStatus.APPROVED &&
+          quote.status !== QuoteStatus.CONVERTED &&
+          quote.status !== QuoteStatus.CANCELED && (
+            <AiQuoteSuggestions
+              quoteId={quote.id}
+              onAcceptItem={handleAcceptAiItem}
+            />
+          )}
       </div>
 
       {/* Notes & Terms */}

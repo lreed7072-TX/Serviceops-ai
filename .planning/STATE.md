@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: in_progress
-last_updated: "2026-03-09T22:00:00.000Z"
+milestone_name: QBO Full Integration
+status: complete
+last_updated: "2026-03-10T00:00:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 18
+  completed_phases: 6
+  total_plans: 29
+  completed_plans: 29
 ---
 
 # Project State: QBO Full Integration
@@ -16,12 +16,12 @@ progress:
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-07)
 **Core value:** Every financial transaction flows to QBO automatically
-**Current focus:** Phase 3 COMPLETE — all 5 plans executed, all 13 requirements delivered
+**Status:** v1.0 milestone complete
 
 ## Current Phase
-Phase: 3
+Phase: 6 (Final)
 Status: Complete — all 5 plans executed
-Requirements: PAY-01, PAY-03, QUOT-01, QUOT-02, ITEM-01, ITEM-02, VEND-02, SYNC-03, SYNC-04, DASH-01, DASH-02, DASH-03, DASH-05
+Requirements: PO-01, DIM-02, DIM-04, RPT-01, RPT-02, DASH-04
 
 ## Phase History
 - Phase 1: Context completed 2026-03-08 (no gray areas — pure infrastructure)
@@ -235,8 +235,61 @@ All 4 plans executed. Phase 4 deliverables:
 ## Phase 5 Complete
 All 4 plans executed. Requirements delivered: QUOT-03, VEND-01, TIME-01, TIME-02, EXP-01, DIM-01, DIM-03.
 
-## Next Action
-Phase 5 complete. Proceed to Phase 6 (Enterprise Showcase): PO-01, DIM-02, DIM-04, RPT-01, RPT-02, DASH-04.
+## Phase 6 Decisions
+- PO mapper: toQboPurchaseOrder pure function with VendorRef + ItemRef per line
+- Location resolver: resolveOrCreateQboLocation mirrors resolveOrCreateQboClass pattern
+- DepartmentRef retrofit: Added to syncInvoiceToQbo, syncQuoteToQbo, syncExpenseToQbo, syncTimeEntryToQbo
+- PM auto-invoice: WO completion triggers invoice creation when WO.isPreventiveMaintenance && WO.pmScheduleId
+- Token check cron: Nightly at 2 AM UTC, 14-day expiry window, proactive refresh + admin email alert
+- QBO Reports API: Proxy endpoint pulls P&L, A/R Aging, Balance Sheet with date range + accrual/cash + class/location filters
+
+## Phase 6 Execution Log
+- Phase 6, Plan 01: Complete (2026-03-10) — Schema migration + types + client functions + PO mapper
+  - Commit: 6d2844b
+  - PurchaseOrder model, DepartmentRef fields on QboClassMap
+  - QBO client: createPurchaseOrder, getPurchaseOrder, updatePurchaseOrder, getCompanyInfo, runReport, getDepartment, createDepartment
+  - toQboPurchaseOrder pure mapper
+
+- Phase 6, Plan 02: Complete (2026-03-10) — Location resolver + PO sync + DepartmentRef retrofit + PM auto-invoice
+  - Commit: 2ffa41f
+  - resolveOrCreateQboLocation (auto-create, null when disabled)
+  - syncPurchaseOrderToQbo with vendor + material cascade
+  - DepartmentRef on invoices, quotes, expenses, time activities
+  - PM auto-invoice on WO completion
+
+- Phase 6, Plan 03: Complete (2026-03-10) — Token check cron + QBO Reports API endpoint
+  - Commit: 00a5178
+  - GET /api/cron/qbo-token-check — nightly, 14-day window, proactive refresh, admin email
+  - GET /api/integrations/qbo/reports — P&L, A/R Aging, Balance Sheet with filters
+  - vercel.json: 4 cron entries total
+
+- Phase 6, Plan 04: Complete (2026-03-10) — Analytics QBO Financial tab + health banners + integrations red dot
+  - Commit: c1c9aca
+  - QBO Financial Reports tab on analytics dashboard
+  - Location tracking warning banner on QBO Health
+  - Token expiry warning banner
+  - Integrations sidebar red dot when connection unhealthy
+
+- Phase 6, Plan 05: Complete (2026-03-10) — 38 unit tests across 6 files (all passing)
+  - Commit: 463e09e
+  - mapper-po.test.ts, sync-po-location.test.ts, pm-auto-invoice.test.ts
+  - token-check.test.ts, reports-api.test.ts, flush-phase6.test.ts
+
+## Phase 6 Complete
+All 5 plans executed. Requirements delivered: PO-01, DIM-02, DIM-04, RPT-01, RPT-02, DASH-04.
+
+## Milestone v1.0 Complete
+All 6 phases executed. 42/42 requirements delivered. 250 tests (212 pass, 6 pre-existing, 32 todo).
+
+| Phase | Name | Requirements | Plans | Commits |
+|-------|------|-------------|-------|---------|
+| 1 | Foundation | 9 | 7 | 7 |
+| 2 | Client Extensions + Account Mapping | 4 | 4 | 12 |
+| 3 | Core Outbound | 13 | 5 | 26 |
+| 4 | Inbound Sync | 3 | 4 | 14 |
+| 5 | Enterprise Outbound | 7 | 4 | 4 |
+| 6 | Enterprise Showcase | 6 | 5 | 5 |
+| **Total** | | **42** | **29** | **68** |
 
 ---
-*Last updated: 2026-03-09 after Phase 5 complete*
+*Last updated: 2026-03-10 — Milestone v1.0 COMPLETE*

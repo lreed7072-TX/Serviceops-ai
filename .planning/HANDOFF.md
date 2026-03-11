@@ -1,69 +1,77 @@
-# Session Handoff — Phase 4 Complete
+# Session Handoff — Milestone v1.0 COMPLETE
 
-**Date:** 2026-03-09
-**Status:** Phase 4 executed and verified, all 3 requirements delivered
-**Next action:** Plan Phase 5 (Enterprise Outbound)
+**Date:** 2026-03-10
+**Status:** All 6 phases executed, all 42 requirements delivered
+**Next action:** Archive milestone v1.0, plan v2.0
 
 ## What Was Completed This Session
 
-Phase 4 executed in 3 waves, 4 plans, 18 commits + verification:
+Phase 6 (Enterprise Showcase) executed in 5 waves, 5 plans, 5 commits:
 
-| Wave | Plan | Commits | Description |
-|------|------|---------|-------------|
-| 1 | 04-01 | `4a8c8ef`–`4cd6bf3` | QboInvoice type fix + 4 inbound sync functions |
-| 2 | 04-02 | `9b8194a`–`3dff4b9` | CDC cron engine + flush dispatcher extension + vercel.json |
-| 2 | 04-03 | `dd9d078`–`9cdcea9` | Invoice PATCH void trigger |
-| 3 | 04-04 | `2e18d4d`–`ca6a4f7` | 22 unit tests across 5 files |
+| Wave | Plan | Commit | Description |
+|------|------|--------|-------------|
+| 1 | 06-01 | `6d2844b` | Schema migration + types + client functions + PO mapper |
+| 2 | 06-02 | `2ffa41f` | Location resolver + PO sync + DepartmentRef retrofit + PM auto-invoice |
+| 3 | 06-03 | `00a5178` | Token check cron + QBO Reports API endpoint |
+| 4 | 06-04 | `c1c9aca` | Analytics QBO Financial tab + health banners + integrations red dot |
+| 5 | 06-05 | `463e09e` | 38 unit tests across 6 files (all passing) |
 
-### Phase 4 Verification: 3/3 PASSED
-- PAY-02: Bidirectional invoice status sync — QBO voids → CANCELED via CDC, ServiceOps CANCELED → QBO void via enqueue
-- SYNC-01: CDC polling engine at /api/cron/qbo-cdc — polls Customer+Invoice every 4h, cursor management, multi-org isolation
-- SYNC-02: Customer inbound sync — processInboundCustomer with fromQboCustomer mapper, QBO wins billing fields, ServiceOps wins operational fields
+### Phase 6 Requirements Delivered
+- **PO-01**: Purchase order sync — ServiceOps POs → QBO PurchaseOrders with VendorRef + ItemRef per line
+- **DIM-02**: Location/Department tracking — DepartmentRef on invoices, quotes, expenses, time activities
+- **DIM-04**: Recurring PM invoices — WO completion auto-generates QBO invoice when PM schedule exists
+- **RPT-01**: QBO Reports API — P&L, A/R Aging, Balance Sheet pulled from QBO into analytics dashboard
+- **RPT-02**: Reports date range and filter support — date pickers, Cash/Accrual toggle, class/location filters
+- **DASH-04**: Proactive token expiry monitoring — nightly cron, 14-day window, admin email alert
 
-## QBO Module Files (src/lib/qbo/)
+## Full Milestone Summary (v1.0)
 
-- `qbo-client.ts` — OAuth, CRUD (Customer, Invoice, Item, Estimate, Payment), batch, CDC, void, email
-- `qbo-sync.ts` — 12 sync functions: 8 outbound + processPaymentJob + processInboundCustomer + processCdcCustomerPull + processCdcInvoiceChange + processVoidInvoiceInQbo
-- `qbo-types.ts` — 27+ type exports (QboInvoice now includes status field)
-- `qbo-mapper.ts` — 7 pure transform functions (+ toQboItem)
-- `qbo-queue.ts` — 7 queue functions
+| Phase | Name | Requirements | Plans | Commits | Dates |
+|-------|------|-------------|-------|---------|-------|
+| 1 | Foundation | 9 (FOUND-01–09) | 7 | 7 | 2026-03-08 |
+| 2 | Client Extensions + Account Mapping | 4 (FOUND-10, ACCT-01–03) | 4 | 12 | 2026-03-09 |
+| 3 | Core Outbound | 13 (PAY-01,03, QUOT-01–02, ITEM-01–02, VEND-02, SYNC-03–04, DASH-01–03,05) | 5 | 26 | 2026-03-09 |
+| 4 | Inbound Sync | 3 (PAY-02, SYNC-01–02) | 4 | 14 | 2026-03-09 |
+| 5 | Enterprise Outbound | 7 (QUOT-03, VEND-01, TIME-01–02, EXP-01, DIM-01,03) | 4 | 4 | 2026-03-09 |
+| 6 | Enterprise Showcase | 6 (PO-01, DIM-02,04, RPT-01–02, DASH-04) | 5 | 5 | 2026-03-10 |
+| **Total** | | **42** | **29** | **68** | |
 
-## New API Routes (Phase 4)
+## QBO Module Files (Final State)
 
-- `GET /api/cron/qbo-cdc` — CDC polling engine (Vercel Cron, every 4 hours)
+### Core (src/lib/qbo/)
+- `qbo-client.ts` — OAuth, CRUD for all 12 entity types, batch, CDC, void, email, reports
+- `qbo-sync.ts` — 18 sync functions: 14 outbound + 4 inbound/processing
+- `qbo-types.ts` — 35+ type exports (all QBO entities + batch + CDC)
+- `qbo-mapper.ts` — 12 pure transform functions
+- `qbo-queue.ts` — 7 queue functions (enqueue, claim, complete, fail, stale, stats, dedup)
 
-## Modified API Routes (Phase 4)
+### API Routes
+- `GET /api/cron/qbo-flush` — Queue flush (every 5 min)
+- `GET /api/cron/qbo-cdc` — CDC inbound poll (every 4 hours)
+- `GET /api/cron/qbo-token-check` — Token expiry monitoring (nightly 2 AM)
+- `POST /api/integrations/qbo/webhook` — Thin dispatcher (enqueue only)
+- `GET /api/integrations/qbo/accounts` — Chart of Accounts
+- `GET|PUT /api/integrations/qbo/account-mapping` — Account mapping CRUD
+- `GET /api/integrations/qbo/health` — Connection + sync health
+- `GET /api/integrations/qbo/sync-logs` — Error log with resolution hints
+- `POST /api/integrations/qbo/sync-trigger` — Manual sync triggers
+- `POST /api/invoices/[id]/send-invoice-email` — Send via QBO
+- `POST /api/invoices/[id]/credit` — Credit memo trigger
+- `GET /api/integrations/qbo/reports` — QBO financial reports proxy
 
-- `GET /api/cron/qbo-flush` — Extended with 3 inbound handlers: invoice:pull, customer:pull, invoice:void
-- `PATCH /api/invoices/[id]` — Added void trigger on CANCELED transition
-
-## Cron Jobs (vercel.json — 3 total)
-
+### Cron Jobs (vercel.json — 4 total)
 - `0 6 * * *` → /api/cron/generate-pms (daily PM generation)
-- `*/5 * * * *` → /api/cron/qbo-flush (queue flush, every 5 min)
-- `0 */4 * * *` → /api/cron/qbo-cdc (CDC inbound poll, every 4 hours)
+- `*/5 * * * *` → /api/cron/qbo-flush (queue flush)
+- `0 */4 * * *` → /api/cron/qbo-cdc (CDC inbound poll)
+- `0 2 * * *` → /api/cron/qbo-token-check (token expiry monitoring)
 
 ## Test State
-
-- 22 new Phase 4 tests across 5 files (inbound-customer: 5, cdc-invoice: 6, void-invoice: 4, cdc-cron: 4, flush-inbound: 3)
-- Total QBO tests: 12 test files in src/__tests__/lib/qbo/, 77 passing
-- Build clean, 0 errors
-
-## Phase 5 Scope (Enterprise Outbound)
-
-Requirements: QUOT-03, VEND-01, TIME-01, TIME-02, EXP-01, DIM-01, DIM-03
-
-Key deliverables:
-- Employee sync (techs → QBO Employees)
-- Vendor sync (suppliers → QBO Vendors with 1099 flag)
-- Time activity sync (time entries → QBO TimeActivity)
-- Expense/Bill sync (job costs → QBO Bills/Purchases)
-- Class tracking on all transactions
-- Credit memo creation
-- Preferences check (Class/Location tracking enabled)
+- 250 total tests (212 pass, 6 pre-existing fails unrelated to QBO, 32 todo)
+- QBO-specific: ~163 tests across 18 test files in src/__tests__/lib/qbo/
+- Build clean, 0 TypeScript errors
 
 ## Key Files
 - State: `.planning/STATE.md`
-- Roadmap: `.planning/ROADMAP.md` (Phase 5 section)
+- Roadmap: `.planning/ROADMAP.md`
 - Requirements: `.planning/REQUIREMENTS.md`
-- Phase 4 Verification: `.planning/phases/04-inbound-sync/04-VERIFICATION.md`
+- Project: `.planning/PROJECT.md`

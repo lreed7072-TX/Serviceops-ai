@@ -1,0 +1,143 @@
+/* AI Alerts Dashboard Widget */
+
+.ai-alerts-widget {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ai-alerts-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+}
+
+.ai-alerts-widget-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-alerts-widget-header .ai-alerts-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f97316;
+  color: #fff;
+  font-size: 14px;
+}
+
+.ai-alerts-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #ef4444;
+  color: #fff;
+}
+
+.ai-alerts-empty {
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.ai-alerts-empty-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Alert list */
+.ai-alerts-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.ai-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s ease;
+  cursor: pointer;
+}
+
+.ai-alert-item:last-child {
+  border-bottom: none;
+}
+
+.ai-alert-item:hover {
+  background: #f9fafb;
+}
+
+.ai-alert-severity-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.ai-alert-severity-icon.high {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.ai-alert-severity-icon.critical {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.ai-alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-alert-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 3px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-alert-entity {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.ai-alert-time {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}

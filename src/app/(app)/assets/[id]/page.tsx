@@ -7,6 +7,8 @@ import type { Asset, Site } from "@prisma/client";
 import { apiFetch } from "@/lib/api";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import AiRiskBadge from "@/components/ai/AiRiskBadge";
+import AiInsightsCard from "@/components/ai/AiInsightsCard";
 import "./asset-detail.css";
 
 type SingleResponse<T> = {
@@ -316,7 +318,10 @@ export default function AssetDetailPage() {
       <div className="page-header">
         <div className="header-content">
           <div className="header-left">
-            <h1>{asset?.name ?? "Asset detail"}</h1>
+            <h1>
+              {asset?.name ?? "Asset detail"}
+              {asset && <>{" "}<AiRiskBadge entityType="Asset" entityId={asset.id} /></>}
+            </h1>
             <p className="header-subtitle">Expanded asset detail with nameplate metadata</p>
           </div>
           <div className="header-right">
@@ -444,6 +449,9 @@ export default function AssetDetailPage() {
               </form>
             </div>
           </div>
+
+          {/* AI Insights */}
+          <AiInsightsCard entityType="Asset" entityId={asset.id} />
 
           {/* Attachments */}
           <AttachmentsPanel entityType="asset" entityId={asset.id} />

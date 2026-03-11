@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import TaskList from "@/components/tasks/TaskList";
 import SignaturePanel from "@/components/signatures/SignaturePanel";
 import { Building2, MapPin, Users, Clock, FileText, CheckSquare, PenTool, Zap, Printer, Download, Mail, Play, Square, Pause, Trash2, Edit, XCircle, ClipboardList, CalendarDays, AlertTriangle, User } from "lucide-react";
+import AiInsightsCard from "@/components/ai/AiInsightsCard";
 import "./work-order-detail.css";
 
 interface TaskMeasurement {
@@ -1062,6 +1063,11 @@ export default function WorkOrderDetailPage() {
             )}
           </>
         )}
+      </div>
+
+      {/* AI Insights */}
+      <div className="wo-section">
+        <AiInsightsCard entityType="WorkOrder" entityId={workOrder.id} />
       </div>
 
       {/* Actions */}

@@ -16,6 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { DollarSign, Wrench, FileText, ClipboardList, Users, CheckCircle, PenTool, Activity } from "lucide-react";
+import AiAlertsWidget from "@/components/ai/AiAlertsWidget";
 import "./dashboard.css";
 
 type DashboardStats = {
@@ -368,6 +369,9 @@ export default function DashboardPage() {
             Completion Rate: {stats.tasks.completionRate}%
           </div>
         </div>
+
+        {/* AI Alerts Widget */}
+        <AiAlertsWidget />
 
         {/* AI Stats */}
         <div className="stat-card ai-card">

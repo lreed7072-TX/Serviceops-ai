@@ -9,7 +9,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { Prisma, AiInsightJob } from "@prisma/client";
+import { Prisma, AiInsightJob, AiInsightType, AiInsightSeverity } from "@prisma/client";
 import { getAnthropicClient } from "./anthropic";
 import {
   AI_INSIGHT_MODEL,
@@ -234,15 +234,13 @@ export async function buildSchedulingContext(
     prisma.workOrder.findMany({
       where: {
         orgId,
-        status: { in: ["OPEN", "IN_PROGRESS", "SCHEDULED"] },
+        status: { in: ["OPEN", "IN_PROGRESS"] },
       },
       select: {
         id: true,
         title: true,
         status: true,
         priority: true,
-        scheduledStartDate: true,
-        assignedToUserId: true,
       },
     }),
   ]);
@@ -266,7 +264,7 @@ export async function buildQuoteContext(
     // Quote with line items, customer, asset
     prisma.quote.findFirst({
       where: { id: quoteId, orgId },
-      include: { lineItems: true, customer: true, asset: true },
+      include: { lineItems: true, customer: true },
     }),
 
     // Last 20 historical quotes (approved/rejected/converted) with line items
@@ -307,7 +305,7 @@ export async function processAiJob(
 
   try {
     // 1. Build context based on trigger event prefix
-    let context: Record<string, unknown>;
+    let context: AssetContext | WorkOrderContext | SchedulingContext | QuoteContext;
 
     if (job.triggerEvent.startsWith("work_order.completed")) {
       context = await buildWorkOrderContext(job.orgId, job.entityId);
@@ -391,10 +389,10 @@ export async function processAiJob(
         prisma.aiInsight.create({
           data: {
             orgId: job.orgId,
-            insightType: insight.type as string,
+            insightType: (insight.type as string) as AiInsightType,
             entityType: job.entityType,
             entityId: job.entityId,
-            severity: (insight.severity as string) || "MEDIUM",
+            severity: ((insight.severity as string) || "MEDIUM") as AiInsightSeverity,
             title: (insight.title as string) || "AI Insight",
             summary: (insight.summary as string) || "",
             details: insight.details

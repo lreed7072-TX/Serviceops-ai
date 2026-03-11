@@ -29,7 +29,10 @@ export default function AiDraftSummary({ entityId }: AiDraftSummaryProps) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!entityId) return;
+    if (!entityId) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     const load = async () => {

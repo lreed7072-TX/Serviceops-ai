@@ -69,11 +69,14 @@ export default function AiSuggestedTechBadge({ entityId }: AiSuggestedTechBadgeP
     if (!suggestion) return;
     setDismissed(true);
     try {
-      await apiFetch(`/api/ai/insights/${suggestion.insightId}/acknowledge`, {
+      const res = await apiFetch(`/api/ai/insights/${suggestion.insightId}/acknowledge`, {
         method: "PATCH",
       });
+      if (!res.ok) {
+        setDismissed(false);
+      }
     } catch {
-      // Silently fail
+      setDismissed(false);
     }
   };
 

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { QuoteStatus, QuoteLineItemType } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { apiFetch } from "@/lib/api";
 import AiQuoteSuggestions from "@/components/ai/AiQuoteSuggestions";
 import "./quote-detail.css";
 
@@ -84,7 +85,7 @@ export default function QuoteDetailPage() {
     if (!quoteId) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/quotes/${quoteId}`);
+      const response = await apiFetch(`/api/quotes/${quoteId}`);
       if (response.ok) {
         const result = await response.json();
         setQuote(result.data);
@@ -108,12 +109,12 @@ export default function QuoteDetailPage() {
     }
 
     try {
-      const response = await fetch(`/api/quotes/${quote.id}`, {
+      const response = await apiFetch(`/api/quotes/${quote.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: newStatus,
-          rejectionReason 
+          rejectionReason
         }),
       });
 
@@ -134,7 +135,7 @@ export default function QuoteDetailPage() {
 
     setConverting(true);
     try {
-      const response = await fetch(`/api/quotes/${quote.id}/accept`, {
+      const response = await apiFetch(`/api/quotes/${quote.id}/accept`, {
         method: "POST",
       });
 
@@ -164,7 +165,7 @@ export default function QuoteDetailPage() {
 
     setDownloadingPdf(true);
     try {
-      const response = await fetch(`/api/quotes/${quote.id}/pdf`);
+      const response = await apiFetch(`/api/quotes/${quote.id}/pdf`);
       if (!response.ok) throw new Error("Failed to generate PDF");
 
       const blob = await response.blob();
@@ -199,7 +200,7 @@ export default function QuoteDetailPage() {
 
     setEmailing(true);
     try {
-      const response = await fetch(`/api/quotes/${quote.id}/email`, {
+      const response = await apiFetch(`/api/quotes/${quote.id}/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: pendingEmail }),
@@ -227,7 +228,7 @@ export default function QuoteDetailPage() {
 
     setDuplicating(true);
     try {
-      const response = await fetch(`/api/quotes/${quote.id}/duplicate`, {
+      const response = await apiFetch(`/api/quotes/${quote.id}/duplicate`, {
         method: "POST",
       });
 
@@ -252,7 +253,7 @@ export default function QuoteDetailPage() {
 
     setDeleting(true);
     try {
-      const response = await fetch(`/api/quotes/${quote.id}`, {
+      const response = await apiFetch(`/api/quotes/${quote.id}`, {
         method: "DELETE",
       });
 
@@ -292,7 +293,7 @@ export default function QuoteDetailPage() {
           totalPrice: item.quantity * item.unitPrice,
         };
 
-        const response = await fetch(`/api/quotes/${quote.id}`, {
+        const response = await apiFetch(`/api/quotes/${quote.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

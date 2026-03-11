@@ -124,7 +124,15 @@ export default function AiAlertsWidget() {
             <div
               key={alert.id}
               className="ai-alert-item"
+              role="button"
+              tabIndex={0}
               onClick={() => router.push(entityDetailPath(alert.entityType, alert.entityId))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  router.push(entityDetailPath(alert.entityType, alert.entityId));
+                }
+              }}
             >
               <div className={`ai-alert-severity-icon ${alert.severity.toLowerCase()}`}>
                 {alert.severity === "CRITICAL" ? "!!" : "!"}

@@ -252,6 +252,28 @@ export async function executeCopilotTool(
 }
 
 // ============================================
+// INPUT VALIDATION HELPERS
+// ============================================
+
+/** Parse and validate an ISO 8601 date string. Returns Date or null if invalid. */
+function parseDate(value: unknown): Date | null {
+  if (!value) return null;
+  const d = new Date(String(value));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** Validate a string value against an allowed set of enum values. Returns the value or null. */
+function validateEnum(value: unknown, allowed: string[]): string | null {
+  if (!value) return null;
+  const s = String(value);
+  return allowed.includes(s) ? s : null;
+}
+
+const WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED"];
+const QUOTE_STATUSES = ["DRAFT", "SENT", "APPROVED", "REJECTED", "CONVERTED", "EXPIRED", "CANCELED"];
+const INVOICE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE", "VOID", "CREDITED", "CANCELED"];
+
+// ============================================
 // INDIVIDUAL TOOL IMPLEMENTATIONS
 // ============================================
 
@@ -299,13 +321,17 @@ async function getWorkOrders(
 
   if (args.assetId) where.assetId = String(args.assetId);
   if (args.customerId) where.customerId = String(args.customerId);
-  if (args.status) where.status = String(args.status);
+
+  const status = validateEnum(args.status, WORK_ORDER_STATUSES);
+  if (status) where.status = status;
 
   if (args.dateFrom || args.dateTo) {
     const createdAt: Record<string, Date> = {};
-    if (args.dateFrom) createdAt.gte = new Date(String(args.dateFrom));
-    if (args.dateTo) createdAt.lte = new Date(String(args.dateTo));
-    where.createdAt = createdAt;
+    const from = parseDate(args.dateFrom);
+    const to = parseDate(args.dateTo);
+    if (from) createdAt.gte = from;
+    if (to) createdAt.lte = to;
+    if (Object.keys(createdAt).length > 0) where.createdAt = createdAt;
   }
 
   const workOrders = await prisma.workOrder.findMany({
@@ -451,7 +477,8 @@ async function getQuotes(
 ) {
   const where: Record<string, unknown> = { orgId };
   if (args.customerId) where.customerId = String(args.customerId);
-  if (args.status) where.status = String(args.status);
+  const quoteStatus = validateEnum(args.status, QUOTE_STATUSES);
+  if (quoteStatus) where.status = quoteStatus;
 
   const quotes = await prisma.quote.findMany({
     where,
@@ -483,7 +510,8 @@ async function getInvoices(
 ) {
   const where: Record<string, unknown> = { orgId };
   if (args.customerId) where.customerId = String(args.customerId);
-  if (args.status) where.status = String(args.status);
+  const invoiceStatus = validateEnum(args.status, INVOICE_STATUSES);
+  if (invoiceStatus) where.status = invoiceStatus;
 
   const invoices = await prisma.invoice.findMany({
     where,

@@ -167,13 +167,36 @@ export async function handleCopilotMessage(
   while (iterations < MAX_TOOL_ITERATIONS) {
     iterations++;
 
-    const response = await client.messages.create({
-      model: AI_COPILOT_MODEL,
-      max_tokens: AI_COPILOT_MAX_TOKENS,
-      system: systemPrompt,
-      messages: currentMessages,
-      tools: copilotToolDefinitions,
-    });
+    let response;
+    try {
+      response = await client.messages.create({
+        model: AI_COPILOT_MODEL,
+        max_tokens: AI_COPILOT_MAX_TOKENS,
+        system: systemPrompt,
+        messages: currentMessages,
+        tools: copilotToolDefinitions,
+      });
+    } catch (err: unknown) {
+      // Handle context length exceeded by trimming history and retrying once
+      const isContextExceeded =
+        err instanceof Error &&
+        (err.message.includes("context_length_exceeded") ||
+          err.message.includes("too long"));
+      if (isContextExceeded && currentMessages.length > 2) {
+        // Keep only the system context (first msg is implicit) + last 4 messages
+        currentMessages = currentMessages.slice(-4);
+        console.warn("[copilot] Context exceeded, retrying with trimmed history");
+        response = await client.messages.create({
+          model: AI_COPILOT_MODEL,
+          max_tokens: AI_COPILOT_MAX_TOKENS,
+          system: systemPrompt,
+          messages: currentMessages,
+          tools: copilotToolDefinitions,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     totalTokensUsed +=
       response.usage.input_tokens + response.usage.output_tokens;

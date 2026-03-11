@@ -113,7 +113,7 @@ export default function AiInsightsCard({ entityType, entityId }: AiInsightsCardP
                   )}
                 </div>
                 <span className="ai-insight-confidence">
-                  {Math.round(insight.confidence * 100)}%
+                  {insight.confidence != null ? `${Math.round(insight.confidence * 100)}%` : "—"}
                 </span>
                 <button
                   className="ai-insight-ack-btn"

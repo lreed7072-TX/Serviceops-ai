@@ -1,77 +1,240 @@
-# Session Handoff — Milestone v1.0 COMPLETE
+# Session Handoff — v2.0 Milestone Initialized
 
-**Date:** 2026-03-10
-**Status:** All 6 phases executed, all 42 requirements delivered
-**Next action:** Archive milestone v1.0, plan v2.0
+**Date:** 2026-03-11
+**Status:** Milestone v2.0 fully initialized — ready to execute Phase 1
+**Next action:** Run `/gsd:plan-phase` for Phase 1 (CRM Foundation)
+
+---
+
+## RESUME INSTRUCTIONS
+
+To pick up exactly where we left off, tell Claude:
+
+```
+Read these files first to restore full context:
+- .planning/HANDOFF.md
+- .planning/STATE.md
+- .planning/ROADMAP.md
+- .planning/PROJECT.md
+- .planning/REQUIREMENTS.md
+- .planning/MILESTONES.md
+
+This is ServiceOpsIQ — v1.0 QBO shipped, v2.0 AI features validated.
+v2.0 CRM Module is fully planned with 33 requirements across 5 phases.
+
+START execution: Run /gsd:plan-phase for Phase 1 (CRM Foundation).
+
+Phase 1 scope (from REQUIREMENTS.md):
+- CRM-01: Contact model
+- CRM-02: CallLog model
+- CRM-03: FollowUp model
+- CRM-04: Lookup tables (Industry, LeadSource, CallType, CallOutcome)
+- CRM-05: CustomFieldDefinition + CustomFieldValue
+- CRM-06: Customer model enrichment (tier, industryId, leadSourceId, assignedToUserId, archivedAt)
+- CRM-07: Quote model enrichment (expectedCloseDate, wonLostAt, wonLostReason)
+
+Work autonomously. Full yolo mode.
+```
+
+---
 
 ## What Was Completed This Session
 
-Phase 6 (Enterprise Showcase) executed in 5 waves, 5 plans, 5 commits:
+### /gsd:new-milestone workflow — ALL STEPS COMPLETE
 
-| Wave | Plan | Commit | Description |
-|------|------|--------|-------------|
-| 1 | 06-01 | `6d2844b` | Schema migration + types + client functions + PO mapper |
-| 2 | 06-02 | `2ffa41f` | Location resolver + PO sync + DepartmentRef retrofit + PM auto-invoice |
-| 3 | 06-03 | `00a5178` | Token check cron + QBO Reports API endpoint |
-| 4 | 06-04 | `c1c9aca` | Analytics QBO Financial tab + health banners + integrations red dot |
-| 5 | 06-05 | `463e09e` | 38 unit tests across 6 files (all passing) |
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | Load context (planning files, CRM analysis) | Done |
+| 2 | Gather milestone goals (CRM analysis from SalesIQ) | Done |
+| 3 | Determine milestone version → v2.0 | Done |
+| 4 | Update PROJECT.md for v2.0 scope | Done |
+| 5 | Update STATE.md for v2.0 | Done |
+| 6 | Commit (pending — files written, not yet committed) | Ready |
+| 7 | Init (phase directories — created via ROADMAP.md) | Done |
+| 8 | Research decision (SalesIQ analysis already done) | Done |
+| 9 | Define requirements → REQUIREMENTS.md (42 total: 9 AI validated + 33 CRM) | Done |
+| 10 | Create roadmap → ROADMAP.md (5 CRM phases) | Done |
+| 11 | Done | Done |
 
-### Phase 6 Requirements Delivered
-- **PO-01**: Purchase order sync — ServiceOps POs → QBO PurchaseOrders with VendorRef + ItemRef per line
-- **DIM-02**: Location/Department tracking — DepartmentRef on invoices, quotes, expenses, time activities
-- **DIM-04**: Recurring PM invoices — WO completion auto-generates QBO invoice when PM schedule exists
-- **RPT-01**: QBO Reports API — P&L, A/R Aging, Balance Sheet pulled from QBO into analytics dashboard
-- **RPT-02**: Reports date range and filter support — date pickers, Cash/Accrual toggle, class/location filters
-- **DASH-04**: Proactive token expiry monitoring — nightly cron, 14-day window, admin email alert
+### Files Created/Updated
 
-## Full Milestone Summary (v1.0)
+| File | Action | Description |
+|------|--------|-------------|
+| `.planning/PROJECT.md` | Updated | v2.0 scope: AI validated + CRM module |
+| `.planning/STATE.md` | Updated | Reset for v2.0, status: requirements_gathering |
+| `.planning/REQUIREMENTS.md` | Created | 42 requirements (9 AI validated + 33 CRM pending) |
+| `.planning/ROADMAP.md` | Updated | v1.0 collapsed, v2.0 with AI validated + 5 CRM phases |
+| `.planning/MILESTONES.md` | Updated | Added v2.0 entry |
+| `.planning/HANDOFF.md` | Created | This file |
 
-| Phase | Name | Requirements | Plans | Commits | Dates |
-|-------|------|-------------|-------|---------|-------|
-| 1 | Foundation | 9 (FOUND-01–09) | 7 | 7 | 2026-03-08 |
-| 2 | Client Extensions + Account Mapping | 4 (FOUND-10, ACCT-01–03) | 4 | 12 | 2026-03-09 |
-| 3 | Core Outbound | 13 (PAY-01,03, QUOT-01–02, ITEM-01–02, VEND-02, SYNC-03–04, DASH-01–03,05) | 5 | 26 | 2026-03-09 |
-| 4 | Inbound Sync | 3 (PAY-02, SYNC-01–02) | 4 | 14 | 2026-03-09 |
-| 5 | Enterprise Outbound | 7 (QUOT-03, VEND-01, TIME-01–02, EXP-01, DIM-01,03) | 4 | 4 | 2026-03-09 |
-| 6 | Enterprise Showcase | 6 (PO-01, DIM-02,04, RPT-01–02, DASH-04) | 5 | 5 | 2026-03-10 |
-| **Total** | | **42** | **29** | **68** | |
+---
 
-## QBO Module Files (Final State)
+## v2.0 Milestone Overview
 
-### Core (src/lib/qbo/)
-- `qbo-client.ts` — OAuth, CRUD for all 12 entity types, batch, CDC, void, email, reports
-- `qbo-sync.ts` — 18 sync functions: 14 outbound + 4 inbound/processing
-- `qbo-types.ts` — 35+ type exports (all QBO entities + batch + CDC)
-- `qbo-mapper.ts` — 12 pure transform functions
-- `qbo-queue.ts` — 7 queue functions (enqueue, claim, complete, fail, stale, stats, dedup)
+### AI Features (VALIDATED — already shipped)
 
-### API Routes
-- `GET /api/cron/qbo-flush` — Queue flush (every 5 min)
-- `GET /api/cron/qbo-cdc` — CDC inbound poll (every 4 hours)
-- `GET /api/cron/qbo-token-check` — Token expiry monitoring (nightly 2 AM)
-- `POST /api/integrations/qbo/webhook` — Thin dispatcher (enqueue only)
-- `GET /api/integrations/qbo/accounts` — Chart of Accounts
-- `GET|PUT /api/integrations/qbo/account-mapping` — Account mapping CRUD
-- `GET /api/integrations/qbo/health` — Connection + sync health
-- `GET /api/integrations/qbo/sync-logs` — Error log with resolution hints
-- `POST /api/integrations/qbo/sync-trigger` — Manual sync triggers
-- `POST /api/invoices/[id]/send-invoice-email` — Send via QBO
-- `POST /api/invoices/[id]/credit` — Credit memo trigger
-- `GET /api/integrations/qbo/reports` — QBO financial reports proxy
+9 requirements, all built and committed before milestone formalization:
 
-### Cron Jobs (vercel.json — 4 total)
+| Req | Description | Files |
+|-----|-------------|-------|
+| AI-01 | Event-driven insight pipeline | ai-engine.ts, ai-triggers.ts |
+| AI-02 | Queue processing cron | ai-queue.ts, /api/cron/ai-process |
+| AI-03 | Risk badges | AiRiskBadge component |
+| AI-04 | Insights card | AiInsightsCard component |
+| AI-05 | Alerts widget | AiAlertsWidget component |
+| AI-06 | Suggested tech badge | AiSuggestedTechBadge component |
+| AI-07 | Draft summaries | AiDraftSummary component |
+| AI-08 | Quote suggestions | AiQuoteSuggestions component |
+| AI-09 | AI copilot | AiCopilot + copilot-tools.ts + /api/ai/chat |
+
+### CRM Module — 5 Phases, 33 Requirements
+
+**Phase 1: CRM Foundation** (7 requirements: CRM-01 – CRM-07)
+- Prisma schema: Contact, CallLog, FollowUp, lookup tables, custom fields
+- Customer enrichment: tier, industryId, leadSourceId, assignedToUserId, archivedAt
+- Quote enrichment: expectedCloseDate, wonLostAt, wonLostReason
+- Migration, types, enums, indexes, org scoping
+
+**Phase 2: Lookups + Contact Management** (7 requirements: LOOK-01–03, CONT-01–04)
+- Admin CRUD for Industry, LeadSource, CallType, CallOutcome
+- Lookup settings page (tabbed, reorder, default seeding)
+- Contact CRUD API + Site detail integration + role badges
+- Contact quick-add from call log
+
+**Phase 3: Activity & Follow-up Tracking** (8 requirements: ACT-01–04, FOLL-01–04)
+- Call log CRUD + creation form with cascade pickers
+- Call outcome auto-triggers (follow-up creation, quote prompt)
+- Activity timeline on customer/site pages
+- Follow-up CRUD + list view + notifications + completion flow
+
+**Phase 4: Customer Enhancement + Pipeline** (6 requirements: CUST-01–03, PIPE-01–03)
+- Customer tier badges (A/B/C) + sorting/filtering
+- Customer enrichment form (industry, lead source, assigned user)
+- Customer archiving (soft delete + restore)
+- Quote pipeline view (kanban/list) + enrichment UI
+- Pipeline value aggregation
+
+**Phase 5: Custom Fields + CRM Dashboard** (5 requirements: CFIELD-01–03, CDASH-01–02)
+- Custom field definition admin (per entity type, per industry)
+- Dynamic rendering on customer/site forms
+- CRM KPI widgets on dashboard
+- CRM analytics tab (call trends, pipeline funnel, acquisition sources)
+
+---
+
+## Architecture Context
+
+### Stack
+- **Framework:** Next.js 16.1, React 19, TypeScript 5
+- **ORM:** Prisma 6.16 (schema at `prisma/schema.prisma`, ~1700 lines)
+- **Database:** Supabase PostgreSQL
+- **Hosting:** Vercel (serverless functions)
+- **Auth:** Supabase session + dev-only fallback + Bearer token (`src/lib/auth.ts`)
+- **Styling:** Custom CSS variables (NOT Tailwind)
+
+### Key Patterns
+- **Multi-tenant:** ALL queries include `orgId: auth.orgId`
+- **Auth:** `requireAuthSessionFirst(request)` on every API route
+- **Roles:** ADMIN, DISPATCHER, TECH
+- **Pagination:** `fetchPaginated<T>()` returns `{ data: T[]; total: number }`
+- **Design system:** primary #1f2937, accent #f97316, fonts: Space Grotesk + JetBrains Mono
+- **Orange = action buttons/CTAs, Blue = info badges only**
+- **Shared UI:** LoadingSpinner, Modal, ConfirmDialog, EmptyState, StatusBadge, PageHeader, Toast, Breadcrumbs
+
+### Cron Jobs (vercel.json — 5 total)
 - `0 6 * * *` → /api/cron/generate-pms (daily PM generation)
 - `*/5 * * * *` → /api/cron/qbo-flush (queue flush)
 - `0 */4 * * *` → /api/cron/qbo-cdc (CDC inbound poll)
 - `0 2 * * *` → /api/cron/qbo-token-check (token expiry monitoring)
+- `*/2 * * * *` → /api/cron/ai-process (AI insight queue flush)
 
-## Test State
-- 250 total tests (212 pass, 6 pre-existing fails unrelated to QBO, 32 todo)
-- QBO-specific: ~163 tests across 18 test files in src/__tests__/lib/qbo/
+### Test State
+- 275 total tests (237 pass, 6 pre-existing fails, 32 todo)
+- QBO: ~163 tests across 18 files
+- AI: 25 tests across 4 files
 - Build clean, 0 TypeScript errors
 
-## Key Files
-- State: `.planning/STATE.md`
-- Roadmap: `.planning/ROADMAP.md`
-- Requirements: `.planning/REQUIREMENTS.md`
-- Project: `.planning/PROJECT.md`
+---
+
+## Source Material for CRM
+
+### SalesIQ Codebase Analysis
+- Full analysis saved in auto-memory: `crm-integration.md`
+- Source path: /Volumes/Transcend/SalesIQ-Agent
+- Stack: Express + Drizzle ORM (PostgreSQL), React + TanStack Query
+- Schema: shared/schema.ts (524 lines, 20+ tables)
+- All entity mappings, API routes, and business logic documented
+
+### Key Mapping Decisions
+- SalesIQ "Locations" = ServiceOpsIQ "Sites" (no duplication)
+- SalesIQ "Service Tickets" ≈ ServiceOpsIQ "Work Orders" (skip — WOs are richer)
+- SalesIQ "Tasks" ≈ could merge with existing notification system
+- SalesIQ "Teams" — deferred to future (use existing User roles)
+- Contact under Site (not Customer) — matches GPS field reality
+- No Outlook calendar sync in v2.0
+
+---
+
+## Known Issues / Remaining AI Work
+
+These items were identified during AI hardening but not yet addressed:
+
+- [ ] quotes/[id]/page.tsx uses bare `fetch()` instead of `apiFetch()` (pre-existing, not AI-specific)
+- [ ] AiSuggestedTechBadge: add rollback on failed dismiss
+- [ ] AiAlertsWidget: keyboard accessibility (role, tabIndex, onKeyDown)
+- [ ] Copilot: token budget guard for long conversations
+- [ ] Copilot: Cache-Control headers on conversation GET routes
+- [ ] copilot-tools.ts: validate date inputs and enum values from Claude tool calls
+
+These can be addressed as polish items after CRM module is complete.
+
+---
+
+## File Map (Key Directories)
+
+```
+Serviceops-ai/
+├── .planning/
+│   ├── PROJECT.md          ← v2.0 project definition
+│   ├── STATE.md            ← v2.0 state tracking
+│   ├── REQUIREMENTS.md     ← v2.0 requirements (42 total)
+│   ├── ROADMAP.md          ← v2.0 roadmap (5 CRM phases)
+│   ├── MILESTONES.md       ← v1.0 + v2.0 milestone registry
+│   ├── HANDOFF.md          ← THIS FILE
+│   └── milestones/
+│       ├── v1.0-ROADMAP.md
+│       └── v1.0-REQUIREMENTS.md
+├── prisma/
+│   └── schema.prisma       ← ~1700 lines (add CRM models here)
+├── src/
+│   ├── lib/
+│   │   ├── auth.ts
+│   │   ├── qbo/            ← 5 files (v1.0 — complete)
+│   │   └── ai/             ← 7 files (v2.0 AI — validated)
+│   ├── components/
+│   │   ├── ui/             ← shared UI components
+│   │   └── ai/             ← 7 AI components (validated)
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── ai/         ← 6 AI API routes (validated)
+│   │   │   ├── cron/       ← 5 cron jobs
+│   │   │   └── integrations/qbo/  ← QBO API routes
+│   │   └── portal/         ← customer portal
+│   └── __tests__/
+│       └── lib/
+│           ├── qbo/        ← 18 QBO test files
+│           └── ai/         ← 4 AI test files
+└── vercel.json             ← 5 cron entries
+```
+
+---
+
+## Memory Files
+
+Auto-memory location: `~/.claude/projects/.../memory/`
+- `MEMORY.md` — project overview, key paths, architecture patterns
+- `crm-integration.md` — full SalesIQ CRM analysis and integration mapping
+- `session-history.md` — detailed session logs
+
+---
+*Last updated: 2026-03-11 — v2.0 milestone fully initialized, ready for Phase 1 execution*

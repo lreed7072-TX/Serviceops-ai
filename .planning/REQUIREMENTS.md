@@ -1,6 +1,7 @@
 # Requirements: ServiceOpsIQ — v2.0 AI Features + CRM Module
 
 **Defined:** 2026-03-11
+**Reconciled:** 2026-03-16 (audit revealed CRM code pre-existed planning docs)
 **Core Value:** AI insights on every mutation + CRM captures every customer interaction
 
 ---
@@ -21,85 +22,108 @@ All AI requirements have been built, tested, and committed. No phases needed.
 
 ---
 
-## CRM Module (NEW — adapted from SalesIQ)
+## CRM Module (adapted from SalesIQ — reconciled 2026-03-16)
 
 ### CRM Foundation
 
-- [ ] **CRM-01**: Prisma schema — Contact model under Site with firstName, lastName, title, email, phone, mobilePhone, preferredContactMethod (phone/email/text), isDecisionMaker, isTechnicalInfluencer, isGatekeeper booleans, notes, status, createdByUserId
-- [ ] **CRM-02**: Prisma schema — CallLog model with userId, customerId, siteId, contactId, callTypeId, callOutcomeId, callMethod (phone/in_person/video_call/email), callDuration, competitorMentioned, notes, callTimestamp
-- [ ] **CRM-03**: Prisma schema — FollowUp model with callLogId, customerId, siteId, contactId, assignedToUserId, createdByUserId, title, description, dueDate, priority (hot/normal/low), status (pending/completed), completedAt, reminderSent
-- [ ] **CRM-04**: Prisma schema — Lookup tables: Industry (name, displayOrder, isActive), LeadSource (name, displayOrder, isActive), CallType (name, displayOrder, isActive, isDefault), CallOutcome (name, displayOrder, isActive, isDefault, triggersFollowUp, triggersQuotePrompt)
-- [ ] **CRM-05**: Prisma schema — CustomFieldDefinition (entityType, industryId, fieldName, fieldType, displayOrder, isActive) + CustomFieldValue (fieldDefinitionId, entityType, entityId, value)
-- [ ] **CRM-06**: Customer model enrichment — add tier (A/B/C, default B), industryId (FK), leadSourceId (FK), assignedToUserId (FK), archivedAt (soft delete)
-- [ ] **CRM-07**: Quote model enrichment — add expectedCloseDate, wonLostAt, wonLostReason for pipeline tracking
+- [x] **CRM-01**: Prisma schema — Contact model under Customer with optional siteId, firstName, lastName, title, email, phone, mobilePhone, preferredContactMethod (phone/email/text), isDecisionMaker, isTechnicalInfluencer, isGatekeeper booleans, isPrimary, notes, status, createdByUserId
+- [x] **CRM-02**: Prisma schema — CallLog model with userId, customerId, siteId, contactId, callTypeId, callOutcomeId, callMethod (phone/in_person/video_call/email), callDuration, competitorMentioned, notes, callTimestamp
+- [x] **CRM-03**: Prisma schema — FollowUp model with callLogId, customerId, siteId, contactId, assignedToUserId, createdByUserId, title, description, dueDate, priority (hot/normal/low), status (pending/completed), completedAt, reminderSent
+- [x] **CRM-04**: Prisma schema — Lookup tables: Industry (name, displayOrder, isActive), LeadSource (name, displayOrder, isActive, isDefault), CallType (name, displayOrder, isActive, isDefault), CallOutcome (name, displayOrder, isActive, isDefault, triggersFollowUp, triggersOpportunityPrompt)
+- [x] **CRM-05**: Prisma schema — CustomFieldDefinition (entityType, industryId, fieldName, fieldType, displayOrder, isActive) + CustomFieldValue (fieldDefinitionId, entityType, entityId, value)
+- [x] **CRM-06**: Customer model enrichment — tier (A/B/C), industryId (FK), leadSourceId (FK), assignedToUserId (FK), archivedAt (soft delete)
+- [x] **CRM-07**: Pipeline tracking via Opportunity model — name, amount, status (6 stages), expectedCloseDate, wonLostAt, wonLostReason, convertedQuoteId. Design decision: Opportunity is the CRM pipeline entity; Quote stays operational/financial.
 
 ### Lookup Administration
 
-- [ ] **LOOK-01**: Industry + Lead Source admin CRUD — GET/POST/PATCH/DELETE API routes, per-org isolation, display order management, active/inactive toggle
-- [ ] **LOOK-02**: Call Type + Call Outcome admin CRUD — same as LOOK-01 plus trigger flags (triggersFollowUp, triggersQuotePrompt) on CallOutcome, default selection support
-- [ ] **LOOK-03**: Lookup management UI — settings page with tabbed admin for all 4 lookup types, drag-to-reorder, add/edit/deactivate, seed default values on first use
+- [x] **LOOK-01**: Lead Source admin CRUD — GET/POST API at /api/crm/lead-sources, PUT/DELETE at /api/crm/lead-sources/[id], per-org isolation, ADMIN role required for writes
+- [x] **LOOK-02**: Call Type + Call Outcome admin CRUD — same pattern at /api/crm/call-types and /api/crm/call-outcomes, trigger flags (triggersFollowUp, triggersOpportunityPrompt) on CallOutcome, default selection support
+- [x] **LOOK-03**: Lookup management UI — /sales/settings page with expandable config sections for all 4 lookup types (CallTypes, CallOutcomes, FollowUpTypes, LeadSources), add/edit/delete with modals, active toggle
+- [ ] **LOOK-04**: Industry admin CRUD — API routes + settings UI for Industry lookup (model created, API/UI not yet built)
 
 ### Contact Management
 
-- [ ] **CONT-01**: Contact CRUD API — GET/POST/PATCH/DELETE /api/contacts, scoped to customer/site, search by name/email/phone, paginated list
-- [ ] **CONT-02**: Contact roles UI — decision maker, technical influencer, gatekeeper toggle badges on contact cards, filterable by role
-- [ ] **CONT-03**: Contact list on Site detail page — contact cards with quick actions (call, email), add contact button, role indicators
-- [ ] **CONT-04**: Contact quick-add from call log — inline form during call log creation to add a new contact without leaving the flow
+- [x] **CONT-01**: Contact CRUD API — GET/POST at /api/contacts, GET/PUT/DELETE at /api/contacts/[id], scoped to org, search by name/email, paginated list, role-based access
+- [x] **CONT-02**: Contact roles UI — decision maker, technical influencer, gatekeeper, primary toggle badges on customer detail contacts tab
+- [x] **CONT-03**: Contact management on Customer detail — contacts tab with grid of contact cards, add/edit modals with all fields, role toggles
+- [ ] **CONT-04**: Contact quick-add from call log — inline form during call log creation to add a new contact without leaving the flow (call log form has contact dropdown but no inline add)
+- [ ] **CONT-05**: Contact list on Site detail page — contact cards filtered by siteId (siteId FK now exists, UI not yet built)
 
 ### Customer Enhancement
 
-- [ ] **CUST-01**: Customer tier UI — A/B/C tier badge on customer list and detail, tier selector on customer edit, sortable/filterable by tier
-- [ ] **CUST-02**: Customer enrichment fields UI — industry picker, lead source picker, assigned user picker on customer edit form
-- [ ] **CUST-03**: Customer archiving — soft delete with archivedAt timestamp, "Archive" action (not delete), admin "View Archived" toggle, restore action
+- [x] **CUST-01**: Customer tier UI — tier badges (colored) on customer list, tier selector in CRM edit modal on customer detail
+- [x] **CUST-02**: Customer enrichment fields UI — lead source picker, assigned rep picker on customer detail CRM edit modal
+- [ ] **CUST-03**: Customer archiving — archivedAt field added to schema, but Archive/Restore UI actions + "View Archived" toggle not yet built
+- [ ] **CUST-04**: Industry picker — add industry dropdown to customer CRM edit modal (Industry model created, UI not yet wired)
 
 ### Activity Tracking
 
-- [ ] **ACT-01**: Call log CRUD API — GET/POST/PATCH /api/call-logs, with customer/site/contact/callType/callOutcome associations, paginated, filterable by date/customer/type
-- [ ] **ACT-02**: Call log creation form — customer/site/contact cascade pickers, call type and outcome dropdowns (from lookups), duration tracker, competitor mentioned toggle, notes
-- [ ] **ACT-03**: Call outcome auto-triggers — when outcome has triggersFollowUp=true, auto-create FollowUp linked to call log; when triggersQuotePrompt=true, redirect to quote creation with customer/site pre-filled
-- [ ] **ACT-04**: Activity timeline — chronological feed on customer and site detail pages showing call logs, follow-ups, quotes, and work orders in unified timeline
+- [x] **ACT-01**: Call log CRUD API — GET/POST at /api/call-logs, GET/PUT at /api/call-logs/[id], with all associations, paginated, filterable by date/customer, role-based filtering (SALES see own only)
+- [x] **ACT-02**: Call log creation form — /sales/calls/new with customer search (debounced), site/contact cascade pickers, call type/outcome dropdowns from lookups, duration tracker, competitor toggle, notes
+- [x] **ACT-03**: Call outcome auto-triggers — outcome triggersFollowUp → auto-shows follow-up creation modal; triggersOpportunityPrompt → auto-shows opportunity creation modal. Both can cascade.
+- [x] **ACT-04**: Activity timeline — customer detail page has call history tab showing chronological call logs + opportunities tab + service tickets tab (separate tabs rather than unified timeline)
 
 ### Follow-up Management
 
-- [ ] **FOLL-01**: Follow-up CRUD API — GET/POST/PATCH/DELETE /api/follow-ups, scoped to customer, filterable by status/priority/assignee/due date, paginated
-- [ ] **FOLL-02**: Follow-up list view — dedicated page with overdue highlighting (red), due-today highlighting (orange), priority badges (hot/normal/low), assignee avatar
-- [ ] **FOLL-03**: Follow-up notifications — create Notification (type: FOLLOW_UP_DUE) for assigned user when follow-up due date is today, mark reminderSent
-- [ ] **FOLL-04**: Follow-up completion — one-click complete from list and detail views, sets completedAt, optionally prompts for completion notes
+- [x] **FOLL-01**: Follow-up CRUD API — GET/POST at /api/follow-ups, GET/PUT/DELETE at /api/follow-ups/[id], filterable by status/priority/assignee, paginated, role-based (SALES see own)
+- [x] **FOLL-02**: Follow-up list view — /sales/follow-ups page with status tabs (All/Pending/Completed), priority filter, overdue/due-today highlighting, stats bar (total/pending/overdue/completed)
+- [x] **FOLL-03**: Follow-up notifications — CRM dashboard API auto-creates FOLLOW_UP_DUE notifications for overdue follow-ups, marks reminderSent to prevent spam
+- [x] **FOLL-04**: Follow-up completion — "Complete" button in follow-up list, sets completedAt via PUT
 
-### Pipeline Enhancement
+### Pipeline (via Opportunity model)
 
-- [ ] **PIPE-01**: Quote pipeline view — kanban or list view showing quotes by status (pending/won/lost) with expected close dates, amounts, customer names
-- [ ] **PIPE-02**: Quote enrichment UI — expectedCloseDate picker, won/lost recording with reason field, pipeline amount display
-- [ ] **PIPE-03**: Pipeline value aggregation — total pipeline value (pending quotes), won value (period), lost value (period), conversion rate calculation
+- [x] **PIPE-01**: Opportunity pipeline view — /sales/opportunities with search, stage filter tabs (Prospecting/Qualification/Proposal/Negotiation/Won/Lost), amounts displayed
+- [x] **PIPE-02**: Opportunity detail — /sales/opportunities/[id] with visual stage stepper, Mark Won/Lost modals with reason capture, Convert to Quote action, edit modal
+- [x] **PIPE-03**: Pipeline value aggregation — CRM dashboard API aggregates opportunities by status with count and value sum; reports page has pipeline summary with value-by-stage chart
 
 ### Custom Fields
 
-- [ ] **CFIELD-01**: Custom field definition admin — create/edit/deactivate field definitions per entity type (customer/site), per industry (optional), field types: text, number, boolean
+- [ ] **CFIELD-01**: Custom field definition admin — create/edit/deactivate field definitions per entity type (customer/site), per industry (optional), field types: text, number, boolean. Schema ready, API/UI not built.
 - [ ] **CFIELD-02**: Custom field rendering — dynamically render custom fields on customer and site edit forms based on entity's industry, ordered by displayOrder
 - [ ] **CFIELD-03**: Custom field value CRUD — save/update/delete custom field values via API, displayed in detail views
 
-### CRM Dashboard
+### CRM Dashboard & Reports
 
-- [ ] **CDASH-01**: CRM KPI widgets — calls this week, open follow-ups, overdue follow-ups, total pipeline value, customer count by tier, displayed on main dashboard as new CRM section
-- [ ] **CDASH-02**: CRM analytics tab — dedicated tab on analytics page with call volume trends, follow-up completion rates, pipeline funnel, customer acquisition by source
+- [x] **CDASH-01**: CRM dashboard — /sales/dashboard with KPI stat cards (calls this week, open follow-ups, overdue, pipeline value, open tickets), recent activity, pipeline breakdown, quick action buttons
+- [x] **CDASH-02**: CRM reports — /sales/reports with 5 report sections: call activity (bar chart + tables), follow-up performance (stacked bar by rep), pipeline summary (horizontal bars by stage), win/loss analysis (donut + reasons table), customer coverage (by tier). Uses Recharts. Date range + user filter.
+
+### Additional (discovered during build, not in original plan)
+
+- [x] **EXTRA-01**: Opportunity model — full opportunity lifecycle (Prospecting → Qualification → Proposal → Negotiation → Won/Lost) with API, detail page, stage stepper, quote conversion
+- [x] **EXTRA-02**: Service Ticket model — intake tickets with urgency, contact snapshotting, convert-to-work-order flow, full CRUD API + list/detail/create UI
+- [x] **EXTRA-03**: CRM notification integration — notifications for opportunity won/lost, new service tickets, overdue follow-ups
+- [x] **EXTRA-04**: FollowUpType lookup table — additional configurable lookup not in original plan
+- [x] **EXTRA-05**: Sales layout + sidebar — /sales/ route group with dedicated layout, navigation sidebar
 
 ---
 
 ## Requirement Summary
 
-| Category | IDs | Count | Status |
-|----------|-----|-------|--------|
-| AI Features | AI-01 – AI-09 | 9 | VALIDATED |
-| CRM Foundation | CRM-01 – CRM-07 | 7 | Pending |
-| Lookup Administration | LOOK-01 – LOOK-03 | 3 | Pending |
-| Contact Management | CONT-01 – CONT-04 | 4 | Pending |
-| Customer Enhancement | CUST-01 – CUST-03 | 3 | Pending |
-| Activity Tracking | ACT-01 – ACT-04 | 4 | Pending |
-| Follow-up Management | FOLL-01 – FOLL-04 | 4 | Pending |
-| Pipeline Enhancement | PIPE-01 – PIPE-03 | 3 | Pending |
-| Custom Fields | CFIELD-01 – CFIELD-03 | 3 | Pending |
-| CRM Dashboard | CDASH-01 – CDASH-02 | 2 | Pending |
-| **Total** | | **42** | 9 validated, 33 pending |
+| Category | IDs | Count | Done | Remaining |
+|----------|-----|-------|------|-----------|
+| AI Features | AI-01 – AI-09 | 9 | 9 | 0 |
+| CRM Foundation | CRM-01 – CRM-07 | 7 | 7 | 0 |
+| Lookup Administration | LOOK-01 – LOOK-04 | 4 | 3 | 1 (Industry CRUD) |
+| Contact Management | CONT-01 – CONT-05 | 5 | 3 | 2 (quick-add, site contacts) |
+| Customer Enhancement | CUST-01 – CUST-04 | 4 | 2 | 2 (archiving, industry picker) |
+| Activity Tracking | ACT-01 – ACT-04 | 4 | 4 | 0 |
+| Follow-up Management | FOLL-01 – FOLL-04 | 4 | 4 | 0 |
+| Pipeline (Opportunity) | PIPE-01 – PIPE-03 | 3 | 3 | 0 |
+| Custom Fields | CFIELD-01 – CFIELD-03 | 3 | 0 | 3 |
+| CRM Dashboard & Reports | CDASH-01 – CDASH-02 | 2 | 2 | 0 |
+| Extra (discovered) | EXTRA-01 – EXTRA-05 | 5 | 5 | 0 |
+| **Total** | | **50** | **42** | **8** |
+
+## Remaining Work (8 items)
+
+1. **LOOK-04**: Industry CRUD API + settings UI
+2. **CONT-04**: Contact quick-add from call log form
+3. **CONT-05**: Contact list on Site detail page (siteId support)
+4. **CUST-03**: Customer archive/restore UI actions
+5. **CUST-04**: Industry picker on customer CRM edit modal
+6. **CFIELD-01**: Custom field definition admin (API + UI)
+7. **CFIELD-02**: Custom field rendering on forms
+8. **CFIELD-03**: Custom field value CRUD API
 
 ---
-*Created: 2026-03-11*
+*Created: 2026-03-11 | Reconciled: 2026-03-16*

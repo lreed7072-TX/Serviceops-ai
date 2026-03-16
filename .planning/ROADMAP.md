@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 QBO Full Integration** — Phases 1-6 (shipped 2026-03-10)
-- 🔄 **v2.0 AI Features + CRM Module** — AI validated, CRM Phases 1-5 (in progress)
+- 🔄 **v2.0 AI Features + CRM Module** — AI validated, CRM 85% built, gap-fill in progress
 
 ## v2.0 AI Features (VALIDATED — no phases needed)
 
@@ -15,79 +15,72 @@ All AI work shipped prior to milestone formalization:
 - 25 tests across 4 test files
 - 9 hardening fixes committed
 
-## v2.0 CRM Module Phases
+## v2.0 CRM Module — Reconciled Status (2026-03-16)
 
-### Phase 1: CRM Foundation
-**Goal:** Schema migration + types + base models for all CRM entities
-**Requirements:** CRM-01, CRM-02, CRM-03, CRM-04, CRM-05, CRM-06, CRM-07
+### Pre-existing CRM Code (committed before v2.0 planning)
+
+A previous session built the CRM module extensively. This code was committed to main
+in 7 CRM-related commits before the v2.0 milestone was formalized:
+
+| Commit | Description |
+|--------|-------------|
+| b1b0d27 | CRM integration design document |
+| d51fd00 | CRM implementation plan |
+| c733119 | CRM schema — 9 models, 10 enums, SALES role |
+| 6f16274 | CRM API routes — 26 endpoints |
+| 5e24c5c | Sales web pages — 12 pages, layout, sidebar |
+| cf6652b | Fix TS error in follow-ups API |
+| 2df418d | CRM notification integration |
+
+### Gap-Fill Phase (2026-03-16)
+
+Schema gaps identified and filled:
+- [x] Industry lookup model (migration 0011)
+- [x] Contact.siteId for site-level contacts (migration 0011)
+- [x] Customer.industryId + archivedAt (migration 0011)
+- [x] CustomFieldDefinition + CustomFieldValue models (migration 0011)
+- [x] CustomFieldEntityType + CustomFieldType enums (migration 0011)
+
+### Completed (42/50 requirements — 84%)
+
+| Category | Status | Details |
+|----------|--------|---------|
+| CRM Foundation | ✅ Complete | All 7 schema requirements (CRM-01 – CRM-07) |
+| Lookup Administration | ✅ 3/4 | LeadSource, CallType, CallOutcome CRUD + settings UI done |
+| Contact Management | ✅ 3/5 | CRUD API + customer detail contacts tab done |
+| Customer Enhancement | ✅ 2/4 | Tier badges + enrichment edit modal done |
+| Activity Tracking | ✅ Complete | All 4 requirements (ACT-01 – ACT-04) |
+| Follow-up Management | ✅ Complete | All 4 requirements (FOLL-01 – FOLL-04) |
+| Pipeline (Opportunity) | ✅ Complete | All 3 requirements (PIPE-01 – PIPE-03) |
+| CRM Dashboard & Reports | ✅ Complete | Dashboard + 5 report sections with Recharts |
+| Extra Features | ✅ Complete | Opportunity, ServiceTicket, notifications, FollowUpType, sales layout |
+
+### Remaining Phase: CRM Polish & Custom Fields (8 items)
+
+**Goal:** Fill remaining UI gaps and build custom field system
+**Requirements:** LOOK-04, CONT-04, CONT-05, CUST-03, CUST-04, CFIELD-01, CFIELD-02, CFIELD-03
 **Status:** Pending
 
-Prisma schema additions:
-- Contact, CallLog, FollowUp models with full field sets
-- Industry, LeadSource, CallType, CallOutcome lookup tables
-- CustomFieldDefinition + CustomFieldValue
-- Customer enrichment fields (tier, industryId, leadSourceId, assignedToUserId, archivedAt)
-- Quote enrichment fields (expectedCloseDate, wonLostAt, wonLostReason)
-- All foreign keys, indexes, enums, and org scoping
+Small items (can be done in any order):
+1. **LOOK-04** — Industry CRUD API routes + add to settings page
+2. **CONT-04** — Contact quick-add button in call log creation form
+3. **CONT-05** — Contact list on Site detail page (siteId filtering)
+4. **CUST-03** — Customer archive/restore UI (archivedAt field exists)
+5. **CUST-04** — Industry picker in customer CRM edit modal
 
-### Phase 2: Lookups + Contact Management
-**Goal:** Admin lookup configuration + contact CRUD with roles
-**Requirements:** LOOK-01, LOOK-02, LOOK-03, CONT-01, CONT-02, CONT-03, CONT-04
-**Status:** Pending
-
-- API routes for all 4 lookup types (Industry, LeadSource, CallType, CallOutcome)
-- Lookup management settings page (tabbed, reorder, add/edit/deactivate)
-- Seed default lookup values on first use
-- Contact CRUD API endpoints
-- Contact list on Site detail page with role badges
-- Contact quick-add flow from call log creation
-
-### Phase 3: Activity & Follow-up Tracking
-**Goal:** Call log and follow-up lifecycle with auto-triggers
-**Requirements:** ACT-01, ACT-02, ACT-03, ACT-04, FOLL-01, FOLL-02, FOLL-03, FOLL-04
-**Status:** Pending
-
-- Call log CRUD API + creation form with cascade pickers
-- Call outcome auto-triggers (follow-up creation, quote prompt)
-- Activity timeline on customer/site detail pages
-- Follow-up CRUD API + list view with overdue/priority highlighting
-- Follow-up notifications (FOLLOW_UP_DUE type)
-- Follow-up one-click completion
-
-### Phase 4: Customer Enhancement + Pipeline
-**Goal:** Customer tiers, enrichment, archiving, quote pipeline
-**Requirements:** CUST-01, CUST-02, CUST-03, PIPE-01, PIPE-02, PIPE-03
-**Status:** Pending
-
-- Customer tier badges (A/B/C) on list and detail views
-- Customer enrichment form (industry, lead source, assigned user)
-- Customer archiving (soft delete, admin restore)
-- Quote pipeline view (kanban or list by status)
-- Quote enrichment UI (expected close date, won/lost)
-- Pipeline value aggregation and metrics
-
-### Phase 5: Custom Fields + CRM Dashboard
-**Goal:** Flexible custom fields + CRM KPIs and analytics
-**Requirements:** CFIELD-01, CFIELD-02, CFIELD-03, CDASH-01, CDASH-02
-**Status:** Pending
-
-- Custom field definition admin (per entity type, per industry)
-- Dynamic custom field rendering on customer/site forms
-- Custom field value CRUD
-- CRM KPI widgets on dashboard (calls, follow-ups, pipeline, tiers)
-- CRM analytics tab (call trends, follow-up rates, pipeline funnel, acquisition sources)
+Custom Fields system (sequential):
+6. **CFIELD-01** — Custom field definition admin API + UI
+7. **CFIELD-02** — Dynamic custom field rendering on customer/site forms
+8. **CFIELD-03** — Custom field value CRUD API
 
 ## Progress
 
 | Phase | Milestone | Requirements | Status |
 |-------|-----------|-------------|--------|
-| AI (validated) | v2.0 | 9 (AI-01 – AI-09) | Validated |
-| 1. CRM Foundation | v2.0 | 7 (CRM-01 – CRM-07) | Pending |
-| 2. Lookups + Contact Management | v2.0 | 7 (LOOK + CONT) | Pending |
-| 3. Activity & Follow-up Tracking | v2.0 | 8 (ACT + FOLL) | Pending |
-| 4. Customer Enhancement + Pipeline | v2.0 | 6 (CUST + PIPE) | Pending |
-| 5. Custom Fields + CRM Dashboard | v2.0 | 5 (CFIELD + CDASH) | Pending |
-| **Total** | | **42** (9 validated + 33 pending) | |
+| AI (validated) | v2.0 | 9 (AI-01 – AI-09) | ✅ Validated |
+| CRM (pre-existing) | v2.0 | 42 built / 50 total | ✅ 84% Complete |
+| CRM Polish & Custom Fields | v2.0 | 8 remaining | Pending |
+| **Total** | | **50** (42 done + 8 pending) | |
 
 <details>
 <summary>✅ v1.0 QBO Full Integration (Phases 1-6) — SHIPPED 2026-03-10</summary>
@@ -106,4 +99,4 @@ See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full details.
 </details>
 
 ---
-*Created: 2026-03-11 | v1.0 shipped: 2026-03-10 | v2.0 initialized: 2026-03-11*
+*Created: 2026-03-11 | Reconciled: 2026-03-16 | CRM gap-fill migration applied*

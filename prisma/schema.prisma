@@ -269,6 +269,17 @@ enum CustomerTier {
   C
 }
 
+enum CustomFieldEntityType {
+  CUSTOMER
+  SITE
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  BOOLEAN
+}
+
 enum AiInsightType {
   FAILURE_PREDICTION
   ANOMALY_DETECTED
@@ -372,6 +383,7 @@ model Org {
   qboLocationMaps      QboLocationMap[]
 
   // CRM relations
+  industries       Industry[]
   leadSources      LeadSource[]
   callTypes        CallType[]
   callOutcomes     CallOutcome[]
@@ -381,6 +393,8 @@ model Org {
   followUps        FollowUp[]
   opportunities    Opportunity[]
   serviceTickets   ServiceTicket[]
+  customFieldDefinitions CustomFieldDefinition[]
+  customFieldValues      CustomFieldValue[]
 
   // AI Engine relations
   aiInsightJobs      AiInsightJob[]
@@ -483,9 +497,11 @@ model Customer {
 
   // CRM fields
   tier              CustomerTier?
+  industryId        String?        @db.Uuid
   leadSourceId      String?        @db.Uuid
   assignedToUserId  String?        @db.Uuid
   createdByUserId   String?        @db.Uuid
+  archivedAt        DateTime?
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -500,6 +516,7 @@ model Customer {
   portalTokens CustomerPortalToken[]
 
   // CRM relations
+  industry          Industry?      @relation(fields: [industryId], references: [id])
   leadSource        LeadSource?    @relation(fields: [leadSourceId], references: [id])
   assignedTo        User?          @relation("CustomerAssignedTo", fields: [assignedToUserId], references: [id])
   createdBy         User?          @relation("CustomerCreatedBy", fields: [createdByUserId], references: [id])
@@ -536,6 +553,7 @@ model Site {
   formResponses FormResponse[]
 
   // CRM relations
+  contacts          Contact[]
   callLogs          CallLog[]
   followUps         FollowUp[]
   opportunities     Opportunity[]
@@ -2149,6 +2167,22 @@ model FormResponse {
 // CRM Config Tables
 // ═══════════════════════════════════════════════
 
+model Industry {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @db.Uuid
+  name         String
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org                    Org                     @relation(fields: [orgId], references: [id])
+  customers              Customer[]
+  customFieldDefinitions CustomFieldDefinition[]
+
+  @@index([orgId])
+}
+
 model LeadSource {
   id           String   @id @default(uuid()) @db.Uuid
   orgId        String   @db.Uuid
@@ -2222,6 +2256,7 @@ model Contact {
   id                     String         @id @default(uuid()) @db.Uuid
   orgId                  String         @db.Uuid
   customerId             String         @db.Uuid
+  siteId                 String?        @db.Uuid
   firstName              String
   lastName               String
   title                  String?
@@ -2241,6 +2276,7 @@ model Contact {
 
   org            Org            @relation(fields: [orgId], references: [id])
   customer       Customer       @relation(fields: [customerId], references: [id])
+  site           Site?          @relation(fields: [siteId], references: [id])
   createdBy      User?          @relation("ContactCreatedBy", fields: [createdByUserId], references: [id])
   callLogs       CallLog[]
   followUps      FollowUp[]
@@ -2250,6 +2286,7 @@ model Contact {
   @@index([orgId])
   @@index([customerId])
   @@index([orgId, customerId])
+  @@index([siteId])
 }
 
 model CallLog {
@@ -2381,4 +2418,48 @@ model ServiceTicket {
   @@index([orgId])
   @@index([orgId, status])
   @@index([orgId, createdByUserId])
+}
+
+// ═══════════════════════════════════════════════
+// CRM Custom Fields
+// ═══════════════════════════════════════════════
+
+model CustomFieldDefinition {
+  id           String                @id @default(uuid()) @db.Uuid
+  orgId        String                @db.Uuid
+  entityType   CustomFieldEntityType
+  industryId   String?               @db.Uuid
+  fieldName    String
+  fieldType    CustomFieldType       @default(TEXT)
+  displayOrder Int                   @default(0)
+  isActive     Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  org      Org                @relation(fields: [orgId], references: [id])
+  industry Industry?          @relation(fields: [industryId], references: [id])
+  values   CustomFieldValue[]
+
+  @@index([orgId])
+  @@index([orgId, entityType])
+  @@index([orgId, entityType, industryId])
+}
+
+model CustomFieldValue {
+  id                  String                @id @default(uuid()) @db.Uuid
+  orgId               String                @db.Uuid
+  fieldDefinitionId   String                @db.Uuid
+  entityType          CustomFieldEntityType
+  entityId            String                @db.Uuid
+  value               String?
+
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  org             Org                   @relation(fields: [orgId], references: [id])
+  fieldDefinition CustomFieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([fieldDefinitionId, entityType, entityId])
+  @@index([orgId])
+  @@index([entityType, entityId])
 }

@@ -18,6 +18,11 @@ type CustomerUpdatePayload = {
   billingPostalCode?: string | null;
   billingCountry?: string | null;
   notes?: string | null;
+  tier?: string | null;
+  leadSourceId?: string | null;
+  assignedToUserId?: string | null;
+  industryId?: string | null;
+  archivedAt?: string | null;
 };
 
 type RouteParams = {
@@ -71,22 +76,33 @@ const body = await parseJson<CustomerUpdatePayload>(request);
     return jsonError("Customer not found.", 404);
   }
 
-  const customer = await prisma.customer.update({
-    where: { id },
-    data: {
+  const data: Record<string, unknown> = {
       name: body.name ?? existing.name,
       status: body.status ?? existing.status,
-        primaryEmail: body.primaryEmail ?? existing.primaryEmail,
-        primaryPhone: body.primaryPhone ?? existing.primaryPhone,
-        billingAddress: body.billingAddress ?? existing.billingAddress,
-        billingStreet1: body.billingStreet1 ?? existing.billingStreet1,
-        billingStreet2: body.billingStreet2 ?? existing.billingStreet2,
-        billingCity: body.billingCity ?? existing.billingCity,
-        billingState: body.billingState ?? existing.billingState,
-        billingPostalCode: body.billingPostalCode ?? existing.billingPostalCode,
-        billingCountry: body.billingCountry ?? existing.billingCountry,
-        notes: body.notes ?? existing.notes,
-    },
+      primaryEmail: body.primaryEmail ?? existing.primaryEmail,
+      primaryPhone: body.primaryPhone ?? existing.primaryPhone,
+      billingAddress: body.billingAddress ?? existing.billingAddress,
+      billingStreet1: body.billingStreet1 ?? existing.billingStreet1,
+      billingStreet2: body.billingStreet2 ?? existing.billingStreet2,
+      billingCity: body.billingCity ?? existing.billingCity,
+      billingState: body.billingState ?? existing.billingState,
+      billingPostalCode: body.billingPostalCode ?? existing.billingPostalCode,
+      billingCountry: body.billingCountry ?? existing.billingCountry,
+      notes: body.notes ?? existing.notes,
+    };
+
+    // CRM fields — only update if explicitly provided in the payload
+    if ("tier" in body) data.tier = body.tier || null;
+    if ("leadSourceId" in body) data.leadSourceId = body.leadSourceId || null;
+    if ("assignedToUserId" in body) data.assignedToUserId = body.assignedToUserId || null;
+    if ("industryId" in body) data.industryId = body.industryId || null;
+    if ("archivedAt" in body) {
+      data.archivedAt = body.archivedAt ? new Date(body.archivedAt) : null;
+    }
+
+  const customer = await prisma.customer.update({
+    where: { id },
+    data,
   });
 
   return NextResponse.json({ data: customer });

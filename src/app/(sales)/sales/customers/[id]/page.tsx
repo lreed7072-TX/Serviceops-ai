@@ -43,8 +43,10 @@ type Customer = {
   tier: "A" | "B" | "C" | null;
   leadSourceId: string | null;
   assignedToUserId: string | null;
+  industryId: string | null;
   assignedTo?: { id: string; name: string } | null;
   leadSource?: { id: string; name: string } | null;
+  industry?: { id: string; name: string } | null;
 };
 
 type Contact = {
@@ -92,6 +94,7 @@ type ServiceTicket = {
 };
 
 type LeadSource = { id: string; name: string };
+type IndustryOption = { id: string; name: string };
 type UserOption = { id: string; name: string };
 
 type TabKey = "info" | "contacts" | "calls" | "opportunities" | "tickets";
@@ -118,6 +121,7 @@ export default function SalesCustomerDetailPage() {
 
   // Lookup data
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
+  const [industries, setIndustries] = useState<IndustryOption[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
 
   // Edit CRM modal state
@@ -128,6 +132,7 @@ export default function SalesCustomerDetailPage() {
     tier: "" as string,
     leadSourceId: "" as string,
     assignedToUserId: "" as string,
+    industryId: "" as string,
   });
 
   // Add/Edit contact modal state
@@ -215,13 +220,18 @@ export default function SalesCustomerDetailPage() {
 
   const loadLookups = useCallback(async () => {
     try {
-      const [lsRes, usersRes] = await Promise.all([
+      const [lsRes, indRes, usersRes] = await Promise.all([
         apiFetch("/api/crm/lead-sources"),
+        apiFetch("/api/crm/industries"),
         apiFetch("/api/users"),
       ]);
       if (lsRes.ok) {
         const lsJson = await lsRes.json();
         setLeadSources(lsJson.data ?? []);
+      }
+      if (indRes.ok) {
+        const indJson = await indRes.json();
+        setIndustries(indJson.data ?? []);
       }
       if (usersRes.ok) {
         const usersJson = await usersRes.json();
@@ -287,6 +297,7 @@ export default function SalesCustomerDetailPage() {
       tier: customer.tier ?? "",
       leadSourceId: customer.leadSourceId ?? "",
       assignedToUserId: customer.assignedToUserId ?? "",
+      industryId: customer.industryId ?? "",
     });
     setEditError(null);
     setShowEditModal(true);
@@ -306,6 +317,7 @@ export default function SalesCustomerDetailPage() {
           tier: editForm.tier || null,
           leadSourceId: editForm.leadSourceId || null,
           assignedToUserId: editForm.assignedToUserId || null,
+          industryId: editForm.industryId || null,
         }),
       });
       if (!res.ok) {
@@ -476,6 +488,12 @@ export default function SalesCustomerDetailPage() {
             <span className={`scd-tier-badge ${customer.tier ? `tier-${customer.tier.toLowerCase()}` : "tier-none"}`}>
               {customer.tier ?? "None"}
             </span>
+          </span>
+        </div>
+        <div className="scd-info-row">
+          <span className="scd-info-label">Industry</span>
+          <span className="scd-info-value">
+            {customer.industry?.name ?? industries.find((i) => i.id === customer.industryId)?.name ?? "\u2014"}
           </span>
         </div>
         <div className="scd-info-row">
@@ -880,6 +898,21 @@ export default function SalesCustomerDetailPage() {
                     <option value="A">A - Key Account</option>
                     <option value="B">B - Growth Account</option>
                     <option value="C">C - Standard</option>
+                  </select>
+                </div>
+
+                <div className="scd-form-field">
+                  <label>Industry</label>
+                  <select
+                    value={editForm.industryId}
+                    onChange={(e) => setEditForm({ ...editForm, industryId: e.target.value })}
+                  >
+                    <option value="">None</option>
+                    {industries.map((ind) => (
+                      <option key={ind.id} value={ind.id}>
+                        {ind.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

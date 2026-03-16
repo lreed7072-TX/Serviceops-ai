@@ -15,6 +15,7 @@ import {
   Target,
   CalendarClock,
   Megaphone,
+  Factory,
   X,
 } from "lucide-react";
 import "./settings.css";
@@ -466,7 +467,7 @@ export default function CRMSettingsPage() {
           <div>
             <h1>CRM Settings</h1>
             <p className="crm-settings-subtitle">
-              Manage call types, outcomes, follow-up types, and lead sources for your CRM.
+              Manage call types, outcomes, follow-up types, lead sources, and industries for your CRM.
             </p>
           </div>
         </div>
@@ -508,6 +509,12 @@ export default function CRMSettingsPage() {
           title="Lead Sources"
           icon={<Megaphone size={18} />}
           apiPath="lead-sources"
+        />
+
+        <ConfigSection
+          title="Industries"
+          icon={<Factory size={18} />}
+          apiPath="industries"
         />
       </div>
     </div>

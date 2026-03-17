@@ -49,6 +49,7 @@ export default function SalesCustomersPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -82,6 +83,7 @@ export default function SalesCustomersPage() {
         params.set("limit", String(PAGE_SIZE));
         params.set("offset", String(offset));
         if (debouncedSearch) params.set("search", debouncedSearch);
+        if (showArchived) params.set("includeArchived", "true");
 
         const res = await apiFetch(`/api/customers?${params}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to load customers");
@@ -105,7 +107,7 @@ export default function SalesCustomersPage() {
         setLoadingMore(false);
       }
     },
-    [debouncedSearch, toast]
+    [debouncedSearch, showArchived, toast]
   );
 
   useEffect(() => {
@@ -215,9 +217,19 @@ export default function SalesCustomersPage() {
             />
           </div>
         </div>
-        <div className="sc-results-count">
-          Showing <strong>{customers.length}</strong> of{" "}
-          <strong>{total}</strong> customers
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="sc-results-count">
+            Showing <strong>{customers.length}</strong> of{" "}
+            <strong>{total}</strong> customers
+          </div>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "#6b7280", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            Show Archived
+          </label>
         </div>
       </div>
 

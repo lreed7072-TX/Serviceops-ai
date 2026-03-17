@@ -44,6 +44,7 @@ type Customer = {
   leadSourceId: string | null;
   assignedToUserId: string | null;
   industryId: string | null;
+  archivedAt: string | null;
   assignedTo?: { id: string; name: string } | null;
   leadSource?: { id: string; name: string } | null;
   industry?: { id: string; name: string } | null;
@@ -287,6 +288,27 @@ export default function SalesCustomerDetailPage() {
       currency: "USD",
       minimumFractionDigits: 0,
     }).format(num);
+  };
+
+  // ── Archive / Restore ──
+
+  const handleToggleArchive = async () => {
+    if (!customer) return;
+    const isArchived = !!customer.archivedAt;
+    try {
+      const res = await apiFetch(`/api/customers/${customerId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          archivedAt: isArchived ? null : new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success(isArchived ? "Customer restored" : "Customer archived");
+      await loadCustomer();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to update");
+    }
   };
 
   // ── Edit CRM Fields ──
@@ -821,8 +843,31 @@ export default function SalesCustomerDetailPage() {
           <button className="scd-edit-btn" onClick={openEditModal}>
             <Edit size={14} /> Edit CRM Fields
           </button>
+          <button
+            className="scd-edit-btn"
+            onClick={handleToggleArchive}
+            style={customer.archivedAt ? { background: "#dcfce7", color: "#166534", borderColor: "#86efac" } : { background: "#fef3c7", color: "#92400e", borderColor: "#fde68a" }}
+          >
+            {customer.archivedAt ? "Restore" : "Archive"}
+          </button>
         </div>
       </div>
+
+      {/* Archived Banner */}
+      {customer.archivedAt && (
+        <div style={{
+          padding: "0.75rem 1rem",
+          background: "#fef3c7",
+          border: "1px solid #fde68a",
+          borderRadius: 8,
+          color: "#92400e",
+          fontSize: "0.875rem",
+          fontWeight: 500,
+          marginBottom: "1rem",
+        }}>
+          This customer was archived on {new Date(customer.archivedAt).toLocaleDateString()}.
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="scd-tabs">

@@ -31,7 +31,20 @@ const authResult = await requireAuthSessionFirst(request);
     const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 200);
     const offset = Math.max(parseInt(searchParams.get("offset") ?? "0", 10), 0);
 
+    const includeArchived = searchParams.get("includeArchived") === "true";
+    const search = searchParams.get("search") || "";
+
     const whereBase: any = { orgId: auth.orgId };
+
+      // By default, hide archived customers
+      if (!includeArchived) {
+        whereBase.archivedAt = null;
+      }
+
+      if (search) {
+        whereBase.name = { contains: search, mode: "insensitive" };
+      }
+
       if (auth.role === Role.TECH) {
         whereBase.workOrders = {
           some: {

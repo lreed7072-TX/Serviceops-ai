@@ -39,22 +39,22 @@ All AI requirements have been built, tested, and committed. No phases needed.
 - [x] **LOOK-01**: Lead Source admin CRUD — GET/POST API at /api/crm/lead-sources, PUT/DELETE at /api/crm/lead-sources/[id], per-org isolation, ADMIN role required for writes
 - [x] **LOOK-02**: Call Type + Call Outcome admin CRUD — same pattern at /api/crm/call-types and /api/crm/call-outcomes, trigger flags (triggersFollowUp, triggersOpportunityPrompt) on CallOutcome, default selection support
 - [x] **LOOK-03**: Lookup management UI — /sales/settings page with expandable config sections for all 4 lookup types (CallTypes, CallOutcomes, FollowUpTypes, LeadSources), add/edit/delete with modals, active toggle
-- [ ] **LOOK-04**: Industry admin CRUD — API routes + settings UI for Industry lookup (model created, API/UI not yet built)
+- [x] **LOOK-04**: Industry admin CRUD — API routes + settings UI for Industry lookup
 
 ### Contact Management
 
 - [x] **CONT-01**: Contact CRUD API — GET/POST at /api/contacts, GET/PUT/DELETE at /api/contacts/[id], scoped to org, search by name/email, paginated list, role-based access
 - [x] **CONT-02**: Contact roles UI — decision maker, technical influencer, gatekeeper, primary toggle badges on customer detail contacts tab
 - [x] **CONT-03**: Contact management on Customer detail — contacts tab with grid of contact cards, add/edit modals with all fields, role toggles
-- [ ] **CONT-04**: Contact quick-add from call log — inline form during call log creation to add a new contact without leaving the flow (call log form has contact dropdown but no inline add)
-- [ ] **CONT-05**: Contact list on Site detail page — contact cards filtered by siteId (siteId FK now exists, UI not yet built)
+- [x] **CONT-04**: Contact quick-add from call log — inline form during call log creation to add a new contact without leaving the flow
+- [x] **CONT-05**: Contact list on Site detail page — contact cards filtered by siteId
 
 ### Customer Enhancement
 
 - [x] **CUST-01**: Customer tier UI — tier badges (colored) on customer list, tier selector in CRM edit modal on customer detail
 - [x] **CUST-02**: Customer enrichment fields UI — lead source picker, assigned rep picker on customer detail CRM edit modal
-- [ ] **CUST-03**: Customer archiving — archivedAt field added to schema, but Archive/Restore UI actions + "View Archived" toggle not yet built
-- [ ] **CUST-04**: Industry picker — add industry dropdown to customer CRM edit modal (Industry model created, UI not yet wired)
+- [x] **CUST-03**: Customer archiving — Archive/Restore button on detail, "Show Archived" toggle on list, archivedAt filter on GET API
+- [x] **CUST-04**: Industry picker — industry dropdown on customer CRM edit modal + fixed PUT API for all CRM fields
 
 ### Activity Tracking
 
@@ -103,27 +103,22 @@ All AI requirements have been built, tested, and committed. No phases needed.
 |----------|-----|-------|------|-----------|
 | AI Features | AI-01 – AI-09 | 9 | 9 | 0 |
 | CRM Foundation | CRM-01 – CRM-07 | 7 | 7 | 0 |
-| Lookup Administration | LOOK-01 – LOOK-04 | 4 | 3 | 1 (Industry CRUD) |
-| Contact Management | CONT-01 – CONT-05 | 5 | 3 | 2 (quick-add, site contacts) |
-| Customer Enhancement | CUST-01 – CUST-04 | 4 | 2 | 2 (archiving, industry picker) |
+| Lookup Administration | LOOK-01 – LOOK-04 | 4 | 4 | 0 |
+| Contact Management | CONT-01 – CONT-05 | 5 | 5 | 0 |
+| Customer Enhancement | CUST-01 – CUST-04 | 4 | 4 | 0 |
 | Activity Tracking | ACT-01 – ACT-04 | 4 | 4 | 0 |
 | Follow-up Management | FOLL-01 – FOLL-04 | 4 | 4 | 0 |
 | Pipeline (Opportunity) | PIPE-01 – PIPE-03 | 3 | 3 | 0 |
 | Custom Fields | CFIELD-01 – CFIELD-03 | 3 | 0 | 3 |
 | CRM Dashboard & Reports | CDASH-01 – CDASH-02 | 2 | 2 | 0 |
 | Extra (discovered) | EXTRA-01 – EXTRA-05 | 5 | 5 | 0 |
-| **Total** | | **50** | **42** | **8** |
+| **Total** | | **50** | **47** | **3** |
 
-## Remaining Work (8 items)
+## Remaining Work (3 items — Custom Fields system)
 
-1. **LOOK-04**: Industry CRUD API + settings UI
-2. **CONT-04**: Contact quick-add from call log form
-3. **CONT-05**: Contact list on Site detail page (siteId support)
-4. **CUST-03**: Customer archive/restore UI actions
-5. **CUST-04**: Industry picker on customer CRM edit modal
-6. **CFIELD-01**: Custom field definition admin (API + UI)
-7. **CFIELD-02**: Custom field rendering on forms
-8. **CFIELD-03**: Custom field value CRUD API
+1. **CFIELD-01**: Custom field definition admin (API + UI)
+2. **CFIELD-02**: Custom field rendering on forms
+3. **CFIELD-03**: Custom field value CRUD API
 
 ---
 *Created: 2026-03-11 | Reconciled: 2026-03-16*

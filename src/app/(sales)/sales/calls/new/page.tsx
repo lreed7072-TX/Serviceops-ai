@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import {
   ArrowLeft,
   Phone,
+  Plus,
   X,
   CalendarClock,
   Target,
@@ -73,6 +74,14 @@ export default function NewCallPage() {
   const [oppValue, setOppValue] = useState("");
   const [oppNotes, setOppNotes] = useState("");
   const [submittingOpp, setSubmittingOpp] = useState(false);
+
+  // Quick-add contact
+  const [showQuickAddContact, setShowQuickAddContact] = useState(false);
+  const [qaFirstName, setQaFirstName] = useState("");
+  const [qaLastName, setQaLastName] = useState("");
+  const [qaEmail, setQaEmail] = useState("");
+  const [qaPhone, setQaPhone] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
 
   // Store the created call's outcome for post-submit triggers
   const [createdCallOutcome, setCreatedCallOutcome] = useState<CallOutcome | null>(null);
@@ -183,6 +192,46 @@ export default function NewCallPage() {
       }
     })();
   }, [customerId]);
+
+  // Quick-add contact handler
+  const handleQuickAddContact = async () => {
+    if (!qaFirstName.trim() || !qaLastName.trim()) {
+      toast.warning("First and last name are required");
+      return;
+    }
+    setSavingContact(true);
+    try {
+      const res = await apiFetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId,
+          firstName: qaFirstName.trim(),
+          lastName: qaLastName.trim(),
+          email: qaEmail.trim() || null,
+          phone: qaPhone.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to add contact");
+      }
+      const result = await res.json();
+      const newContact = result.data;
+      setContacts((prev) => [...prev, newContact]);
+      setContactId(newContact.id);
+      setShowQuickAddContact(false);
+      setQaFirstName("");
+      setQaLastName("");
+      setQaEmail("");
+      setQaPhone("");
+      toast.success("Contact added");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to add contact");
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   // Submit the call log
   const handleSubmit = async () => {
@@ -425,20 +474,126 @@ export default function NewCallPage() {
           {/* Contact */}
           <div className="call-form-field">
             <label className="call-form-label">Contact</label>
-            <select
-              className="call-form-select"
-              value={contactId}
-              onChange={(e) => setContactId(e.target.value)}
-              disabled={!customerId || contacts.length === 0}
-            >
-              <option value="">No specific contact</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.firstName} {c.lastName}
-                  {c.email ? ` (${c.email})` : ""}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+              <select
+                className="call-form-select"
+                value={contactId}
+                onChange={(e) => setContactId(e.target.value)}
+                disabled={!customerId}
+                style={{ flex: 1 }}
+              >
+                <option value="">No specific contact</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                    {c.email ? ` (${c.email})` : ""}
+                  </option>
+                ))}
+              </select>
+              {customerId && (
+                <button
+                  type="button"
+                  className="call-form-quick-add-btn"
+                  onClick={() => setShowQuickAddContact(!showQuickAddContact)}
+                  title="Quick-add contact"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 38,
+                    height: 38,
+                    borderRadius: 8,
+                    border: "1px solid var(--border-color, #e5e7eb)",
+                    background: showQuickAddContact ? "var(--accent-color, #f97316)" : "white",
+                    color: showQuickAddContact ? "white" : "var(--text-secondary, #6b7280)",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  {showQuickAddContact ? <X size={16} /> : <Plus size={16} />}
+                </button>
+              )}
+            </div>
+
+            {/* Quick-add contact inline form */}
+            {showQuickAddContact && customerId && (
+              <div
+                style={{
+                  marginTop: "0.75rem",
+                  padding: "1rem",
+                  border: "1px solid var(--border-color, #e5e7eb)",
+                  borderRadius: 8,
+                  background: "var(--bg-secondary, #f9fafb)",
+                }}
+              >
+                <div style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.75rem", color: "var(--text-primary, #1f2937)" }}>
+                  Quick Add Contact
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                  <input
+                    type="text"
+                    className="call-form-input"
+                    placeholder="First name *"
+                    value={qaFirstName}
+                    onChange={(e) => setQaFirstName(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="call-form-input"
+                    placeholder="Last name *"
+                    value={qaLastName}
+                    onChange={(e) => setQaLastName(e.target.value)}
+                  />
+                  <input
+                    type="email"
+                    className="call-form-input"
+                    placeholder="Email"
+                    value={qaEmail}
+                    onChange={(e) => setQaEmail(e.target.value)}
+                  />
+                  <input
+                    type="tel"
+                    className="call-form-input"
+                    placeholder="Phone"
+                    value={qaPhone}
+                    onChange={(e) => setQaPhone(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.75rem" }}>
+                  <button
+                    type="button"
+                    style={{
+                      padding: "0.375rem 0.75rem",
+                      fontSize: "0.8125rem",
+                      border: "1px solid var(--border-color, #e5e7eb)",
+                      borderRadius: 6,
+                      background: "white",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setShowQuickAddContact(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      padding: "0.375rem 0.75rem",
+                      fontSize: "0.8125rem",
+                      border: "none",
+                      borderRadius: 6,
+                      background: "var(--accent-color, #f97316)",
+                      color: "white",
+                      cursor: "pointer",
+                      opacity: savingContact ? 0.7 : 1,
+                    }}
+                    onClick={handleQuickAddContact}
+                    disabled={savingContact || !qaFirstName.trim() || !qaLastName.trim()}
+                  >
+                    {savingContact ? "Adding..." : "Add Contact"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Site */}

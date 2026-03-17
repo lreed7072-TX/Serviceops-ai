@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 
 type ContactCreatePayload = {
   customerId: string;
+  siteId?: string | null;
   firstName: string;
   lastName: string;
   title?: string | null;
@@ -42,9 +43,12 @@ export async function GET(request: Request) {
     const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 200);
     const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
 
+    const siteId = searchParams.get("siteId");
+
     const where: any = {
       orgId: auth.orgId,
       ...(customerId && { customerId }),
+      ...(siteId && { siteId }),
     };
 
     if (search) {
@@ -108,6 +112,7 @@ export async function POST(request: Request) {
       data: {
         orgId: auth.orgId,
         customerId: body.customerId,
+        siteId: body.siteId ?? null,
         firstName: body.firstName,
         lastName: body.lastName,
         title: body.title ?? null,

@@ -12,12 +12,27 @@ import "./site-detail.css";
 type SingleResponse<T> = { data: T };
 type ListResponse<T> = { data?: T[] };
 
+type SiteContact = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  mobilePhone: string | null;
+  isDecisionMaker: boolean;
+  isTechnicalInfluencer: boolean;
+  isGatekeeper: boolean;
+  isPrimary: boolean;
+};
+
 export default function SiteDetailPage() {
   const params = useParams();
   const siteId = params?.id as string | undefined;
 
   const [site, setSite] = useState<Site | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [contacts, setContacts] = useState<SiteContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +70,10 @@ export default function SiteDetailPage() {
         const foundCustomer =
           (customersPayload.data ?? []).find((c) => c.id === sitePayload.data.customerId) ?? null;
 
+        // Load contacts for this site
+        const contactsRes = await apiFetch(`/api/contacts?siteId=${siteId}`, { cache: "no-store" });
+        const contactsData = contactsRes.ok ? await contactsRes.json() : { data: [] };
+
         if (cancelled) return;
 
         setSite(sitePayload.data);
@@ -64,6 +83,7 @@ export default function SiteDetailPage() {
         setEditState(sitePayload.data.state ?? "");
         setEditPostalCode(sitePayload.data.postalCode ?? "");
         setCustomer(foundCustomer);
+        setContacts(contactsData.data ?? []);
         setError(null);
       } catch (err) {
         if (cancelled) return;
@@ -209,6 +229,86 @@ export default function SiteDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Site Contacts */}
+      <div className="detail-card" style={{ marginTop: "1.5rem" }}>
+        <div className="card-header">
+          <h2>Site Contacts</h2>
+        </div>
+        <div className="card-body">
+          {contacts.length === 0 ? (
+            <div style={{ color: "#6b7280", fontSize: "0.875rem", padding: "0.5rem 0" }}>
+              No contacts assigned to this site.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "0.75rem" }}>
+              {contacts.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    padding: "0.875rem",
+                    background: "#fafafa",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                        {c.firstName} {c.lastName}
+                      </div>
+                      {c.title && (
+                        <div style={{ fontSize: "0.8125rem", color: "#6b7280" }}>{c.title}</div>
+                      )}
+                    </div>
+                    {c.isPrimary && (
+                      <span style={{
+                        fontSize: "0.6875rem",
+                        padding: "0.125rem 0.5rem",
+                        borderRadius: 9999,
+                        background: "#dbeafe",
+                        color: "#1e40af",
+                        fontWeight: 600,
+                      }}>
+                        Primary
+                      </span>
+                    )}
+                  </div>
+                  {c.email && (
+                    <div style={{ fontSize: "0.8125rem", color: "#374151", marginTop: "0.375rem" }}>
+                      {c.email}
+                    </div>
+                  )}
+                  {c.phone && (
+                    <div style={{ fontSize: "0.8125rem", color: "#374151" }}>
+                      {c.phone}
+                    </div>
+                  )}
+                  {(c.isDecisionMaker || c.isTechnicalInfluencer || c.isGatekeeper) && (
+                    <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                      {c.isDecisionMaker && (
+                        <span style={{ fontSize: "0.6875rem", padding: "0.125rem 0.375rem", borderRadius: 4, background: "#fef3c7", color: "#92400e" }}>
+                          Decision Maker
+                        </span>
+                      )}
+                      {c.isTechnicalInfluencer && (
+                        <span style={{ fontSize: "0.6875rem", padding: "0.125rem 0.375rem", borderRadius: 4, background: "#e0e7ff", color: "#3730a3" }}>
+                          Technical
+                        </span>
+                      )}
+                      {c.isGatekeeper && (
+                        <span style={{ fontSize: "0.6875rem", padding: "0.125rem 0.375rem", borderRadius: 4, background: "#fce7f3", color: "#9d174d" }}>
+                          Gatekeeper
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Edit Modal */}
       {showEdit && site && (

@@ -16,6 +16,7 @@ import {
   CalendarClock,
   Megaphone,
   Factory,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import "./settings.css";
@@ -453,6 +454,371 @@ function ConfigSection({
 }
 
 /* ------------------------------------------------------------------
+   Custom Fields Section (CFIELD-01)
+   ------------------------------------------------------------------ */
+type CustomFieldDef = {
+  id: string;
+  entityType: string;
+  fieldName: string;
+  fieldType: string;
+  industryId: string | null;
+  industry?: { id: string; name: string } | null;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+type IndustryOption = { id: string; name: string };
+
+function CustomFieldsSection() {
+  const toast = useToast();
+  const [expanded, setExpanded] = useState(false);
+  const [items, setItems] = useState<CustomFieldDef[]>([]);
+  const [industries, setIndustries] = useState<IndustryOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<CustomFieldDef | null>(null);
+
+  // Form state
+  const [formFieldName, setFormFieldName] = useState("");
+  const [formEntityType, setFormEntityType] = useState("CUSTOMER");
+  const [formFieldType, setFormFieldType] = useState("TEXT");
+  const [formIndustryId, setFormIndustryId] = useState<string>("");
+  const [formIsActive, setFormIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Delete confirmation
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<CustomFieldDef | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [defsRes, indRes] = await Promise.all([
+        apiFetch("/api/crm/custom-fields", { credentials: "include", cache: "no-store" }),
+        apiFetch("/api/crm/industries", { credentials: "include", cache: "no-store" }),
+      ]);
+      if (defsRes.ok) {
+        const json = await defsRes.json();
+        setItems(json.data || []);
+      }
+      if (indRes.ok) {
+        const json = await indRes.json();
+        setIndustries(json.data || []);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load custom fields");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (expanded && items.length === 0) fetchItems();
+  }, [expanded]);
+
+  function openAddModal() {
+    setEditingItem(null);
+    setFormFieldName("");
+    setFormEntityType("CUSTOMER");
+    setFormFieldType("TEXT");
+    setFormIndustryId("");
+    setFormIsActive(true);
+    setShowModal(true);
+  }
+
+  function openEditModal(item: CustomFieldDef) {
+    setEditingItem(item);
+    setFormFieldName(item.fieldName);
+    setFormEntityType(item.entityType);
+    setFormFieldType(item.fieldType);
+    setFormIndustryId(item.industryId || "");
+    setFormIsActive(item.isActive);
+    setShowModal(true);
+  }
+
+  function closeModal() {
+    setShowModal(false);
+    setEditingItem(null);
+  }
+
+  async function handleSave() {
+    if (!formFieldName.trim()) {
+      toast.error("Field name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const body = {
+        fieldName: formFieldName.trim(),
+        entityType: formEntityType,
+        fieldType: formFieldType,
+        industryId: formIndustryId || null,
+        isActive: formIsActive,
+      };
+
+      if (editingItem) {
+        const res = await apiFetch(`/api/crm/custom-fields/${editingItem.id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error("Failed to update custom field");
+        toast.success("Custom field updated");
+      } else {
+        const res = await apiFetch("/api/crm/custom-fields", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error("Failed to create custom field");
+        toast.success("Custom field created");
+      }
+      closeModal();
+      await fetchItems();
+    } catch (e: any) {
+      toast.error(e?.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function confirmDelete(item: CustomFieldDef) {
+    setDeletingItem(item);
+    setShowConfirm(true);
+  }
+
+  async function handleDelete() {
+    if (!deletingItem) return;
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`/api/crm/custom-fields/${deletingItem.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete custom field");
+      toast.success("Custom field deleted");
+      setShowConfirm(false);
+      setDeletingItem(null);
+      await fetchItems();
+    } catch (e: any) {
+      toast.error(e?.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const activeCount = items.filter((i) => i.isActive).length;
+
+  return (
+    <div className="crm-config-section">
+      <div
+        className="crm-config-header"
+        onClick={() => setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
+      >
+        <div className="crm-config-header-left">
+          {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          <span className="crm-config-icon"><SlidersHorizontal size={18} /></span>
+          <h3 className="crm-config-title">Custom Fields</h3>
+          <span className="crm-config-count">{activeCount} active</span>
+        </div>
+        <div className="crm-config-header-right">
+          <button
+            className="crm-btn-add"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!expanded) setExpanded(true);
+              openAddModal();
+            }}
+          >
+            <Plus size={16} />
+            Add
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="crm-config-body">
+          {loading ? (
+            <div className="crm-config-loading">
+              <div className="crm-config-spinner" />
+              <span>Loading...</span>
+            </div>
+          ) : items.length === 0 ? (
+            <div className="crm-config-empty">
+              No custom fields configured yet.
+            </div>
+          ) : (
+            <div className="crm-config-list">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className={`crm-config-item ${!item.isActive ? "crm-config-item--inactive" : ""}`}
+                >
+                  <div className="crm-config-item-left">
+                    <span className="crm-config-item-name">{item.fieldName}</span>
+                    <span className="crm-config-trigger-badge">{item.entityType}</span>
+                    <span className="crm-config-trigger-badge">{item.fieldType}</span>
+                    {item.industry && (
+                      <span className="crm-config-trigger-badge">{item.industry.name}</span>
+                    )}
+                  </div>
+                  <div className="crm-config-item-right">
+                    <button
+                      className="crm-btn-ghost"
+                      onClick={() => openEditModal(item)}
+                      title="Edit"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      className="crm-btn-ghost crm-btn-ghost--danger"
+                      onClick={() => confirmDelete(item)}
+                      title="Delete"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="ui-modal-overlay" onClick={closeModal}>
+          <div className="ui-modal ui-modal--sm" onClick={(e) => e.stopPropagation()}>
+            <div className="ui-modal-header">
+              <h3 className="ui-modal-title">
+                {editingItem ? "Edit Custom Field" : "Add Custom Field"}
+              </h3>
+              <button className="ui-modal-close" onClick={closeModal}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="ui-modal-body">
+              <div className="crm-form-group">
+                <label className="crm-form-label">Field Name</label>
+                <input
+                  type="text"
+                  className="crm-form-input"
+                  value={formFieldName}
+                  onChange={(e) => setFormFieldName(e.target.value)}
+                  placeholder="Enter field name"
+                  autoFocus
+                />
+              </div>
+
+              <div className="crm-form-group">
+                <label className="crm-form-label">Entity Type</label>
+                <select
+                  className="crm-form-input"
+                  value={formEntityType}
+                  onChange={(e) => setFormEntityType(e.target.value)}
+                  disabled={!!editingItem}
+                >
+                  <option value="CUSTOMER">Customer</option>
+                  <option value="SITE">Site</option>
+                </select>
+              </div>
+
+              <div className="crm-form-group">
+                <label className="crm-form-label">Field Type</label>
+                <select
+                  className="crm-form-input"
+                  value={formFieldType}
+                  onChange={(e) => setFormFieldType(e.target.value)}
+                >
+                  <option value="TEXT">Text</option>
+                  <option value="NUMBER">Number</option>
+                  <option value="BOOLEAN">Checkbox</option>
+                </select>
+              </div>
+
+              <div className="crm-form-group">
+                <label className="crm-form-label">Industry (optional)</label>
+                <select
+                  className="crm-form-input"
+                  value={formIndustryId}
+                  onChange={(e) => setFormIndustryId(e.target.value)}
+                >
+                  <option value="">All Industries</option>
+                  {industries.map((ind) => (
+                    <option key={ind.id} value={ind.id}>
+                      {ind.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="crm-form-row">
+                <label className="crm-form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={formIsActive}
+                    onChange={(e) => setFormIsActive(e.target.checked)}
+                  />
+                  <span>Is Active</span>
+                </label>
+              </div>
+            </div>
+            <div className="ui-modal-footer">
+              <button className="ui-btn ui-btn--secondary" onClick={closeModal} disabled={saving}>
+                Cancel
+              </button>
+              <button className="ui-btn ui-btn--primary" onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : editingItem ? "Update" : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {showConfirm && (
+        <div className="ui-modal-overlay" onClick={() => setShowConfirm(false)}>
+          <div className="ui-modal ui-modal--sm" onClick={(e) => e.stopPropagation()}>
+            <div className="ui-modal-header">
+              <h3 className="ui-modal-title">Delete Custom Field?</h3>
+            </div>
+            <div className="ui-modal-body">
+              <p className="crm-confirm-text">
+                Are you sure you want to delete <strong>{deletingItem?.fieldName}</strong>?
+                This will remove all saved values for this field.
+              </p>
+            </div>
+            <div className="ui-modal-footer">
+              <button
+                className="ui-btn ui-btn--secondary"
+                onClick={() => setShowConfirm(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button className="ui-btn ui-btn--danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
    Main Page
    ------------------------------------------------------------------ */
 export default function CRMSettingsPage() {
@@ -467,7 +833,7 @@ export default function CRMSettingsPage() {
           <div>
             <h1>CRM Settings</h1>
             <p className="crm-settings-subtitle">
-              Manage call types, outcomes, follow-up types, lead sources, and industries for your CRM.
+              Manage call types, outcomes, follow-up types, lead sources, industries, and custom fields for your CRM.
             </p>
           </div>
         </div>
@@ -516,6 +882,8 @@ export default function CRMSettingsPage() {
           icon={<Factory size={18} />}
           apiPath="industries"
         />
+
+        <CustomFieldsSection />
       </div>
     </div>
   );

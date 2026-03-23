@@ -103,25 +103,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return jsonError("Quote not found.", 404);
   }
 
-  // Cannot edit APPROVED or CONVERTED quotes
-  const lockedStatuses: QuoteStatus[] = [QuoteStatus.APPROVED, QuoteStatus.CONVERTED];
-  if (
-    lockedStatuses.includes(existingQuote.status) &&
-    (title || description || siteId !== undefined || taxRate !== undefined || lineItems)
-  ) {
-    return jsonError("Cannot edit APPROVED or CONVERTED quotes.", 400);
-  }
-
   // Build update data
   const updateData: any = {};
 
-  // If editing content on a non-DRAFT quote (e.g. SENT, REJECTED), revert to DRAFT
+  // Block content edits on non-DRAFT quotes — only status transitions allowed
   const hasContentChanges = title || description || siteId !== undefined || taxRate !== undefined || lineItems;
   if (hasContentChanges && existingQuote.status !== QuoteStatus.DRAFT) {
-    updateData.status = QuoteStatus.DRAFT;
-    updateData.sentAt = null;
-    updateData.rejectedAt = null;
-    updateData.rejectionReason = null;
+    return jsonError("Content edits are only allowed on DRAFT quotes. Change status to DRAFT first.", 400);
   }
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
@@ -152,8 +140,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
   }
 
-  // Update line items if provided (allowed for non-locked statuses)
-  if (lineItems && !lockedStatuses.includes(existingQuote.status)) {
+  // Update line items if provided (only on DRAFT — content check above already guards this)
+  if (lineItems) {
     // Delete existing line items
     await prisma.quoteLineItem.deleteMany({
       where: { quoteId: id },

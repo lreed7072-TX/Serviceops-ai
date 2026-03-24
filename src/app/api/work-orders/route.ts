@@ -113,24 +113,28 @@ export async function POST(request: Request) {
   // Generate next order number with correct prefix (per-org, per-type)
   let workOrder: any = null;
 
+  // Find highest existing number for this prefix (handles legacy date-based formats)
+  const allWithPrefix = await prisma.workOrder.findMany({
+    where: {
+      orgId: auth.orgId,
+      orderType,
+      workOrderNumber: { startsWith: prefix },
+    },
+    select: { workOrderNumber: true },
+  });
+
+  const regex = new RegExp(`^${prefix}-?(\\d+)(?:-.*)?$`);
+  let maxNum = 0;
+  for (const row of allWithPrefix) {
+    const match = row.workOrderNumber?.match(regex);
+    if (match) {
+      const num = Number.parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    // Find the last order of this type
-    const last = await prisma.workOrder.findFirst({
-      where: { 
-        orgId: auth.orgId, 
-        orderType,
-        workOrderNumber: { startsWith: prefix } 
-      },
-      select: { workOrderNumber: true },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const lastStr = last?.workOrderNumber ?? null;
-    const regex = new RegExp(`^${prefix}(\\d+)$`);
-    const match = lastStr?.match(regex);
-    const lastNum = match ? Number.parseInt(match[1], 10) : 0;
-
-    const nextNum = lastNum + 1 + attempt;
+    const nextNum = maxNum + 1 + attempt;
     const workOrderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
 
     try {

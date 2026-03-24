@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import "./AiSuggestedTechBadge.css";
 
 interface AiInsight {
@@ -65,6 +66,8 @@ export default function AiSuggestedTechBadge({ entityId }: AiSuggestedTechBadgeP
     return () => { cancelled = true; };
   }, [entityId]);
 
+  const toast = useToast();
+
   const handleDismiss = async () => {
     if (!suggestion) return;
     setDismissed(true);
@@ -74,9 +77,11 @@ export default function AiSuggestedTechBadge({ entityId }: AiSuggestedTechBadgeP
       });
       if (!res.ok) {
         setDismissed(false);
+        toast.error("Failed to dismiss suggestion");
       }
     } catch {
       setDismissed(false);
+      toast.error("Failed to dismiss suggestion");
     }
   };
 

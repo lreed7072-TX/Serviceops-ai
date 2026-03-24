@@ -141,3 +141,38 @@ export async function PUT(
 
   return NextResponse.json({ data: ticket });
 }
+
+/**
+ * DELETE /api/service-tickets/[id]
+ * Soft-delete by setting status to CLOSED. Only ADMIN can delete.
+ * Cannot delete tickets that have been converted to a work order.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const authResult = await requireAuthSessionFirst(request);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
+
+  const roleError = requireRole(auth, [Role.ADMIN]);
+  if (roleError) return roleError;
+
+  const existing = await prisma.serviceTicket.findFirst({
+    where: { id, orgId: auth.orgId },
+    select: { id: true, convertedWorkOrderId: true },
+  });
+
+  if (!existing) {
+    return jsonError("Service ticket not found.", 404);
+  }
+
+  if (existing.convertedWorkOrderId) {
+    return jsonError("Cannot delete a ticket that has been converted to a work order.", 400);
+  }
+
+  await prisma.serviceTicket.delete({ where: { id } });
+
+  return NextResponse.json({ message: "Service ticket deleted." });
+}

@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
               select: { email: true, name: true },
             });
 
-            const reconnectUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://serviceops-ai.vercel.app"}/settings/integrations?reconnect=true`;
+            const reconnectUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://serviceopsiq.com"}/settings/integrations?reconnect=true`;
 
             for (const admin of admins) {
               await sendEmail({

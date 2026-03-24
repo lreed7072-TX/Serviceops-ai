@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "ServiceOpsIQ",
   },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
   formatDetection: {
     telephone: false,
   },

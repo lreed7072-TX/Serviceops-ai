@@ -536,12 +536,17 @@ async function getInvoices(
   return { invoices, total: invoices.length };
 }
 
+const VALID_ENTITY_TYPES = ["Asset", "WorkOrder", "PmSchedule", "Site", "Quote"];
+
 async function getAiInsights(
   orgId: string,
   args: Record<string, unknown>
 ) {
   const where: Record<string, unknown> = { orgId, isActive: true };
-  if (args.entityType) where.entityType = String(args.entityType);
+  if (args.entityType) {
+    const validated = validateEnum(args.entityType, VALID_ENTITY_TYPES);
+    if (validated) where.entityType = validated;
+  }
   if (args.entityId) where.entityId = String(args.entityId);
 
   const insights = await prisma.aiInsight.findMany({

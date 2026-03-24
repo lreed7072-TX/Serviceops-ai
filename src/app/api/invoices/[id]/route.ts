@@ -140,3 +140,43 @@ export async function PATCH(
 
   return NextResponse.json({ data: invoice });
 }
+
+// DELETE /api/invoices/[id] — only DRAFT invoices with no QBO sync
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const authResult = await requireAuthSessionFirst(req);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
+  const { orgId } = auth;
+
+  const existing = await prisma.invoice.findFirst({
+    where: { id, orgId },
+    select: { id: true, status: true, qboInvoiceId: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
+
+  if (existing.status !== InvoiceStatus.DRAFT) {
+    return NextResponse.json(
+      { error: "Only DRAFT invoices can be deleted. Use CANCELED status for sent invoices." },
+      { status: 400 }
+    );
+  }
+
+  if (existing.qboInvoiceId) {
+    return NextResponse.json(
+      { error: "Cannot delete an invoice synced to QuickBooks. Cancel it instead." },
+      { status: 400 }
+    );
+  }
+
+  await prisma.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+  await prisma.invoice.delete({ where: { id } });
+
+  return NextResponse.json({ message: "Invoice deleted." });
+}

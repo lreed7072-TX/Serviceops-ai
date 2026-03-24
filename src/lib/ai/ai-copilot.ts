@@ -46,6 +46,12 @@ const MAX_TOOL_ITERATIONS = 5;
 /** Max messages to load for conversation context */
 const MAX_CONTEXT_MESSAGES = 20;
 
+/** Max tokens per conversation turn before graceful stop */
+const MAX_TURN_TOKENS = 25000;
+
+/** Approximate max input size in characters before pre-trimming (rough ~4 chars/token) */
+const MAX_INPUT_CHARS = 80000;
+
 // ============================================
 // SYSTEM PROMPT
 // ============================================
@@ -164,8 +170,28 @@ export async function handleCopilotMessage(
   // Current messages for this turn (may include tool results)
   let currentMessages: Anthropic.MessageParam[] = [...claudeMessages];
 
+  // Pre-trim if conversation history is too large
+  const estimatedChars = currentMessages.reduce((sum, m) => {
+    const content = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
+    return sum + content.length;
+  }, 0);
+  if (estimatedChars > MAX_INPUT_CHARS && currentMessages.length > 4) {
+    currentMessages = [
+      currentMessages[0], // Keep first message for context
+      ...currentMessages.slice(-3), // Keep last 3 messages
+    ];
+  }
+
   while (iterations < MAX_TOOL_ITERATIONS) {
     iterations++;
+
+    // Token budget guard — stop gracefully if we've used too many tokens this turn
+    if (totalTokensUsed > MAX_TURN_TOKENS) {
+      if (!finalResponse) {
+        finalResponse = "I've reached the processing limit for this response. Please send a follow-up message to continue.";
+      }
+      break;
+    }
 
     let response;
     try {

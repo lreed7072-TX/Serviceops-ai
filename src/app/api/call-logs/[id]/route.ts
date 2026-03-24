@@ -153,3 +153,27 @@ export async function PUT(
 
   return NextResponse.json({ data: callLog });
 }
+
+// DELETE /api/call-logs/[id] — ADMIN only
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const authResult = await requireAuthSessionFirst(request);
+  if ("error" in authResult) return authResult.error;
+  const { auth } = authResult;
+
+  const roleError = requireRole(auth, [Role.ADMIN]);
+  if (roleError) return roleError;
+
+  const existing = await prisma.callLog.findFirst({
+    where: { id, orgId: auth.orgId },
+  });
+
+  if (!existing) return jsonError("Call log not found.", 404);
+
+  await prisma.callLog.delete({ where: { id } });
+
+  return NextResponse.json({ message: "Call log deleted." });
+}

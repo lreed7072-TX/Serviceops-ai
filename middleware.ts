@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const CANONICAL_HOST = "serviceops-ai.vercel.app";
+const CANONICAL_HOST = "serviceopsiq.com";
 
 function enforceCanonicalHost(request: NextRequest) {
   // Only enforce on Vercel production to avoid breaking local dev and previews
@@ -11,10 +11,15 @@ function enforceCanonicalHost(request: NextRequest) {
   const host = request.headers.get("host") || "";
   if (!host || host === CANONICAL_HOST) return null;
 
-  const url = request.nextUrl.clone();
-  url.protocol = "https";
-  url.host = CANONICAL_HOST;
-  return url;
+  // Redirect www and Vercel preview URLs to canonical domain
+  if (host === `www.${CANONICAL_HOST}` || host.endsWith(".vercel.app")) {
+    const url = request.nextUrl.clone();
+    url.protocol = "https";
+    url.host = CANONICAL_HOST;
+    return url;
+  }
+
+  return null;
 }
 
 // ── Rate limit configuration ───────────────────────────────────

@@ -1,8 +1,8 @@
-# Session Handoff — v2.0 CRM 100% Complete (50/50)
+# Session Handoff — Pre-Launch QA Complete
 
-**Date:** 2026-03-23
-**Status:** CRM 50/50 requirements DONE — all Custom Fields built + test fixes
-**Next action:** Custom domain setup, then real-world QA testing
+**Date:** 2026-03-25
+**Status:** All code work done — ready for Lance's manual QA on production
+**Next action:** Manual testing on serviceopsiq.com (see QA-LAUNCH-PLAN.md)
 
 ---
 
@@ -11,107 +11,109 @@
 ```
 Read these files first:
 - .planning/HANDOFF.md
-- .planning/REQUIREMENTS.md
+- .planning/QA-LAUNCH-PLAN.md
 
-ServiceOpsIQ v2.0: AI validated, CRM 100% complete (50/50 done).
-All 3 Custom Field items (CFIELD-01/02/03) built and committed.
+ServiceOpsIQ v2.0: All features shipped, all automated tests green.
+Domain fixed, PWA install ready, security verified.
 
-Last commit: e952816 — pushed to main, deployed to Vercel.
+Last commits:
+- 90f25f0 — fix(middleware): Set serviceopsiq.com as canonical host
+- a47665d — feat(PWA): Install prompt, SW update banner, manifest enhancements
 
-WHAT WAS DONE 2026-03-23:
-1. CFIELD-01 — Custom field definition admin (API + settings UI)
-2. CFIELD-02 — CustomFieldRenderer component (dynamic TEXT/NUMBER/BOOLEAN)
-3. CFIELD-03 — Custom field value batch upsert API
-4. Quote PATCH bug fix — blocked content edits on non-DRAFT quotes
-5. Prisma mock fix — added count/groupBy/aggregate (fixed 3 multi-tenant failures)
-6. 26 new CRM API tests (industries, custom fields, custom field values)
-7. Global auto-memory hook path fix (~/.claude/settings.json)
+WHAT WAS DONE 2026-03-25:
+1. PWA install prompt component (Android beforeinstallprompt + iOS Share instructions)
+2. SW update banner (detects new version, shows "Update now" button)
+3. Manifest.json enhancements (id, scope, categories, screenshots)
+4. Canonical host fix — middleware was redirecting serviceopsiq.com → vercel.app
+5. Removed dead src/middleware.ts (root middleware handles everything)
+6. Created QA-LAUNCH-PLAN.md (10-phase pre-launch checklist)
+7. Security verified: dev bypass blocked, crons require CRON_SECRET, rate limiting active
+8. All automated tests green: 269 unit, 83 smoke, 82 E2E
+9. Confirmed ALL deferred AI polish items were already fixed in prior sessions
 
-Test suite: 269 passing, 0 failing (was 237 pass / 6 fail)
-Build: Clean, 0 TypeScript errors
+WHAT LANCE NEEDS TO DO (manual testing):
+- Phase 2: Login with each role on serviceopsiq.com
+- Phase 3: Create WO → assign → complete → invoice (full lifecycle)
+- Phase 4: QBO OAuth connect (needs sandbox)
+- Phase 5: Trigger AI insights, test copilot
+- Phase 6: CRM calls, pipeline, custom fields
+- Phase 7: Install PWA on iPhone + Android, test offline
+- Phase 8: Portal login + quote accept
+- Phase 10: PDF generation
+- Verify Vercel env vars (no DEV_AUTH_BYPASS in production)
+- Verify all 5 crons show in Vercel Crons tab
 
-REMAINING WORK:
-- Custom domain setup (user buying on GoDaddy, then Vercel DNS config)
-- Real-world QA testing on production
-- Delete stray test-tasks-api.mjs in project root (has hardcoded creds)
-- Deferred AI polish (see MEMORY.md for list)
-- Mobile app: EAS Build for TestFlight
+Test suite: 269 passing, 0 failing
+Smoke: 83/83 pass
+E2E: 82/82 pass (13 workflows)
+Build: Clean
 ```
 
 ---
 
-## What Was Done This Session (2026-03-23)
+## What Was Done This Session (2026-03-25)
 
-### Swarm Audit (4 parallel agents)
-- planning-analyst: Confirmed 47/50 CRM, 3 Custom Field items remaining
-- api-auditor: 197 API routes, solid auth, 1 TODO, no gaps
-- ui-auditor: 67 pages, 0 TODOs in .tsx, portal complete
-- test-auditor: Found 6 failing tests (Prisma mock + quote validation), identified coverage gaps
+### Phase 0: Housekeeping
+- Confirmed `test-tasks-api.mjs` already deleted
+- Verified 5 crons in vercel.json
+- Discovered and fixed domain redirect issue (see below)
 
-### Custom Fields System (CFIELD-01/02/03) — ALL BUILT
+### Phase 1: PWA Polish
+- **InstallPrompt.tsx** (new): Captures `beforeinstallprompt` on Android/Chrome, shows iOS Share→Add to Home Screen instructions, dismissible for 7 days via localStorage, hides when already in standalone mode
+- **ServiceWorkerRegistration.tsx** (enhanced): Detects new SW waiting, shows blue "Update available" banner with "Update now" button, triggers skipWaiting + reload
+- **manifest.json** (enhanced): Added `id`, `scope`, `categories`, `screenshots`, `prefer_related_applications: false`
+- **layout.tsx**: Wired InstallPrompt into root layout
+- **globals.css**: Added install-prompt + sw-update-banner styles with animations
 
-**CFIELD-01: Custom field definition admin**
-- API: `/api/crm/custom-fields` (GET+POST) + `[id]` (GET/PUT/DELETE)
-- GET accepts ?entityType and ?industryId filters
-- Includes industry relation in responses
-- ADMIN role required for writes
-- UI: CustomFieldsSection on /sales/settings with entity type, field type, industry selectors
+### Domain Fix (Critical)
+- **Root cause**: `middleware.ts` line 5 had `CANONICAL_HOST = "serviceops-ai.vercel.app"` — was forcing 308 redirect AWAY from the custom domain
+- **Fix**: Changed to `CANONICAL_HOST = "serviceopsiq.com"`, updated logic so Vercel URLs and www redirect TO the custom domain
+- **Verified**: `serviceopsiq.com` → 200, `serviceops-ai.vercel.app` → 308 to serviceopsiq.com, `www.serviceopsiq.com` → 308 to serviceopsiq.com
 
-**CFIELD-02: Custom field rendering on forms**
-- `src/components/crm/CustomFieldRenderer.tsx`
-- Loads definitions by entityType + optional industryId
-- Loads existing values for entity
-- TEXT → text input, NUMBER → number input, BOOLEAN → checkbox
-- Batch save via POST /api/crm/custom-field-values
-- Auto-hides when no active definitions exist
+### Dead Code Cleanup
+- Removed `src/middleware.ts` — dead code, root `middleware.ts` takes precedence in Next.js. CORS headers already handled by `next.config.ts`.
 
-**CFIELD-03: Custom field value CRUD API**
-- API: `/api/crm/custom-field-values` (GET + POST batch upsert)
-- GET: filter by entityType + entityId, includes fieldDefinition
-- POST: batch upsert using Prisma unique constraint [fieldDefinitionId, entityType, entityId]
-- Validates entityType enum and required fields
+### Security Verification (Phase 9)
+- ✅ Dev bypass headers return 401 on production
+- ✅ All 3 cron endpoints return 401 without CRON_SECRET
+- ✅ Rate limiting active: 20 requests → 429 on auth endpoints (confirmed 20/35 split)
 
-### Bug Fixes
-1. **Quote PATCH validation** — was reverting SENT quotes to DRAFT on content edit (200), now returns 400. Only status transitions allowed on non-DRAFT quotes.
-2. **Prisma test mocks** — added count(), groupBy(), aggregate() to workOrder, customer, quote, invoice. Added full mocks for customFieldDefinition, customFieldValue, industry, leadSource, callType, callOutcome, followUpType.
+### Deferred Items Audit — ALL ALREADY FIXED
+Checked every item from the deferred list:
+- ✅ copilot-tools.ts: `parseDate()` + `validateEnum()` helpers already present
+- ✅ ai-copilot.ts: Token budget guard (MAX_TURN_TOKENS=25000) + input trimming already present
+- ✅ AiSuggestedTechBadge: Rollback on failed dismiss already present (setDismissed(false) + toast)
+- ✅ AiAlertsWidget: role="button", tabIndex={0}, onKeyDown already present
+- ✅ Conversations routes: Cache-Control: no-store already present on both GET routes
+- ✅ quotes/[id]/page.tsx: Already uses apiFetch everywhere (9 calls, zero bare fetch)
 
-### Tests
-- 26 new CRM API tests in `src/__tests__/api/crm-config.test.ts`
-- Covers: industries CRUD, custom fields CRUD, custom field values GET + batch upsert
-- Auth, validation, 404 scenarios all tested
-- Total: 269 pass / 0 fail / 32 todo (was 237/6/32)
-
-### Infrastructure Fix
-- Global auto-memory hook paths in `~/.claude/settings.json` changed from `${CLAUDE_PROJECT_DIR}` to `$HOME` — fixes MODULE_NOT_FOUND errors across all projects
-
-### Commit
-- `e952816` — feat(CRM): CFIELD-01/02/03 — Custom Fields system + test fixes
-- Pushed to main, Vercel auto-deploy triggered
+### Automated Test Results
+- Unit tests: 269 pass / 0 fail / 32 todo
+- Smoke tests: 83/83 pass (197 endpoints)
+- E2E workflows: 82/82 pass (13 workflows)
 
 ---
 
-## Files Created (5)
-- `src/app/api/crm/custom-fields/route.ts`
-- `src/app/api/crm/custom-fields/[id]/route.ts`
-- `src/app/api/crm/custom-field-values/route.ts`
-- `src/components/crm/CustomFieldRenderer.tsx`
-- `src/__tests__/api/crm-config.test.ts`
+## Files Created (2)
+- `src/components/common/InstallPrompt.tsx`
+- `.planning/QA-LAUNCH-PLAN.md`
 
-## Files Modified (3)
-- `src/app/api/quotes/[id]/route.ts` — quote PATCH validation
-- `src/__tests__/setup.ts` — expanded Prisma mocks
-- `src/app/(sales)/sales/settings/page.tsx` — added Custom Fields section
+## Files Modified (4)
+- `public/manifest.json` — enhanced for PWA
+- `src/components/common/ServiceWorkerRegistration.tsx` — SW update banner
+- `src/app/layout.tsx` — wired InstallPrompt
+- `src/app/globals.css` — install prompt + update banner styles
+- `middleware.ts` — canonical host → serviceopsiq.com
 
----
-
-## Deferred Items (Post-QA / v2.1)
-- 32 QBO todo tests (edge cases)
-- AI polish: token budget guard, copilot cache headers, tool input validation
-- AiSuggestedTechBadge: rollback on failed dismiss
-- AiAlertsWidget: keyboard accessibility
-- quotes/[id]/page.tsx: bare fetch() → apiFetch()
-- Portal & component test coverage
-- Mobile app: EAS Build for TestFlight + Play Store
+## Files Deleted (1)
+- `src/middleware.ts` — dead code (root middleware takes precedence)
 
 ---
-*Last updated: 2026-03-23*
+
+## Remaining (Lance Manual Testing Only)
+- See `.planning/QA-LAUNCH-PLAN.md` for full 10-phase checklist
+- No code changes needed — all items are manual verification on production
+- 32 QBO todo tests remain (edge cases, low priority)
+
+---
+*Last updated: 2026-03-25*

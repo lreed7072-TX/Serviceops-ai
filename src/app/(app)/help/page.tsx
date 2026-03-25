@@ -30,6 +30,10 @@ import {
   Lightbulb,
   ArrowLeft,
   ChevronRight,
+  Calculator,
+  Brain,
+  TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import "./help.css";
 
@@ -56,6 +60,10 @@ const categoryIconMap: Record<string, React.ComponentType<{ size?: number }>> = 
   settings: Settings,
   "global-search": Search,
   tips: Lightbulb,
+  "qbo-integration": Calculator,
+  "ai-features": Brain,
+  "crm-sales": TrendingUp,
+  "custom-reports": FileSpreadsheet,
 };
 
 /* ------------------------------------------------------------------ */

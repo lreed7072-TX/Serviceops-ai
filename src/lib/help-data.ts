@@ -53,6 +53,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   { id: "settings", title: "Settings", description: "Manage users, roles, integrations, and organization settings" },
   { id: "global-search", title: "Global Search", description: "Quickly find any record with keyboard-driven global search" },
   { id: "tips", title: "Tips & Shortcuts", description: "Power user tips, keyboard shortcuts, and productivity tricks" },
+  { id: "qbo-integration", title: "QuickBooks Integration", description: "Connect, configure, and manage your QuickBooks Online accounting sync" },
+  { id: "ai-features", title: "AI Features", description: "AI-powered insights, copilot assistant, risk assessment, and smart recommendations" },
+  { id: "crm-sales", title: "CRM & Sales", description: "Manage your sales pipeline, call logs, follow-ups, opportunities, and service tickets" },
+  { id: "custom-reports", title: "Custom Reports & Forms", description: "Build custom report templates with drag-and-drop and capture field data with custom forms" },
 ];
 
 // ============================================================================
@@ -2735,6 +2739,699 @@ const TIPS_ARTICLES: HelpArticle[] = [
 
 
 // ============================================================================
+// CATEGORY 20: QuickBooks Integration (7 articles)
+// ============================================================================
+
+const QBO_INTEGRATION_ARTICLES: HelpArticle[] = [
+  {
+    id: 'qbo-connect',
+    categoryId: 'qbo-integration',
+    title: 'Connecting QuickBooks Online',
+    summary: 'Authorize ServiceOpsIQ to access your QuickBooks Online account via secure OAuth 2.0.',
+    content: [
+      'ServiceOpsIQ connects to QuickBooks Online through OAuth 2.0, the industry-standard authorization protocol. This means your QuickBooks credentials are never stored in ServiceOpsIQ — you authorize the connection directly with Intuit and can revoke it at any time.',
+      'To connect, navigate to Settings > Integrations > QuickBooks and click the Connect button. You will be redirected to the Intuit authorization page where you log in to your QuickBooks account and grant ServiceOpsIQ access to read and write financial data.',
+      'After authorization, you are redirected back to ServiceOpsIQ and the connection status updates to show your connected company name. The system securely stores OAuth tokens that automatically refresh so you stay connected without repeated logins.'
+    ],
+    steps: [
+      { title: 'Navigate to Settings', description: 'Open Settings from the sidebar and click on the Integrations or QuickBooks section.' },
+      { title: 'Click Connect to QuickBooks', description: 'Click the "Connect to QuickBooks" button to begin the OAuth authorization flow.' },
+      { title: 'Log in to Intuit', description: 'You will be redirected to Intuit. Log in with your QuickBooks Online admin credentials.' },
+      { title: 'Authorize Access', description: 'Review the permissions requested and click "Connect" to authorize ServiceOpsIQ.' },
+      { title: 'Verify Connection', description: 'You are redirected back to ServiceOpsIQ. The integration page shows your connected QuickBooks company name.' }
+    ],
+    tips: [
+      'Use a QuickBooks admin account to authorize the connection — limited-access accounts may not have sufficient permissions.',
+      'The OAuth tokens refresh automatically every hour. If the connection breaks, simply reconnect from the settings page.',
+      'You can disconnect at any time from the settings page. Previously synced data remains in both systems.'
+    ],
+    relatedArticleIds: ['qbo-accounts', 'qbo-customer-sync', 'qbo-invoice-sync', 'set-qbo'],
+    keywords: ['QuickBooks', 'connect', 'OAuth', 'authorize', 'Intuit', 'QBO setup', 'integration', 'link accounts']
+  },
+  {
+    id: 'qbo-accounts',
+    categoryId: 'qbo-integration',
+    title: 'Account Mapping',
+    summary: 'Map ServiceOpsIQ revenue categories to your QuickBooks chart of accounts for accurate financial reporting.',
+    content: [
+      'Account mapping is a prerequisite for syncing financial data to QuickBooks. You must map five revenue categories — Service Revenue, Material Revenue, Labor Revenue, Expense Revenue, and Discount — to the corresponding income and expense accounts in your QuickBooks chart of accounts.',
+      'Navigate to Settings > QuickBooks > Account Mapping to configure the mappings. The system loads your QuickBooks accounts automatically. Select the appropriate QBO account for each ServiceOpsIQ category. Financial syncs (invoices, payments) are blocked until all required mappings are configured.',
+      'Once mapped, every invoice line item synced to QuickBooks is categorized under the correct account. This ensures your profit-and-loss reports, tax filings, and financial statements accurately reflect your service business revenue streams.'
+    ],
+    steps: [
+      { title: 'Navigate to Account Mapping', description: 'Go to Settings > QuickBooks > Account Mapping to see the mapping configuration.' },
+      { title: 'Review Required Categories', description: 'The page shows five categories that need mapping: Service, Material, Labor, Expense, and Discount.' },
+      { title: 'Select QBO Accounts', description: 'For each category, select the matching income or expense account from your QuickBooks chart of accounts.' },
+      { title: 'Save Mappings', description: 'Click Save. The system validates all required mappings are complete.' },
+      { title: 'Verify with Test Sync', description: 'Sync a test invoice to confirm line items land in the correct QuickBooks accounts.' }
+    ],
+    tips: [
+      'Create dedicated income accounts in QuickBooks (e.g., "Service Revenue", "Parts Revenue") before mapping for the cleanest financial reports.',
+      'Account mapping must be completed before any financial syncs will work — the system blocks sync attempts until all five categories are mapped.',
+      'Review your mappings quarterly to ensure they still align with your accounting practices and any new QBO accounts.'
+    ],
+    relatedArticleIds: ['qbo-connect', 'qbo-invoice-sync', 'qbo-dashboard'],
+    keywords: ['account mapping', 'chart of accounts', 'revenue categories', 'QBO accounts', 'financial mapping', 'income accounts']
+  },
+  {
+    id: 'qbo-customer-sync',
+    categoryId: 'qbo-integration',
+    title: 'Customer Synchronization',
+    summary: 'Sync customers between ServiceOpsIQ and QuickBooks to eliminate duplicate data entry.',
+    content: [
+      'Customer sync ensures your customer records exist in both ServiceOpsIQ and QuickBooks without manual duplicate entry. When you sync a customer, their name, address, email, and phone are pushed to QuickBooks where they become available for invoicing and payment processing.',
+      'The system uses intelligent matching to avoid creating duplicates. When syncing a customer, it checks QuickBooks for existing records by email address and company name. If a match is found, the records are linked. If no match exists, a new QuickBooks customer is created.',
+      'Customer sync is typically one-directional: ServiceOpsIQ pushes to QuickBooks. Changes made in QuickBooks are pulled back during the Change Data Capture (CDC) sync that runs every four hours, keeping both systems aligned.'
+    ],
+    steps: [
+      { title: 'Open the Customer', description: 'Navigate to a customer record in ServiceOpsIQ that you want to sync.' },
+      { title: 'Click Sync to QuickBooks', description: 'Click the QBO sync button on the customer detail page.' },
+      { title: 'Review Match Results', description: 'If a matching QuickBooks customer is found, confirm the link. If not, a new record will be created.' },
+      { title: 'Verify in QuickBooks', description: 'Log into QuickBooks to confirm the customer appears with correct details.' }
+    ],
+    tips: [
+      'Sync all active customers before syncing any invoices to ensure clean linkages.',
+      'Use consistent company names in both systems to help the automatic matching algorithm.',
+      'If a customer name collision occurs in QuickBooks, the system appends "(SvcOps)" to the DisplayName to avoid conflicts.'
+    ],
+    relatedArticleIds: ['qbo-connect', 'qbo-invoice-sync', 'cust-create'],
+    keywords: ['customer sync', 'sync customers', 'QBO customers', 'duplicate prevention', 'customer matching', 'push to QuickBooks']
+  },
+  {
+    id: 'qbo-invoice-sync',
+    categoryId: 'qbo-integration',
+    title: 'Invoice & Payment Sync',
+    summary: 'Push invoices and payments from ServiceOpsIQ to QuickBooks for seamless accounting.',
+    content: [
+      'Invoice sync transfers your ServiceOpsIQ invoices to QuickBooks with all line items, quantities, amounts, tax, and customer details mapped to the correct accounts. This eliminates manual invoice creation in QuickBooks and ensures your books stay current with field operations.',
+      'To sync an invoice, open it in ServiceOpsIQ and click the Sync to QuickBooks button. The system validates that the customer is already synced and that account mappings are configured, then pushes the invoice to QuickBooks. The QBO invoice number is stored for cross-reference.',
+      'Payments recorded in ServiceOpsIQ can also be synced to QuickBooks. When a payment is applied to a synced invoice, clicking Sync Payment creates a corresponding payment record in QuickBooks that applies to the same invoice, keeping your accounts receivable balanced in both systems.'
+    ],
+    steps: [
+      { title: 'Verify Prerequisites', description: 'Ensure the customer is synced and account mappings are configured before syncing an invoice.' },
+      { title: 'Open the Invoice', description: 'Navigate to the invoice you want to sync to QuickBooks.' },
+      { title: 'Click Sync to QuickBooks', description: 'Click the sync button. The system validates and pushes the invoice to QBO.' },
+      { title: 'Check Sync Status', description: 'The invoice shows a QBO badge with the QuickBooks invoice number once synced.' },
+      { title: 'Sync Payments', description: 'After recording a payment, click Sync Payment to push the payment to QuickBooks as well.' }
+    ],
+    tips: [
+      'Sync invoices before sending them to customers so both systems have the record simultaneously.',
+      'If an invoice sync fails, check the sync log for the specific error — common causes are unmapped accounts or unsynced customers.',
+      'Materials on invoices are synced as Non-Inventory items in QuickBooks for simplicity.'
+    ],
+    relatedArticleIds: ['qbo-accounts', 'qbo-customer-sync', 'qbo-dashboard', 'inv-from-wo'],
+    keywords: ['invoice sync', 'payment sync', 'push invoice', 'QBO invoice', 'accounting', 'AR sync', 'payment recording']
+  },
+  {
+    id: 'qbo-cdc',
+    categoryId: 'qbo-integration',
+    title: 'Inbound Sync (CDC)',
+    summary: 'Automatic Change Data Capture pulls updates from QuickBooks every 4 hours to keep ServiceOpsIQ current.',
+    content: [
+      'Change Data Capture (CDC) is an automated process that polls QuickBooks every four hours for changes made directly in QuickBooks. This catches payments received through QuickBooks payment channels, customer address updates, and other changes that originate outside ServiceOpsIQ.',
+      'The CDC cron job runs on a 4-hour schedule and tracks a per-organization cursor so it only processes changes since the last successful poll. This is efficient and avoids re-processing historical data. Changes are applied automatically to the matching ServiceOpsIQ records.',
+      'Common inbound syncs include payment status updates (when customers pay through QuickBooks payment links), customer contact changes, and invoice void/delete actions performed in QuickBooks. These changes appear in ServiceOpsIQ within four hours without any manual action.'
+    ],
+    steps: [
+      { title: 'Verify CDC is Active', description: 'Check the QBO dashboard in Settings to see the last CDC run timestamp and status.' },
+      { title: 'Review Inbound Changes', description: 'The sync log shows all changes pulled from QuickBooks with timestamps and affected records.' },
+      { title: 'Resolve Conflicts', description: 'If a record was modified in both systems, the sync log flags it for manual review.' }
+    ],
+    tips: [
+      'CDC runs every 4 hours automatically — there is no manual trigger needed.',
+      'If a payment was made in QuickBooks and is not reflecting in ServiceOpsIQ, check the next CDC cycle time.',
+      'The CDC cursor is per-organization, so multi-tenant deployments each have independent sync windows.'
+    ],
+    relatedArticleIds: ['qbo-connect', 'qbo-invoice-sync', 'qbo-dashboard'],
+    keywords: ['CDC', 'change data capture', 'inbound sync', 'automatic sync', 'QuickBooks changes', 'payment sync', 'polling']
+  },
+  {
+    id: 'qbo-items-vendors',
+    categoryId: 'qbo-integration',
+    title: 'Items, Vendors & Classes',
+    summary: 'Sync materials as QBO items, manage vendor records, and use class/location tracking for departmental reporting.',
+    content: [
+      'Materials from your ServiceOpsIQ catalog can be synced to QuickBooks as Non-Inventory items. This ensures that invoice line items reference proper QBO items for consistent financial categorization. Items are auto-created on first sync if they do not already exist in QuickBooks.',
+      'Vendor sync allows you to maintain supplier records in both systems. When you create a vendor in ServiceOpsIQ, it can be pushed to QuickBooks for purchase order and bill management. The system checks for existing QBO vendors by name to avoid duplicates.',
+      'If your QuickBooks company has Class and Location tracking enabled, ServiceOpsIQ will map service categories to QBO Classes and site locations to QBO Locations. These are auto-created when first encountered and set to null if the feature is disabled in your QBO preferences.'
+    ],
+    steps: [
+      { title: 'Sync Materials', description: 'Materials are automatically synced as Non-Inventory items when they appear on a synced invoice.' },
+      { title: 'Manage Vendors', description: 'Navigate to the vendor record and click Sync to push it to QuickBooks.' },
+      { title: 'Enable Class Tracking', description: 'If using QBO classes, enable class tracking in QuickBooks preferences. ServiceOpsIQ will auto-map.' },
+      { title: 'Review in QuickBooks', description: 'Check Products/Services in QBO to verify items are categorized correctly.' }
+    ],
+    tips: [
+      'All materials sync as Non-Inventory type — ServiceOpsIQ does not manage QBO inventory quantities.',
+      'If a vendor name already exists in QuickBooks, the system links to the existing record rather than creating a duplicate.',
+      'Class and Location tracking in QBO provides powerful departmental P&L reports that break down revenue by service type and job site.'
+    ],
+    relatedArticleIds: ['qbo-accounts', 'qbo-invoice-sync', 'mat-catalog'],
+    keywords: ['items', 'vendors', 'classes', 'locations', 'non-inventory', 'QBO items', 'vendor sync', 'class tracking']
+  },
+  {
+    id: 'qbo-dashboard',
+    categoryId: 'qbo-integration',
+    title: 'QBO Sync Dashboard & Logs',
+    summary: 'Monitor sync health, review sync history, and troubleshoot errors from the QuickBooks dashboard.',
+    content: [
+      'The QBO dashboard provides a centralized view of your integration health. It shows the connection status, last sync timestamps for each sync type (customer, invoice, CDC), queue depth, and any errors that need attention.',
+      'The sync log records every operation — customer syncs, invoice pushes, payment syncs, and CDC polls — with timestamps, status (success/error), and details. Use the log to troubleshoot sync failures and verify that data is flowing correctly between systems.',
+      'The sync queue shows pending operations that are waiting to be processed. The queue is flushed every 5 minutes by an automated cron job. Items in the queue can be prioritized (1 = high, 5 = normal, 9 = low) and have a 3-retry limit before moving to the dead letter queue for manual review.'
+    ],
+    steps: [
+      { title: 'Open QBO Dashboard', description: 'Navigate to Settings > QuickBooks to see the sync dashboard overview.' },
+      { title: 'Check Connection Status', description: 'Verify the green "Connected" badge and your QuickBooks company name.' },
+      { title: 'Review Recent Syncs', description: 'Scroll to the sync log to see the latest operations and their statuses.' },
+      { title: 'Investigate Errors', description: 'Click on any failed sync entry to see the error details and recommended fix.' },
+      { title: 'Monitor Queue Depth', description: 'Check the pending queue to ensure items are being processed and not backing up.' }
+    ],
+    tips: [
+      'Check the dashboard after initial setup to confirm your first syncs completed successfully.',
+      'Sync errors often indicate unmapped accounts, unsynced customers, or expired OAuth tokens — the error detail tells you which.',
+      'The dead letter queue captures items that failed 3 times. Review these periodically to catch persistent issues.',
+      'Token health is monitored by a daily cron at 2 AM UTC that alerts if tokens are near expiration.'
+    ],
+    relatedArticleIds: ['qbo-connect', 'qbo-accounts', 'qbo-cdc', 'qbo-invoice-sync'],
+    keywords: ['QBO dashboard', 'sync log', 'sync errors', 'queue', 'troubleshooting', 'sync status', 'dead letter', 'monitoring']
+  }
+];
+
+// ============================================================================
+// CATEGORY 21: AI Features (7 articles)
+// ============================================================================
+
+const AI_FEATURES_ARTICLES: HelpArticle[] = [
+  {
+    id: 'ai-overview',
+    categoryId: 'ai-features',
+    title: 'AI Features Overview',
+    summary: 'How ServiceOpsIQ uses AI to generate insights, predict failures, and help you make better decisions.',
+    content: [
+      'ServiceOpsIQ includes an AI engine powered by Claude that analyzes your operational data to generate insights, predict equipment failures, suggest optimal technician assignments, and draft work summaries. AI features work automatically in the background as your team creates and updates records.',
+      'The AI pipeline is event-driven: when you complete a work order, update an asset, or change a schedule, the system automatically queues an AI analysis job. A background cron processes these jobs every 2 minutes, sending relevant context to Claude for analysis and storing the resulting insights.',
+      'AI insights appear throughout the application — on asset detail pages as risk badges, on the dashboard as alert widgets, on work orders as technician suggestions, and in the AI Copilot chat for interactive Q&A. All AI features are designed to augment your team\'s expertise, not replace it.'
+    ],
+    steps: [
+      { title: 'Review Dashboard Alerts', description: 'Check the AI Alerts widget on your dashboard for high-priority insights requiring attention.' },
+      { title: 'Check Asset Risk Badges', description: 'Visit asset detail pages to see AI-generated risk assessments based on service history.' },
+      { title: 'Use the Copilot', description: 'Click the AI Copilot icon to open the chat sidebar and ask questions about your data.' },
+      { title: 'Review AI Suggestions', description: 'When creating work orders, check for AI-suggested technician assignments based on skills and availability.' }
+    ],
+    tips: [
+      'AI insights improve over time as more data enters the system — the more work orders and visits you complete, the better the predictions become.',
+      'You can acknowledge insights to clear them from the alert widget while preserving them in the history.',
+      'AI processing runs on a 2-minute cycle, so new insights may take a few minutes to appear after a triggering event.'
+    ],
+    relatedArticleIds: ['ai-insights', 'ai-copilot', 'ai-risk', 'ai-tech-suggest'],
+    keywords: ['AI', 'artificial intelligence', 'insights', 'predictions', 'machine learning', 'smart features', 'automation']
+  },
+  {
+    id: 'ai-insights',
+    categoryId: 'ai-features',
+    title: 'AI Insights & Alerts',
+    summary: 'View, filter, and manage AI-generated insights about your assets, work orders, and operations.',
+    content: [
+      'AI Insights are actionable recommendations generated by analyzing patterns in your operational data. Each insight includes a severity level (LOW, MEDIUM, HIGH, CRITICAL), a description of the finding, and a recommended action. Insights are tied to specific entities like assets, work orders, or scheduling patterns.',
+      'The AI Alerts widget on your dashboard highlights the most urgent insights requiring attention. HIGH and CRITICAL severity insights appear here and are also tracked in your notification system. You can click any alert to navigate directly to the related entity.',
+      'Manage insights from the AI Insights page accessible from the sidebar. Filter by severity, entity type, or date range. Acknowledge insights after taking action to remove them from the active alerts while preserving the full history for compliance and analysis.'
+    ],
+    steps: [
+      { title: 'Check Dashboard Alerts', description: 'The AI Alerts widget shows HIGH and CRITICAL insights that need immediate attention.' },
+      { title: 'Open AI Insights Page', description: 'Navigate to the AI Insights page to see all insights with filtering options.' },
+      { title: 'Filter by Severity', description: 'Use the severity filter to focus on the most critical findings first.' },
+      { title: 'Take Action', description: 'Read the recommendation and take the suggested corrective action.' },
+      { title: 'Acknowledge', description: 'Click Acknowledge to mark the insight as reviewed and clear it from active alerts.' }
+    ],
+    tips: [
+      'Review AI insights during your daily planning to proactively address equipment risks before failures occur.',
+      'CRITICAL insights indicate imminent failure risk — schedule maintenance or inspection immediately.',
+      'Acknowledged insights are not deleted — they remain in history for auditing and trend analysis.'
+    ],
+    relatedArticleIds: ['ai-overview', 'ai-risk', 'ai-copilot', 'rpt-dashboard'],
+    keywords: ['AI insights', 'alerts', 'severity', 'CRITICAL', 'HIGH', 'acknowledge', 'recommendations', 'predictions']
+  },
+  {
+    id: 'ai-copilot',
+    categoryId: 'ai-features',
+    title: 'AI Copilot Chat',
+    summary: 'Ask the AI copilot questions about your data using natural language and get instant answers.',
+    content: [
+      'The AI Copilot is an interactive chat assistant that can query your organization\'s data in real time. Click the copilot icon in the bottom-right corner to open the chat sidebar, then ask questions in plain English like "What assets have the most work orders this month?" or "Show me overdue invoices for Kiewit."',
+      'The copilot uses tool-calling to search your database on demand. It can look up assets, work orders, customers, invoices, sites, and more. Each conversation maintains context so you can ask follow-up questions without repeating information.',
+      'Conversations are saved and can be resumed later. Access your conversation history from the copilot sidebar. Each conversation tracks token usage for cost monitoring. The copilot has a built-in token budget to prevent excessive API usage in long conversations.'
+    ],
+    steps: [
+      { title: 'Open the Copilot', description: 'Click the AI Copilot icon (bottom-right) to open the chat sidebar.' },
+      { title: 'Ask a Question', description: 'Type your question in natural language. For example: "Which technicians are available this week?"' },
+      { title: 'Review the Response', description: 'The copilot queries your data and responds with relevant information, often including specific records and numbers.' },
+      { title: 'Ask Follow-ups', description: 'Continue the conversation with follow-up questions. Context is maintained throughout the session.' },
+      { title: 'View History', description: 'Access previous conversations from the history list in the copilot sidebar.' }
+    ],
+    tips: [
+      'Be specific in your questions for the best results — "What are the open work orders for ABC Company at their Main Plant?" is better than "Show me work orders."',
+      'The copilot can query 10 different data types: assets, work orders, customers, invoices, quotes, visits, sites, materials, contacts, and schedules.',
+      'Long conversations are automatically trimmed to stay within token budgets. Start a new conversation for unrelated topics.'
+    ],
+    relatedArticleIds: ['ai-overview', 'ai-insights', 'gs-search'],
+    keywords: ['copilot', 'chat', 'assistant', 'natural language', 'query', 'ask', 'AI chat', 'conversation', 'tool calling']
+  },
+  {
+    id: 'ai-risk',
+    categoryId: 'ai-features',
+    title: 'AI Risk Assessment',
+    summary: 'Understand the color-coded risk badges on assets that indicate predicted failure probability.',
+    content: [
+      'AI Risk Badges appear on asset cards and detail pages showing the AI\'s assessment of failure risk based on the asset\'s service history, age, criticality, and work order patterns. Badges are color-coded: green (low risk), yellow (medium), orange (high), and red (critical).',
+      'Risk assessments are generated automatically when significant events occur — work order completion, new failure reports, or PM schedule compliance changes. The AI considers factors like time since last service, frequency of reactive repairs, and whether preventive maintenance is being performed on schedule.',
+      'Use risk badges to prioritize your maintenance efforts. Assets with HIGH or CRITICAL risk should be inspected promptly, while LOW risk assets are operating within expected parameters. Risk levels update dynamically as new data enters the system.'
+    ],
+    steps: [
+      { title: 'View Risk Badges', description: 'Navigate to the Assets list to see risk badges displayed on each asset card.' },
+      { title: 'Click for Details', description: 'Click the risk badge on an asset to see the detailed risk assessment and contributing factors.' },
+      { title: 'Filter by Risk Level', description: 'Use the filter options to show only HIGH or CRITICAL risk assets for priority attention.' },
+      { title: 'Take Action', description: 'Schedule inspections or maintenance for high-risk assets to prevent unplanned failures.' }
+    ],
+    tips: [
+      'Risk badges update after each work order completion or maintenance event — check them after completing major repairs.',
+      'A rising risk level on a recently serviced asset may indicate a recurring or underlying problem that needs root cause analysis.',
+      'Use risk data during customer conversations to proactively recommend maintenance and build trust.'
+    ],
+    relatedArticleIds: ['ai-overview', 'ai-insights', 'asset-detail', 'pm-create'],
+    keywords: ['risk badge', 'risk assessment', 'failure prediction', 'asset risk', 'color coded', 'maintenance priority']
+  },
+  {
+    id: 'ai-tech-suggest',
+    categoryId: 'ai-features',
+    title: 'AI Technician Suggestions',
+    summary: 'See AI-recommended technician assignments based on skills, proximity, workload, and past performance.',
+    content: [
+      'When assigning a technician to a work order, the AI Suggested Tech Badge shows the AI\'s recommended assignment. The recommendation considers the technician\'s skills and certifications, their current workload, proximity to the job site, and their past performance on similar equipment.',
+      'The suggestion appears as an orange badge on the work order assignment section. Click the badge to see why the AI recommended this technician and view alternative options ranked by suitability. You can accept the suggestion with one click or choose a different technician.',
+      'AI tech suggestions are generated as part of the insight pipeline when work orders are created or reassigned. The more work orders your team completes, the better the AI learns about each technician\'s strengths and the types of equipment they handle most effectively.'
+    ],
+    steps: [
+      { title: 'Create or Open a Work Order', description: 'Navigate to a work order that needs technician assignment.' },
+      { title: 'Check the AI Suggestion', description: 'Look for the AI Suggested Tech badge near the assignment field.' },
+      { title: 'Review the Reasoning', description: 'Click the badge to see why this technician was recommended.' },
+      { title: 'Accept or Override', description: 'Click to accept the suggestion or manually select a different technician.' }
+    ],
+    tips: [
+      'AI suggestions improve as you complete more work orders — the system learns from outcomes.',
+      'If you consistently override a suggestion, the AI adjusts its model based on your actual assignments.',
+      'Dismissed suggestions can be restored if you change your mind before saving the work order.'
+    ],
+    relatedArticleIds: ['ai-overview', 'wo-assign', 'ai-risk'],
+    keywords: ['technician suggestion', 'AI assignment', 'recommended tech', 'smart assignment', 'tech matching', 'workload balancing']
+  },
+  {
+    id: 'ai-drafts',
+    categoryId: 'ai-features',
+    title: 'AI Draft Summaries',
+    summary: 'Get AI-generated work summaries and report drafts based on completed work order data.',
+    content: [
+      'When a work order is completed, the AI can generate a professional draft summary of the work performed. The draft pulls from visit notes, time entries, materials used, photos captured, and procedure completion data to create a comprehensive narrative suitable for customer reports.',
+      'AI Draft Summaries appear on the work order detail page after completion. They can be reviewed, edited, and included in customer-facing reports and PDF documents. The drafts save significant time compared to writing summaries from scratch.',
+      'The quality of the draft depends on the data captured during the work order. Detailed visit notes, complete time entries, and thorough procedure step documentation produce better summaries. Encourage technicians to document thoroughly for the best AI-generated output.'
+    ],
+    steps: [
+      { title: 'Complete a Work Order', description: 'Ensure the work order has been marked as Completed with visit notes and time entries.' },
+      { title: 'View the Draft', description: 'Open the completed work order and look for the AI Draft Summary section.' },
+      { title: 'Review and Edit', description: 'Read the generated summary and make any corrections or additions.' },
+      { title: 'Include in Reports', description: 'Use the summary in customer reports or PDF generation for professional documentation.' }
+    ],
+    tips: [
+      'Thorough visit notes produce much better AI summaries — encourage techs to describe findings, actions, and recommendations.',
+      'AI drafts are suggestions and should always be reviewed before sharing with customers.',
+      'Use the draft as a starting point and add your own professional assessment and recommendations.'
+    ],
+    relatedArticleIds: ['ai-overview', 'wo-complete', 'visit-notes', 'inv-pdf'],
+    keywords: ['AI draft', 'summary', 'work summary', 'auto-generate', 'report draft', 'narrative', 'documentation']
+  },
+  {
+    id: 'ai-quote-suggest',
+    categoryId: 'ai-features',
+    title: 'AI Quote Suggestions',
+    summary: 'Get AI-recommended line items and pricing when creating quotes based on historical data.',
+    content: [
+      'The AI Quote Suggestions panel appears when you create or edit a quote. It analyzes the asset, work type, and customer history to suggest line items with estimated quantities and pricing based on your historical quoting patterns.',
+      'Suggestions include common materials, labor estimates, and service charges that are typically included on similar quotes. Each suggestion shows the confidence level and the historical data it was based on. You can add suggestions to the quote with one click.',
+      'This feature is particularly useful for new team members who may not know your standard pricing or for complex jobs where it is easy to forget a line item. The suggestions serve as a checklist to ensure comprehensive quoting.'
+    ],
+    steps: [
+      { title: 'Create or Edit a Quote', description: 'Open a quote that is linked to an asset or work order.' },
+      { title: 'View Suggestions Panel', description: 'The AI suggestions panel appears alongside the line items section.' },
+      { title: 'Review Suggestions', description: 'Browse the suggested materials, labor, and services with estimated pricing.' },
+      { title: 'Add to Quote', description: 'Click the add button on any suggestion to include it as a line item.' },
+      { title: 'Adjust as Needed', description: 'Modify quantities and pricing after adding to match the specific job requirements.' }
+    ],
+    tips: [
+      'AI quote suggestions get more accurate as you create more quotes — the system learns from your pricing patterns.',
+      'Always review and adjust suggested prices to match current material costs and labor rates.',
+      'Suggestions for rarely quoted items may be less accurate — use your expertise to validate unusual recommendations.'
+    ],
+    relatedArticleIds: ['ai-overview', 'quote-create', 'quote-lines'],
+    keywords: ['quote suggestions', 'AI pricing', 'line item suggestions', 'smart quoting', 'estimate', 'pricing recommendation']
+  }
+];
+
+// ============================================================================
+// CATEGORY 22: CRM & Sales (8 articles)
+// ============================================================================
+
+const CRM_SALES_ARTICLES: HelpArticle[] = [
+  {
+    id: 'crm-overview',
+    categoryId: 'crm-sales',
+    title: 'CRM & Sales Overview',
+    summary: 'Manage your sales pipeline from first call through closed deal with integrated CRM tools.',
+    content: [
+      'The CRM & Sales module gives your sales team tools to manage the complete customer lifecycle — from initial contact and call logging through opportunity tracking and deal closure. Access the CRM from the Sales section in the sidebar navigation.',
+      'The Sales Dashboard provides a snapshot of your pipeline including total opportunity value, win rate, overdue follow-ups, and recent call activity. Use it to start your day with a clear picture of what needs attention and where your biggest opportunities are.',
+      'CRM features include Call Logs for tracking customer interactions, Follow-Ups for scheduling next actions, Opportunities for pipeline management, and Service Tickets for post-sale support. All data is scoped by role — Sales users see only their own records by default.'
+    ],
+    steps: [
+      { title: 'Navigate to Sales', description: 'Click "Sales" in the sidebar to access the CRM dashboard and sub-modules.' },
+      { title: 'Review the Dashboard', description: 'Check pipeline value, win rate, upcoming follow-ups, and recent activity.' },
+      { title: 'Log a Call', description: 'Go to Call Logs to record customer interactions as they happen.' },
+      { title: 'Manage Opportunities', description: 'Track deals through stages from Lead to Closed Won/Lost.' }
+    ],
+    tips: [
+      'Start each day by reviewing the Sales Dashboard to prioritize your calls and follow-ups.',
+      'The SALES role restricts visibility to your own data — Admins and Dispatchers can see all CRM data.',
+      'CRM data integrates with the service side — customers in CRM are the same records used for work orders and invoicing.'
+    ],
+    relatedArticleIds: ['crm-calls', 'crm-followups', 'crm-opportunities', 'crm-dashboard'],
+    keywords: ['CRM', 'sales', 'pipeline', 'sales management', 'customer relationship', 'overview']
+  },
+  {
+    id: 'crm-calls',
+    categoryId: 'crm-sales',
+    title: 'Call Logs',
+    summary: 'Record customer calls with outcomes, notes, and automatic follow-up and opportunity prompts.',
+    content: [
+      'Call Logs capture every customer interaction with the date, time, duration, outcome, and notes. Recording calls creates an auditable timeline of your relationship with each customer and ensures nothing falls through the cracks.',
+      'Each call has an outcome: Connected, Voicemail, No Answer, or Busy. Certain outcomes automatically trigger follow-up prompts — for example, leaving a voicemail triggers a "Schedule Follow-Up" modal so you do not forget to call back.',
+      'Calls that result in interest or a potential opportunity trigger an "Create Opportunity" prompt. This seamless workflow means your pipeline is built naturally from call activity rather than requiring separate data entry.'
+    ],
+    steps: [
+      { title: 'Navigate to Call Logs', description: 'Click "Call Logs" under the Sales section in the sidebar.' },
+      { title: 'Click Log Call', description: 'Click the "Log Call" button to open the new call form.' },
+      { title: 'Select Customer & Contact', description: 'Choose the customer and specific contact you spoke with.' },
+      { title: 'Enter Call Details', description: 'Set the outcome, duration, and add detailed notes about the conversation.' },
+      { title: 'Handle Prompts', description: 'If prompted, schedule a follow-up or create an opportunity based on the call outcome.' }
+    ],
+    tips: [
+      'Log calls immediately after hanging up while the details are fresh in your memory.',
+      'Use detailed notes — they help other team members understand the customer context if they need to take over.',
+      'The "Connected + Interest Shown" outcome triggers an opportunity prompt — use it when a customer expresses buying intent.'
+    ],
+    relatedArticleIds: ['crm-overview', 'crm-followups', 'crm-opportunities', 'cust-contacts'],
+    keywords: ['call log', 'phone call', 'customer call', 'interaction', 'outcome', 'voicemail', 'follow-up prompt']
+  },
+  {
+    id: 'crm-followups',
+    categoryId: 'crm-sales',
+    title: 'Follow-Ups',
+    summary: 'Schedule and track follow-up actions to ensure no customer interaction goes unattended.',
+    content: [
+      'Follow-ups are scheduled tasks that remind you to reach out to a customer on a specific date. They can be created manually or generated automatically from call outcomes. Each follow-up includes the customer, due date, priority, and notes about what action to take.',
+      'The Follow-Up list shows all your scheduled actions sorted by due date with overdue items highlighted. Filter by priority, status, or date range to focus on what needs attention today. Completing a follow-up removes it from the active list.',
+      'Follow-ups integrate with the dashboard — overdue follow-up counts appear on the Sales Dashboard so you never lose track of pending customer commitments. This ensures your sales process maintains consistent customer contact.'
+    ],
+    steps: [
+      { title: 'Navigate to Follow-Ups', description: 'Click "Follow-Ups" under the Sales section.' },
+      { title: 'Create a Follow-Up', description: 'Click "New Follow-Up" and select the customer, due date, and priority.' },
+      { title: 'Add Action Notes', description: 'Describe what needs to be done — call back, send proposal, schedule meeting, etc.' },
+      { title: 'Complete When Done', description: 'After taking the action, mark the follow-up as complete.' }
+    ],
+    tips: [
+      'Set follow-ups for specific dates rather than "next week" — concrete dates are more actionable.',
+      'Use HIGH priority for follow-ups tied to active opportunities with near-term deadlines.',
+      'Review overdue follow-ups first thing each morning to catch anything that slipped through.'
+    ],
+    relatedArticleIds: ['crm-calls', 'crm-overview', 'crm-opportunities'],
+    keywords: ['follow-up', 'follow up', 'reminder', 'schedule', 'callback', 'overdue', 'pending', 'action item']
+  },
+  {
+    id: 'crm-opportunities',
+    categoryId: 'crm-sales',
+    title: 'Opportunities & Pipeline',
+    summary: 'Track deals through stages from lead to close and manage your sales pipeline value.',
+    content: [
+      'Opportunities represent potential deals in your sales pipeline. Each opportunity has a customer, estimated value, expected close date, and a stage that tracks its progress: Lead, Qualified, Proposal Sent, Negotiation, Closed Won, or Closed Lost.',
+      'The pipeline view gives you a clear picture of your total opportunity value by stage. This helps forecast revenue and identify bottlenecks where deals are stalling. Move opportunities through stages as they progress by updating the stage field.',
+      'Opportunities are separate from Quotes — an opportunity represents the business deal while quotes are the specific pricing documents. A single opportunity may have multiple quotes as you iterate on scope and pricing with the customer.'
+    ],
+    steps: [
+      { title: 'Navigate to Opportunities', description: 'Click "Opportunities" under the Sales section.' },
+      { title: 'Create an Opportunity', description: 'Click "New Opportunity" and enter the customer, estimated value, and expected close date.' },
+      { title: 'Set the Stage', description: 'Choose the current pipeline stage from Lead through Closed.' },
+      { title: 'Update as Progress Occurs', description: 'Move the opportunity through stages as conversations and proposals advance.' },
+      { title: 'Close the Deal', description: 'Mark as Closed Won when the deal is signed or Closed Lost with a reason.' }
+    ],
+    tips: [
+      'Keep estimated values realistic — inflated pipeline numbers lead to poor forecasting.',
+      'Move opportunities to Closed Lost promptly with a loss reason to track why deals fail.',
+      'Review your pipeline weekly to identify opportunities that have been in the same stage too long.'
+    ],
+    relatedArticleIds: ['crm-overview', 'crm-calls', 'crm-reports', 'quote-create'],
+    keywords: ['opportunity', 'pipeline', 'deal', 'prospect', 'stage', 'forecast', 'close', 'win rate', 'sales funnel']
+  },
+  {
+    id: 'crm-tickets',
+    categoryId: 'crm-sales',
+    title: 'Service Tickets',
+    summary: 'Track post-sale support requests and customer issues through to resolution.',
+    content: [
+      'Service Tickets capture customer issues and support requests after the sale. Each ticket has a subject, description, priority, status, and assigned owner. Tickets flow from Open through In Progress to Resolved, providing a clear lifecycle for issue management.',
+      'Create tickets from the Service Tickets page or from a customer record. Tickets are linked to the customer and can reference specific assets or work orders. This linkage provides full context when investigating and resolving the issue.',
+      'Service ticket history builds a valuable knowledge base of common issues and resolutions. Over time, this helps your team resolve recurring problems faster and identify patterns that may indicate product or service quality issues.'
+    ],
+    steps: [
+      { title: 'Navigate to Service Tickets', description: 'Click "Service Tickets" under the Sales section.' },
+      { title: 'Create a Ticket', description: 'Click "New Ticket" and enter the customer, subject, description, and priority.' },
+      { title: 'Assign an Owner', description: 'Assign the ticket to a team member responsible for resolution.' },
+      { title: 'Update Progress', description: 'Move the ticket through statuses as work progresses.' },
+      { title: 'Resolve', description: 'Mark the ticket as Resolved with a resolution description.' }
+    ],
+    tips: [
+      'Include as much detail as possible in the ticket description to avoid back-and-forth with the customer.',
+      'Link tickets to specific assets when the issue relates to equipment — this builds the asset\'s service history.',
+      'Review open tickets weekly in team meetings to ensure nothing is stalled.'
+    ],
+    relatedArticleIds: ['crm-overview', 'wo-create', 'cust-history'],
+    keywords: ['service ticket', 'support', 'issue', 'customer issue', 'resolution', 'help desk', 'ticket tracking']
+  },
+  {
+    id: 'crm-reports',
+    categoryId: 'crm-sales',
+    title: 'Sales Reports',
+    summary: 'Analyze pipeline performance, win rates, call activity, and revenue forecasts with built-in charts.',
+    content: [
+      'Sales Reports provide visual analytics on your CRM data. The reports page includes charts for pipeline value by stage, win/loss ratios, call activity trends, follow-up compliance, and revenue forecasts based on your opportunity pipeline.',
+      'Reports update in real time as your team logs calls, updates opportunities, and closes deals. Use the date range filter to compare performance across months or quarters. Export reports for team meetings and management reviews.',
+      'Key metrics to monitor include total pipeline value, average deal size, sales cycle length (days from Lead to Close), and win rate percentage. These metrics help identify trends and areas for improvement in your sales process.'
+    ],
+    steps: [
+      { title: 'Navigate to Sales Reports', description: 'Click "Reports" under the Sales section.' },
+      { title: 'Select Report Type', description: 'Choose from Pipeline, Activity, Conversion, or Forecast reports.' },
+      { title: 'Set Date Range', description: 'Use the date picker to define the reporting period.' },
+      { title: 'Analyze the Charts', description: 'Review the visualizations for trends, bottlenecks, and opportunities.' },
+      { title: 'Export if Needed', description: 'Click Export to download report data for presentations or further analysis.' }
+    ],
+    tips: [
+      'Compare month-over-month pipeline value to spot growth or decline trends early.',
+      'A declining win rate may indicate pricing issues or a shift in customer needs — investigate promptly.',
+      'Share reports with your team regularly to maintain visibility and accountability.'
+    ],
+    relatedArticleIds: ['crm-overview', 'crm-opportunities', 'rpt-dashboard'],
+    keywords: ['sales reports', 'pipeline report', 'win rate', 'analytics', 'forecast', 'CRM analytics', 'charts']
+  },
+  {
+    id: 'crm-custom-fields',
+    categoryId: 'crm-sales',
+    title: 'Custom Fields',
+    summary: 'Add custom data fields to customers, contacts, and opportunities to capture industry-specific information.',
+    content: [
+      'Custom Fields let you extend the standard data model with fields specific to your business and industry. Add fields to Customers, Contacts, or Opportunities to capture information like industry vertical, contract type, preferred communication method, or any other data point relevant to your sales process.',
+      'Navigate to Sales > Settings to create and manage custom fields. Each field has a name, type (text, number, date, dropdown, checkbox), and the entity it applies to. Dropdown fields support predefined options so your team enters consistent data.',
+      'Custom field values appear on the respective entity detail pages and can be filtered in list views. Industry-specific templates provide pre-configured field sets for common service business verticals — select your industry to get a head start.'
+    ],
+    steps: [
+      { title: 'Navigate to Sales Settings', description: 'Go to Sales > Settings to access the Custom Fields configuration.' },
+      { title: 'Click Add Field', description: 'Click "Add Custom Field" and select the entity type (Customer, Contact, or Opportunity).' },
+      { title: 'Configure the Field', description: 'Enter the field name, select the data type, and add dropdown options if applicable.' },
+      { title: 'Save and Use', description: 'Save the field. It immediately appears on the entity forms for data entry.' },
+      { title: 'Select Industry Template', description: 'Optionally select an industry template to auto-create common fields for your vertical.' }
+    ],
+    tips: [
+      'Start with a few essential custom fields rather than creating dozens — too many fields slow down data entry.',
+      'Use dropdown type for fields with a fixed set of options to ensure data consistency.',
+      'Custom fields are organization-wide, so coordinate with your team before adding new ones.'
+    ],
+    relatedArticleIds: ['crm-overview', 'crm-opportunities', 'set-general'],
+    keywords: ['custom fields', 'custom data', 'industry fields', 'field configuration', 'dropdown', 'entity fields', 'templates']
+  },
+  {
+    id: 'crm-dashboard',
+    categoryId: 'crm-sales',
+    title: 'Sales Dashboard',
+    summary: 'Your daily command center for pipeline health, activity metrics, and upcoming actions.',
+    content: [
+      'The Sales Dashboard is your daily starting point for CRM activity. It displays key metrics at the top: total pipeline value, number of open opportunities, win rate percentage, overdue follow-ups count, and calls logged this week.',
+      'Below the metrics, the dashboard shows recent activity including the latest call logs, newly created opportunities, and upcoming follow-ups. Charts visualize your pipeline by stage, call activity trends, and conversion funnel.',
+      'The dashboard is role-aware — Sales users see only their own metrics while Admins see the full team view. Use the team toggle (Admin only) to switch between individual and team-wide views for management oversight.'
+    ],
+    steps: [
+      { title: 'Open the Sales Dashboard', description: 'Click "Sales" in the sidebar to land on the dashboard.' },
+      { title: 'Review Key Metrics', description: 'Check pipeline value, open opportunities, and overdue follow-ups at the top.' },
+      { title: 'Scan Recent Activity', description: 'Review recent calls and opportunities for anything that needs attention.' },
+      { title: 'Act on Overdue Items', description: 'Click the overdue follow-ups count to see what needs immediate action.' }
+    ],
+    tips: [
+      'Check the dashboard first thing each morning to plan your day around the most impactful activities.',
+      'An increasing overdue follow-up count is a red flag — address it before it impacts customer relationships.',
+      'Use the pipeline chart to identify stages where deals are getting stuck and need extra attention.'
+    ],
+    relatedArticleIds: ['crm-overview', 'crm-followups', 'crm-opportunities', 'crm-reports'],
+    keywords: ['sales dashboard', 'CRM dashboard', 'pipeline overview', 'metrics', 'KPIs', 'daily view']
+  }
+];
+
+// ============================================================================
+// CATEGORY 23: Custom Reports & Forms (5 articles)
+// ============================================================================
+
+const CUSTOM_REPORTS_ARTICLES: HelpArticle[] = [
+  {
+    id: 'forms-overview',
+    categoryId: 'custom-reports',
+    title: 'Custom Reports & Forms Overview',
+    summary: 'Build custom report templates and data capture forms tailored to your specific service workflows.',
+    content: [
+      'The Custom Reports & Forms system lets you create tailored data collection templates for field work that goes beyond the standard work order and visit forms. Common uses include pump startup reports, vibration analysis checklists, commissioning forms, and safety inspection documents.',
+      'The system supports 13 field types including text, number, date, dropdown, checkbox, photo, signature, GPS coordinates, calculated fields, and more. Templates are built with a drag-and-drop builder on the web and filled out by technicians on mobile or desktop.',
+      'Completed forms include tamper-proof calculated fields that are recomputed on the server to prevent manipulation. Forms can be exported to professional PDF documents that match your company branding for customer deliverables.'
+    ],
+    steps: [
+      { title: 'Navigate to Custom Reports', description: 'Access Custom Reports from the sidebar to see existing templates and create new ones.' },
+      { title: 'Create a Template', description: 'Click "New Template" to open the drag-and-drop form builder.' },
+      { title: 'Add Fields', description: 'Drag field types from the palette onto the form canvas to build your template.' },
+      { title: 'Fill Out Forms', description: 'Technicians access the form from a work order or visit and fill in the fields.' },
+      { title: 'Export to PDF', description: 'Generate a branded PDF from any completed form submission for customer delivery.' }
+    ],
+    tips: [
+      'Start with your most-used paper forms and digitize those first for the biggest efficiency gains.',
+      'Use calculated fields for automatic computations like total runtime hours or cost calculations.',
+      'Auto-save drafts protect against data loss if a technician loses connectivity during field entry.'
+    ],
+    relatedArticleIds: ['forms-builder', 'forms-fields', 'forms-fill', 'forms-pdf'],
+    keywords: ['custom reports', 'forms', 'templates', 'data capture', 'field forms', 'custom forms', 'report builder']
+  },
+  {
+    id: 'forms-builder',
+    categoryId: 'custom-reports',
+    title: 'Form Builder',
+    summary: 'Use the drag-and-drop builder to design custom form templates with sections, fields, and logic.',
+    content: [
+      'The Form Builder provides a visual drag-and-drop interface for designing your form templates. The left panel shows available field types that you can drag onto the canvas. The canvas represents the form layout as it will appear to technicians.',
+      'Organize fields into sections with headings to create logical groupings. For example, a pump startup form might have sections for Nameplate Data, Pre-Start Checks, Operating Parameters, and Signatures. Sections help technicians navigate long forms efficiently.',
+      'Each field can be configured with a label, placeholder text, required flag, validation rules, and help text. Dropdown fields support custom option lists. Calculated fields use formulas that reference other fields for automatic computation.'
+    ],
+    steps: [
+      { title: 'Open the Builder', description: 'Navigate to Custom Reports > New Template to open the form builder.' },
+      { title: 'Name the Template', description: 'Enter a descriptive template name like "Pump Commissioning Report" or "Safety Inspection Checklist."' },
+      { title: 'Add Sections', description: 'Create logical sections by dragging a Section Header onto the canvas.' },
+      { title: 'Drag Fields', description: 'Drag field types from the palette onto the canvas within each section.' },
+      { title: 'Configure Each Field', description: 'Click a field to edit its label, validation, required status, and options.' },
+      { title: 'Save the Template', description: 'Click Save to publish the template for use by your team.' }
+    ],
+    tips: [
+      'Preview the form on mobile view to ensure it is usable on phones and tablets in the field.',
+      'Keep forms as short as practical — long forms lead to incomplete data. Focus on what matters most.',
+      'Use required fields sparingly for only the truly essential data points to avoid frustrating technicians.'
+    ],
+    relatedArticleIds: ['forms-overview', 'forms-fields', 'forms-fill'],
+    keywords: ['form builder', 'drag and drop', 'template designer', 'build form', 'create template', 'form layout']
+  },
+  {
+    id: 'forms-fields',
+    categoryId: 'custom-reports',
+    title: 'Field Types Reference',
+    summary: 'Understand all 13 available field types and when to use each one in your form templates.',
+    content: [
+      'ServiceOpsIQ supports 13 field types for custom forms: Text (short and long), Number, Date, Time, Dropdown (single select), Multi-Select, Checkbox, Photo Capture, Signature, GPS Coordinates, File Upload, Calculated, and Section Header.',
+      'Text fields capture free-form input and come in short (single line) and long (multi-line) variants. Number fields validate numeric input and support decimal precision, min/max ranges, and unit labels. Date and Time fields use native pickers for consistent formatting.',
+      'Calculated fields are the most powerful type — they reference other fields using formulas and automatically compute results. For example, a "Total Cost" field could multiply a "Quantity" field by a "Unit Price" field. Calculated values are recomputed on the server to prevent tampering.'
+    ],
+    steps: [
+      { title: 'Open the Field Palette', description: 'In the form builder, the left panel shows all 13 field types available for use.' },
+      { title: 'Choose the Right Type', description: 'Select the field type that matches the data you need to capture.' },
+      { title: 'Configure Field Settings', description: 'After placing a field, click it to configure validation, required status, and display options.' },
+      { title: 'Set Up Calculations', description: 'For calculated fields, define the formula referencing other fields by their field ID.' }
+    ],
+    tips: [
+      'Use Number fields instead of Text when you need to perform calculations or enforce numeric input.',
+      'Photo Capture fields automatically compress images (1920px max, JPEG 80%) to manage storage.',
+      'GPS fields capture coordinates automatically from the device — useful for documenting equipment locations.',
+      'Signature fields capture touch-based signatures as PNG images for legal documentation.'
+    ],
+    relatedArticleIds: ['forms-builder', 'forms-overview', 'forms-fill'],
+    keywords: ['field types', 'text', 'number', 'dropdown', 'photo', 'signature', 'calculated', 'GPS', 'form fields']
+  },
+  {
+    id: 'forms-fill',
+    categoryId: 'custom-reports',
+    title: 'Filling Out Forms',
+    summary: 'How technicians complete custom forms in the field with auto-save and offline support.',
+    content: [
+      'Technicians access custom forms from work order or visit detail pages. Available form templates are listed based on the work type and asset. Tap a template to start a new form submission or resume a saved draft.',
+      'As the technician fills in fields, the form auto-saves drafts to prevent data loss from connectivity issues or accidental navigation. Draft submissions can be resumed later from where they left off. A draft indicator shows the last save time.',
+      'Required fields are marked with an asterisk and must be completed before the form can be submitted. Calculated fields update in real time as dependent values are entered. Photo and signature fields open native device interfaces for capture.'
+    ],
+    steps: [
+      { title: 'Open the Work Order or Visit', description: 'Navigate to the work order or visit where you need to fill out a form.' },
+      { title: 'Select a Form Template', description: 'Choose the appropriate template from the available list.' },
+      { title: 'Fill in Fields', description: 'Enter data in each field. The form auto-saves as you go.' },
+      { title: 'Capture Photos and Signatures', description: 'Tap photo or signature fields to use your device camera or touchscreen.' },
+      { title: 'Submit', description: 'Once all required fields are complete, tap Submit to finalize the form.' }
+    ],
+    tips: [
+      'Auto-save drafts protect your work — if you lose connectivity, your data is preserved locally.',
+      'Take photos with good lighting and clear focus — blurry images are not useful for documentation.',
+      'Review calculated fields before submitting to verify the formulas produced expected results.'
+    ],
+    relatedArticleIds: ['forms-overview', 'forms-fields', 'forms-pdf', 'visit-workflow'],
+    keywords: ['fill form', 'complete form', 'field entry', 'auto-save', 'draft', 'submit', 'technician form']
+  },
+  {
+    id: 'forms-pdf',
+    categoryId: 'custom-reports',
+    title: 'Form PDF Export',
+    summary: 'Generate professional branded PDF documents from completed custom form submissions.',
+    content: [
+      'Completed form submissions can be exported to professional PDF documents suitable for customer deliverables, compliance records, or internal documentation. The PDF includes your company header, the form title, all field values organized by section, photos, and signatures.',
+      'PDF generation uses the same branding engine as invoices and quotes — your company logo, name, and address appear in the header. The layout is optimized for readability with clear section breaks, labeled fields, and properly scaled images.',
+      'Export PDFs from the form submission detail page. You can download the PDF locally, email it to the customer, or attach it to the work order record for the permanent service history.'
+    ],
+    steps: [
+      { title: 'Open the Completed Form', description: 'Navigate to the work order or visit and click on the completed form submission.' },
+      { title: 'Click Export PDF', description: 'Click the "Export PDF" or "Download PDF" button to generate the document.' },
+      { title: 'Preview', description: 'Review the PDF preview to ensure all data, photos, and signatures are included.' },
+      { title: 'Download or Share', description: 'Download the PDF locally or email it directly to the customer.' }
+    ],
+    tips: [
+      'Ensure your organization logo is uploaded in Settings for professional PDF headers.',
+      'PDFs include calculated field results as displayed — server-recomputed values ensure accuracy.',
+      'Keep a PDF copy of critical forms (safety inspections, compliance checklists) for your records.'
+    ],
+    relatedArticleIds: ['forms-overview', 'forms-fill', 'inv-pdf', 'gs-org-setup'],
+    keywords: ['PDF export', 'form PDF', 'report export', 'print form', 'document generation', 'branded PDF']
+  }
+];
+
+// ============================================================================
 // Combined Articles Array & Search Function
 // ============================================================================
 
@@ -2758,6 +3455,10 @@ export const HELP_ARTICLES: HelpArticle[] = [
   ...SETTINGS_ARTICLES,
   ...SEARCH_ARTICLES,
   ...TIPS_ARTICLES,
+  ...QBO_INTEGRATION_ARTICLES,
+  ...AI_FEATURES_ARTICLES,
+  ...CRM_SALES_ARTICLES,
+  ...CUSTOM_REPORTS_ARTICLES,
 ];
 
 export function searchArticles(query: string): HelpArticle[] {

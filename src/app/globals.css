@@ -4352,3 +4352,151 @@ a {
   color: var(--text-muted);
   line-height: 1.5;
 }
+
+/* ===== PWA Install Prompt ===== */
+.install-prompt {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  padding: var(--space-md);
+  animation: slideUp 0.3s ease-out;
+}
+
+.install-prompt-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.install-prompt-icon {
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.install-prompt-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.install-prompt-text strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.install-prompt-text span {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.install-prompt-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.install-prompt-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.install-prompt-btn:hover {
+  opacity: 0.9;
+}
+
+.install-prompt-btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.install-prompt-btn-dismiss {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .install-prompt-content {
+    flex-wrap: wrap;
+    padding: var(--space-md);
+  }
+
+  .install-prompt-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ===== SW Update Banner ===== */
+.sw-update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space) var(--space-md);
+  background: var(--info);
+  color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  animation: slideDown 0.3s ease-out;
+}
+
+.sw-update-btn {
+  padding: 6px 14px;
+  background: #fff;
+  color: var(--info);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.sw-update-btn:hover {
+  opacity: 0.9;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

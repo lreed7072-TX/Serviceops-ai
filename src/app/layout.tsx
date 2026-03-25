@@ -4,6 +4,7 @@ import "@fontsource/jetbrains-mono/index.css";
 import "./globals.css";
 import { isDevAuthBypassEnabled } from "@/lib/dev-auth";
 import { ServiceWorkerRegistration } from "@/components/common/ServiceWorkerRegistration";
+import { InstallPrompt } from "@/components/common/InstallPrompt";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const viewport: Viewport = {
@@ -42,6 +43,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="app-body">
         <ServiceWorkerRegistration />
+        <InstallPrompt />
         {devBypassActive && (
           <div className="dev-auth-banner">DEV AUTH BYPASS ACTIVE</div>
         )}

@@ -1,12 +1,16 @@
 {
+  "id": "/dashboard",
   "name": "ServiceOpsIQ",
   "short_name": "ServiceOps",
-  "description": "AI-Powered Service Operations Management",
+  "description": "AI-Powered Service Operations Management for Field Service Teams",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f6f5f2",
   "theme_color": "#1f2937",
-  "orientation": "portrait-primary",
+  "orientation": "any",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -29,6 +33,15 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "ServiceOpsIQ Dashboard"
     }
   ]
 }

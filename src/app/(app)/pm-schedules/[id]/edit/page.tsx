@@ -27,7 +27,7 @@ export default function EditPMSchedulePage() {
       try {
         const [scheduleRes, templatesRes] = await Promise.all([
           apiFetch(`/api/pm-schedules/${scheduleId}`, { cache: "no-store" }),
-          apiFetch("/api/procedure-templates", { cache: "no-store" }),
+          apiFetch("/api/procedure-templates"),
         ]);
 
         if (!scheduleRes.ok) {

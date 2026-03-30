@@ -30,8 +30,8 @@ export default function NewPMSchedulePage() {
     const fetchData = async () => {
       try {
         const [assetsRes, templatesRes] = await Promise.all([
-          apiFetch("/api/assets", { cache: "no-store" }),
-          apiFetch("/api/procedure-templates", { cache: "no-store" }),
+          apiFetch("/api/assets"),
+          apiFetch("/api/procedure-templates"),
         ]);
 
         if (assetsRes.ok) {

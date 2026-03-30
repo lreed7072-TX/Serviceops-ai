@@ -170,7 +170,7 @@ export default function TechTaskPage() {
 
   const loadCatalog = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/materials?active=true", { cache: "no-store" });
+      const res = await apiFetch("/api/materials?active=true");
       if (res.ok) setCatalog((await res.json()).data ?? []);
     } catch (e) { console.error(e); }
   }, []);

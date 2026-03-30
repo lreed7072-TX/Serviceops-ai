@@ -61,7 +61,7 @@ export default function SiteDetailPage() {
         }
         const sitePayload = (await siteRes.json()) as SingleResponse<Site>;
 
-        const customersRes = await apiFetch(`/api/customers`, { cache: "no-store" });
+        const customersRes = await apiFetch(`/api/customers`);
         if (!customersRes.ok) {
           const payload = (await customersRes.json()) as { error?: string };
           throw new Error(payload.error ?? "Failed to load customers.");

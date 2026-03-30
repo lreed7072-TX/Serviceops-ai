@@ -15,7 +15,7 @@ import "./visits.css";
 type ListResponse<T> = { data?: T[]; total?: number };
 
 async function fetchList<T>(path: string): Promise<T[]> {
-  const res = await apiFetch(path, { cache: "no-store" });
+  const res = await apiFetch(path);
   if (!res.ok) {
     let detail: string | undefined;
     try {
@@ -29,7 +29,7 @@ async function fetchList<T>(path: string): Promise<T[]> {
 }
 
 async function fetchPaginated<T>(path: string): Promise<{ data: T[]; total: number }> {
-  const res = await apiFetch(path, { cache: "no-store" });
+  const res = await apiFetch(path);
   if (!res.ok) throw new Error(`Request to ${path} failed with ${res.status}`);
   const payload = (await res.json()) as ListResponse<T>;
   return { data: payload.data ?? [], total: payload.total ?? (payload.data ?? []).length };

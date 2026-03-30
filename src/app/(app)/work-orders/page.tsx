@@ -162,8 +162,8 @@ const toNullable = (value: string) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-async function fetchList<T>(path: string): Promise<{ data: T[]; total?: number }> {
-  const response = await apiFetch(path, { cache: "no-store" });
+async function fetchList<T>(path: string, opts?: RequestInit): Promise<{ data: T[]; total?: number }> {
+  const response = await apiFetch(path, opts);
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -290,27 +290,22 @@ export default function WorkOrdersPage() {
   const NEW_SITE_VALUE = "__workorder_add_site__";
   const NEW_ASSET_VALUE = "__workorder_add_asset__";
 
-  // Load data on mount
+  // Load data on mount — two-phase: work orders first, then reference data
   useEffect(() => {
     let active = true;
 
     const load = async () => {
       try {
         setLoading(true);
-        const [customerRes, siteRes, assetRes, workOrderRes, packsRes] = await Promise.all([
-          fetchList<Customer>("/api/customers?limit=200"),
-          fetchList<Site>("/api/sites?limit=200"),
-          fetchList<Asset>("/api/assets?limit=200"),
-          fetchList<WorkOrder>("/api/work-orders?limit=50"),
-          fetchList<StandardsPack>("/api/standards-packs?status=ACTIVE&limit=200"),
-        ]);
+
+        // Phase 1: Load work orders (critical for page render)
+        const workOrderRes = await fetchList<WorkOrder>(
+          "/api/work-orders?limit=50",
+          { cache: "no-store" as const }
+        );
         if (!active) return;
-        setCustomers(customerRes.data);
-        setSites(siteRes.data);
-        setAssets(assetRes.data);
         setWorkOrders(workOrderRes.data);
         setWoTotal(workOrderRes.total ?? workOrderRes.data.length);
-        setStandardsPacks(packsRes.data);
         setLoadError(null);
       } catch (error) {
         if (!active) return;
@@ -324,6 +319,24 @@ export default function WorkOrdersPage() {
         if (active) {
           setLoading(false);
         }
+      }
+
+      // Phase 2: Load reference data for dropdowns (non-blocking)
+      try {
+        const [customerRes, siteRes, assetRes, packsRes] = await Promise.all([
+          fetchList<Customer>("/api/customers?limit=200"),
+          fetchList<Site>("/api/sites?limit=200"),
+          fetchList<Asset>("/api/assets?limit=200"),
+          fetchList<StandardsPack>("/api/standards-packs?status=ACTIVE&limit=200"),
+        ]);
+        if (!active) return;
+        setCustomers(customerRes.data);
+        setSites(siteRes.data);
+        setAssets(assetRes.data);
+        setStandardsPacks(packsRes.data);
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load reference data for dropdowns:", error);
       }
     };
 

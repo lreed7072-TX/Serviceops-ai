@@ -109,7 +109,7 @@ const formatEnumValue = (value: string): string => {
 };
 
 async function fetchList<T>(path: string): Promise<T[]> {
-  const response = await apiFetch(path, { cache: "no-store" });
+  const response = await apiFetch(path);
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -173,7 +173,7 @@ export default function AssetsPage() {
       const [customerData, siteData, assetRes] = await Promise.all([
         fetchList<Customer>("/api/customers?limit=200"),
         fetchList<Site>("/api/sites?limit=200"),
-        apiFetch("/api/assets?limit=50", { cache: "no-store" }).then(async (r) => {
+        apiFetch("/api/assets?limit=50").then(async (r) => {
           if (!r.ok) throw new Error("Failed to load assets");
           return r.json() as Promise<{ data: Asset[]; total?: number }>;
         }),
@@ -208,7 +208,7 @@ export default function AssetsPage() {
 
   const refreshAssets = async () => {
     try {
-      const res = await apiFetch("/api/assets?limit=50", { cache: "no-store" });
+      const res = await apiFetch("/api/assets?limit=50");
       if (!res.ok) throw new Error("Failed to refresh assets");
       const payload = await res.json();
       setAssets(payload.data ?? []);
@@ -223,7 +223,7 @@ export default function AssetsPage() {
   const loadMoreAssets = async () => {
     setLoadingMore(true);
     try {
-      const res = await apiFetch(`/api/assets?limit=50&offset=${assets.length}`, { cache: "no-store" });
+      const res = await apiFetch(`/api/assets?limit=50&offset=${assets.length}`);
       if (!res.ok) throw new Error("Failed to load more assets");
       const payload = await res.json();
       setAssets((prev) => [...prev, ...(payload.data ?? [])]);

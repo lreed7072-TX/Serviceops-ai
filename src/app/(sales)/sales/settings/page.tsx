@@ -495,8 +495,8 @@ function CustomFieldsSection() {
     setLoading(true);
     try {
       const [defsRes, indRes] = await Promise.all([
-        apiFetch("/api/crm/custom-fields", { credentials: "include", cache: "no-store" }),
-        apiFetch("/api/crm/industries", { credentials: "include", cache: "no-store" }),
+        apiFetch("/api/crm/custom-fields", { credentials: "include" }),
+        apiFetch("/api/crm/industries", { credentials: "include" }),
       ]);
       if (defsRes.ok) {
         const json = await defsRes.json();

@@ -69,7 +69,7 @@ export default function FormResponsesListPage() {
   useEffect(() => {
     const loadTemplates = async () => {
       try {
-        const res = await apiFetch("/api/report-templates", { cache: "no-store" });
+        const res = await apiFetch("/api/report-templates");
         if (res.ok) {
           const payload = (await res.json()) as TemplateListResponse;
           setTemplates(payload.data ?? []);

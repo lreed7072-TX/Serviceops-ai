@@ -36,7 +36,7 @@ const createInitialState = (): SiteFormState => ({
 });
 
 async function fetchList<T>(path: string): Promise<T[]> {
-  const response = await apiFetch(path, { cache: "no-store" });
+  const response = await apiFetch(path);
   if (!response.ok) {
     let detail: string | undefined;
     try {

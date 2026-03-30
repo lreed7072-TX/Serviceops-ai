@@ -93,13 +93,34 @@ export function requireRole(auth: AuthContext, allowed: Role[]): NextResponse | 
 // SUPABASE_SESSION_AUTH
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { cache } from "react";
 
 
+/**
+ * Look up the user's org/role from the DB. Wrapped with React cache() so
+ * multiple calls within the same server request lifecycle are deduplicated.
+ */
+const getOrgRole = cache(async (userId: string): Promise<AuthContext | null> => {
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT org_id::text as org_id, role as role
+     FROM user_org_roles
+     WHERE user_id = $1::uuid
+     LIMIT 1`,
+    userId
+  );
 
+  const row = (rows as any[])[0];
+  if (!row?.org_id || !row?.role) return null;
+
+  return { orgId: row.org_id, userId, role: row.role as Role };
+});
 
 /**
  * Resolve auth context from Supabase session cookie + DB mapping (user_org_roles).
  * Falls back to existing header/dev logic elsewhere (keep current behavior).
+ *
+ * The DB lookup is deduplicated per-request via React cache(), so calling this
+ * multiple times in the same render tree (layout + page) only hits the DB once.
  */
 export async function getAuthContextFromSupabase(
   request?: Request
@@ -122,21 +143,7 @@ export async function getAuthContextFromSupabase(
 
   if (error || !data?.user) return null;
 
-  const userId = data.user.id;
-
-  // NOTE: This uses raw SQL so we don't need a Prisma model immediately.
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT org_id::text as org_id, role as role
-     FROM user_org_roles
-     WHERE user_id = $1::uuid
-     LIMIT 1`,
-    userId
-  );
-
-  const row = (rows as any[])[0];
-  if (!row?.org_id || !row?.role) return null;
-
-  return { orgId: row.org_id, userId, role: row.role as Role };
+  return getOrgRole(data.user.id);
 }
 
 /**

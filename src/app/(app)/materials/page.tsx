@@ -50,7 +50,7 @@ export default function MaterialsPage() {
   const loadMaterials = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/api/materials?isActive=${!showInactive}&limit=50`, { cache: "no-store" });
+      const res = await apiFetch(`/api/materials?isActive=${!showInactive}&limit=50`);
       if (!res.ok) throw new Error("Failed to load");
       const json = await res.json();
       setMaterials(json.data ?? []);
@@ -65,7 +65,7 @@ export default function MaterialsPage() {
   const loadMoreMaterials = async () => {
     setLoadingMore(true);
     try {
-      const res = await apiFetch(`/api/materials?isActive=${!showInactive}&limit=50&offset=${materials.length}`, { cache: "no-store" });
+      const res = await apiFetch(`/api/materials?isActive=${!showInactive}&limit=50&offset=${materials.length}`);
       if (!res.ok) throw new Error("Failed to load more");
       const json = await res.json();
       setMaterials((prev) => [...prev, ...(json.data ?? [])]);

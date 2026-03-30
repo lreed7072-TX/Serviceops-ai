@@ -208,7 +208,7 @@ export default function FollowUpsPage() {
       return;
     }
     try {
-      const res = await apiFetch(`/api/customers?limit=20&offset=0`, { cache: "no-store" });
+      const res = await apiFetch(`/api/customers?limit=20&offset=0`);
       if (!res.ok) return;
       const json = await res.json();
       const all: CustomerOption[] = (json.data ?? []).map((c: any) => ({

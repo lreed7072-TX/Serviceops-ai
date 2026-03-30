@@ -34,6 +34,7 @@ import {
   Brain,
   TrendingUp,
   FileSpreadsheet,
+  PlayCircle,
 } from "lucide-react";
 import "./help.css";
 
@@ -41,6 +42,7 @@ import "./help.css";
 /*  Icon mapping: category id -> Lucide component                     */
 /* ------------------------------------------------------------------ */
 const categoryIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+  "training-videos": PlayCircle,
   "getting-started": Rocket,
   customers: Users,
   sites: MapPin,
@@ -345,6 +347,21 @@ export default function HelpCenterPage() {
               {selectedArticle.content.map((paragraph, idx) => (
                 <p key={idx}>{paragraph}</p>
               ))}
+            </div>
+          )}
+
+          {/* Video link */}
+          {selectedArticle.videoUrl && (
+            <div className="help-video-link">
+              <a
+                href={selectedArticle.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="help-video-button"
+              >
+                <PlayCircle size={20} />
+                Watch Training Video
+              </a>
             </div>
           )}
 

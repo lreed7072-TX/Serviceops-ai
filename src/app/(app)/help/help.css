@@ -368,6 +368,32 @@
 }
 
 /* ================================================================== */
+/*  Video Link                                                         */
+/* ================================================================== */
+.help-video-link {
+  margin: 1.5rem 0;
+}
+
+.help-video-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.help-video-button:hover {
+  background: var(--accent-hover, #ea580c);
+  transform: translateY(-1px);
+}
+
+/* ================================================================== */
 /*  Related Articles                                                   */
 /* ================================================================== */
 .help-related {

@@ -23,6 +23,7 @@ export interface HelpArticle {
   tips?: string[];
   relatedArticleIds?: string[];
   keywords: string[];
+  videoUrl?: string;
 }
 
 export interface HelpCategory {
@@ -34,6 +35,7 @@ export interface HelpCategory {
 // --- All 19 Categories ---
 
 export const HELP_CATEGORIES: HelpCategory[] = [
+  { id: "training-videos", title: "Training Videos", description: "Watch step-by-step video tutorials covering every feature in ServiceOpsIQ" },
   { id: "getting-started", title: "Getting Started", description: "Set up your organization, invite users, and learn the basics" },
   { id: "customers", title: "Customer Management", description: "Create and manage customer accounts, contacts, and service history" },
   { id: "sites", title: "Site Management", description: "Manage job sites, access notes, and site-specific assets" },
@@ -3432,10 +3434,225 @@ const CUSTOM_REPORTS_ARTICLES: HelpArticle[] = [
 ];
 
 // ============================================================================
+// CATEGORY 24: Training Videos (23 articles)
+// ============================================================================
+
+export const TRAINING_VIDEO_ARTICLES: HelpArticle[] = [
+  {
+    id: 'video-01',
+    categoryId: 'training-videos',
+    title: 'Video 1: Getting Started with ServiceOpsIQ',
+    summary: 'An overview of the platform, sidebar navigation, and core modules.',
+    content: ['Watch this introductory video to learn how ServiceOpsIQ is organized, navigate the sidebar modules, and understand the overall workflow from customers to invoicing.'],
+    keywords: ['getting started', 'overview', 'introduction', 'video', 'tutorial', 'navigation'],
+    videoUrl: '/videos/01-getting-started',
+  },
+  {
+    id: 'video-02',
+    categoryId: 'training-videos',
+    title: 'Video 2: Setting Up Your Organization & Team',
+    summary: 'Configure your company profile, invite team members, and assign roles.',
+    content: ['Learn how to set up your organization profile with logo and address, invite dispatchers and technicians, and configure role-based permissions for your team.'],
+    keywords: ['organization', 'setup', 'team', 'invite', 'roles', 'permissions', 'video', 'tutorial'],
+    videoUrl: '/videos/02-organization-setup',
+  },
+  {
+    id: 'video-03',
+    categoryId: 'training-videos',
+    title: 'Video 3: Navigating the Dashboard & Global Search',
+    summary: 'Use the dashboard KPIs, activity feed, and global search to find any record.',
+    content: ['Explore the main dashboard with revenue trends, active work orders, and recent activity. Learn to use global search (Ctrl+K) to jump to any record instantly.'],
+    keywords: ['dashboard', 'search', 'KPIs', 'activity', 'navigation', 'video', 'tutorial'],
+    videoUrl: '/videos/03-dashboard-search',
+  },
+  {
+    id: 'video-04',
+    categoryId: 'training-videos',
+    title: 'Video 4: Customer Management',
+    summary: 'Create customer records, manage contacts, and view service history.',
+    content: ['Learn how to create and manage customer accounts, add contacts, track service history, and link customers to sites, assets, and work orders.'],
+    keywords: ['customers', 'contacts', 'service history', 'accounts', 'video', 'tutorial'],
+    videoUrl: '/videos/04-customer-management',
+  },
+  {
+    id: 'video-05',
+    categoryId: 'training-videos',
+    title: 'Video 5: Sites & Access Notes',
+    summary: 'Manage job sites with addresses, access instructions, and site-specific assets.',
+    content: ['Set up job sites under customers with detailed addresses, access notes for field technicians, and link site-specific equipment for streamlined dispatching.'],
+    keywords: ['sites', 'access notes', 'locations', 'addresses', 'video', 'tutorial'],
+    videoUrl: '/videos/05-sites-access-notes',
+  },
+  {
+    id: 'video-06',
+    categoryId: 'training-videos',
+    title: 'Video 6: Asset Management & Classification',
+    summary: 'Track equipment with classification, criticality, manufacturer details, and service history.',
+    content: ['Register assets with serial numbers, manufacturers, and model details. Classify by type and criticality level. Track full service history and link assets to work orders.'],
+    keywords: ['assets', 'equipment', 'classification', 'criticality', 'service history', 'video', 'tutorial'],
+    videoUrl: '/videos/06-asset-management',
+  },
+  {
+    id: 'video-07',
+    categoryId: 'training-videos',
+    title: 'Video 7: Procedures & Standards Packs',
+    summary: 'Build reusable procedure templates and group them into standards packs.',
+    content: ['Create step-by-step procedure templates for common field tasks. Group procedures into standards packs that can be assigned to work orders for consistent execution.'],
+    keywords: ['procedures', 'templates', 'standards', 'packs', 'tasks', 'video', 'tutorial'],
+    videoUrl: '/videos/07-procedures-standards',
+  },
+  {
+    id: 'video-08',
+    categoryId: 'training-videos',
+    title: 'Video 8: Work Order Lifecycle',
+    summary: 'Create, assign, schedule, and track work orders from draft to completion.',
+    content: ['Walk through the full work order lifecycle: create a work order, assign a technician, schedule visits, track progress through status changes, and close out completed work.'],
+    keywords: ['work orders', 'lifecycle', 'assign', 'schedule', 'status', 'dispatch', 'video', 'tutorial'],
+    videoUrl: '/videos/08-work-order-lifecycle',
+  },
+  {
+    id: 'video-09',
+    categoryId: 'training-videos',
+    title: 'Video 9: Visit Execution & Field Documentation',
+    summary: 'Execute visits with time tracking, photo capture, and digital signatures.',
+    content: ['See how technicians execute field visits with time logging, task completion, photo capture with GPS coordinates, and digital signature collection for job verification.'],
+    keywords: ['visits', 'execution', 'time tracking', 'photos', 'signatures', 'field', 'video', 'tutorial'],
+    videoUrl: '/videos/09-visit-execution',
+  },
+  {
+    id: 'video-10',
+    categoryId: 'training-videos',
+    title: 'Video 10: Quoting & Approvals',
+    summary: 'Create quotes with line items, send for approval, and convert to work orders.',
+    content: ['Build professional quotes with itemized line items, send them to customers for review, track approval status, and convert accepted quotes into work orders automatically.'],
+    keywords: ['quotes', 'quoting', 'approvals', 'line items', 'pricing', 'video', 'tutorial'],
+    videoUrl: '/videos/10-quoting-approvals',
+  },
+  {
+    id: 'video-11',
+    categoryId: 'training-videos',
+    title: 'Video 11: Invoicing & Payments',
+    summary: 'Generate invoices from work orders, record payments, and track aging.',
+    content: ['Generate invoices from completed work orders, add line items, send to customers, record partial and full payments, and monitor outstanding balances with aging reports.'],
+    keywords: ['invoices', 'invoicing', 'payments', 'billing', 'aging', 'video', 'tutorial'],
+    videoUrl: '/videos/11-invoicing-payments',
+  },
+  {
+    id: 'video-12',
+    categoryId: 'training-videos',
+    title: 'Video 12: PDF Generation (Quotes, Invoices, Reports)',
+    summary: 'Export branded PDFs for quotes, invoices, and service reports.',
+    content: ['Generate professional branded PDF documents for quotes, invoices, and service reports with your company logo, formatted line items, signatures, and payment terms.'],
+    keywords: ['PDF', 'export', 'print', 'quotes', 'invoices', 'reports', 'branded', 'video', 'tutorial'],
+    videoUrl: '/videos/12-pdf-generation',
+  },
+  {
+    id: 'video-13',
+    categoryId: 'training-videos',
+    title: 'Video 13: Connecting QuickBooks Online',
+    summary: 'Set up the QuickBooks Online integration with OAuth, account mapping, and sync.',
+    content: ['Connect your QuickBooks Online account via OAuth, configure account mapping for revenue categories, and enable automatic sync of customers, invoices, and payments.'],
+    keywords: ['QuickBooks', 'QBO', 'integration', 'OAuth', 'connect', 'accounting', 'video', 'tutorial'],
+    videoUrl: '/videos/13-quickbooks-connect',
+  },
+  {
+    id: 'video-14',
+    categoryId: 'training-videos',
+    title: 'Video 14: QBO Sync: Customers, Invoices, Payments & CDC',
+    summary: 'Manage bidirectional sync, queue processing, and change data capture.',
+    content: ['Deep dive into QuickBooks sync: outbound sync of customers, invoices, and payments, inbound CDC polling for changes made in QBO, queue monitoring, and troubleshooting sync issues.'],
+    keywords: ['QuickBooks', 'QBO', 'sync', 'CDC', 'queue', 'invoices', 'payments', 'video', 'tutorial'],
+    videoUrl: '/videos/14-qbo-sync',
+  },
+  {
+    id: 'video-15',
+    categoryId: 'training-videos',
+    title: 'Video 15: AI Insights, Risk Badges & Alerts',
+    summary: 'AI-powered asset risk assessment, predictive insights, and alert notifications.',
+    content: ['See how ServiceOpsIQ uses AI to analyze asset health, assign risk badges, generate predictive maintenance insights, and surface critical alerts on your dashboard.'],
+    keywords: ['AI', 'insights', 'risk', 'badges', 'alerts', 'predictions', 'machine learning', 'video', 'tutorial'],
+    videoUrl: '/videos/15-ai-insights',
+  },
+  {
+    id: 'video-16',
+    categoryId: 'training-videos',
+    title: 'Video 16: AI Copilot Chat & Draft Summaries',
+    summary: 'Chat with the AI copilot to query data and generate work order summaries.',
+    content: ['Use the AI copilot chat sidebar to ask questions about your data, get work order draft summaries, receive quote suggestions, and interact with your organization database using natural language.'],
+    keywords: ['AI', 'copilot', 'chat', 'summaries', 'assistant', 'natural language', 'video', 'tutorial'],
+    videoUrl: '/videos/16-ai-copilot',
+  },
+  {
+    id: 'video-17',
+    categoryId: 'training-videos',
+    title: 'Video 17: CRM Overview: Calls, Follow-Ups & Pipeline',
+    summary: 'Manage your sales pipeline with call logging, follow-ups, and opportunities.',
+    content: ['Overview of the CRM module: log sales calls with outcomes, create follow-ups with due dates, manage opportunities through pipeline stages, and track service tickets from your sales dashboard.'],
+    keywords: ['CRM', 'sales', 'calls', 'follow-ups', 'pipeline', 'opportunities', 'video', 'tutorial'],
+    videoUrl: '/videos/17-crm-overview',
+  },
+  {
+    id: 'video-18',
+    categoryId: 'training-videos',
+    title: 'Video 18: Sales Reports & Custom Fields',
+    summary: 'CRM reports for pipeline, call activity, win/loss, and custom field configuration.',
+    content: ['Explore five CRM report types: pipeline summary, call activity, win/loss analysis, follow-up performance, and customer coverage. Configure custom fields for contacts, customers, and opportunities.'],
+    keywords: ['CRM', 'sales', 'reports', 'custom fields', 'pipeline', 'analytics', 'video', 'tutorial'],
+    videoUrl: '/videos/18-sales-reports',
+  },
+  {
+    id: 'video-19',
+    categoryId: 'training-videos',
+    title: 'Video 19: PM Schedules & Auto-Generated Work Orders',
+    summary: 'Set up preventive maintenance schedules that automatically create work orders.',
+    content: ['Configure PM schedules with daily, weekly, monthly, or yearly frequency. ServiceOpsIQ automatically generates work orders when schedules come due, tracks compliance, and integrates with AI insights for predictive recommendations.'],
+    keywords: ['PM', 'preventive maintenance', 'schedules', 'auto-generate', 'work orders', 'compliance', 'video', 'tutorial'],
+    videoUrl: '/videos/19-pm-schedules',
+  },
+  {
+    id: 'video-20',
+    categoryId: 'training-videos',
+    title: 'Video 20: Materials & Inventory Management',
+    summary: 'Manage your parts catalog, track stock levels, and log material usage on work orders.',
+    content: ['Set up your materials catalog with categories, part numbers, and vendor details. Track stock levels with automatic deductions when materials are used on work orders. Monitor low stock alerts and generate purchase orders.'],
+    keywords: ['materials', 'inventory', 'parts', 'stock', 'catalog', 'purchase orders', 'video', 'tutorial'],
+    videoUrl: '/videos/20-materials-inventory',
+  },
+  {
+    id: 'video-21',
+    categoryId: 'training-videos',
+    title: 'Video 21: Custom Reports & Form Builder',
+    summary: 'Design custom report templates with 13 field types and tamper-proof calculations.',
+    content: ['Build custom inspection forms with the drag-and-drop form builder. Choose from 13 field types including text, numeric, photo capture, signature, GPS, and calculated fields. Submitted forms are tamper-proof with server-side calculation verification and export to branded PDFs.'],
+    keywords: ['custom reports', 'forms', 'form builder', 'fields', 'calculations', 'tamper-proof', 'PDF', 'video', 'tutorial'],
+    videoUrl: '/videos/21-custom-reports',
+  },
+  {
+    id: 'video-22',
+    categoryId: 'training-videos',
+    title: 'Video 22: Customer Portal & Tech Portal',
+    summary: 'Self-service portals for customers and technicians with offline PWA support.',
+    content: ['Give customers a self-service portal to view work orders, review and accept quotes, and download invoice PDFs. Equip technicians with a mobile-optimized portal for task management, time logging, photo capture, and digital signatures — all with offline PWA support.'],
+    keywords: ['portal', 'customer portal', 'tech portal', 'PWA', 'offline', 'mobile', 'self-service', 'video', 'tutorial'],
+    videoUrl: '/videos/22-portals',
+  },
+  {
+    id: 'video-23',
+    categoryId: 'training-videos',
+    title: 'Video 23: Reports, Analytics & Data Export',
+    summary: 'Dashboard KPIs, interactive charts, CRM sales reports, and CSV/PDF export.',
+    content: ['Explore the analytics suite with 40+ KPIs, six interactive Recharts charts, five CRM sales reports, and data export to CSV and branded PDF. Filter by date range, compare periods, and track revenue trends, technician performance, and quote conversion rates.'],
+    keywords: ['reports', 'analytics', 'dashboard', 'charts', 'KPIs', 'CSV', 'export', 'PDF', 'video', 'tutorial'],
+    videoUrl: '/videos/23-reports-analytics',
+  },
+];
+
+// ============================================================================
 // Combined Articles Array & Search Function
 // ============================================================================
 
 export const HELP_ARTICLES: HelpArticle[] = [
+  ...TRAINING_VIDEO_ARTICLES,
   ...GETTING_STARTED_ARTICLES,
   ...CUSTOMER_ARTICLES,
   ...SITE_ARTICLES,

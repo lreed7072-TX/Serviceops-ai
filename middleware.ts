@@ -151,8 +151,8 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const response = NextResponse.next({
-    request: { headers: request.headers },
+  let response = NextResponse.next({
+    request,
   });
 
   if (!supabaseUrl || !supabaseAnon) return response;
@@ -163,6 +163,15 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
+        // Update request cookies so downstream Server Components see refreshed tokens
+        for (const { name, value } of cookiesToSet) {
+          request.cookies.set(name, value);
+        }
+        // Recreate response with updated request cookies
+        response = NextResponse.next({
+          request,
+        });
+        // Set cookies on response so browser receives the refreshed tokens
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }

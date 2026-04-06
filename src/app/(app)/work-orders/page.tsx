@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { AssetCriticality, AssetStatus, ExecutionMode, OrderType, WorkOrderStatus } from "@prisma/client";
 import type { Asset, Customer, Site, WorkOrder } from "@prisma/client";
@@ -235,7 +235,9 @@ const advancedFilterConfigs: FilterConfig[] = [
 
 export default function WorkOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
+  const createSectionRef = useRef<HTMLDivElement>(null);
 
   // State - Data
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -345,6 +347,13 @@ export default function WorkOrdersPage() {
       active = false;
     };
   }, []);
+
+  // Scroll to create form when navigating from /work-orders/new
+  useEffect(() => {
+    if (searchParams.get("create") === "1" && !loading && createSectionRef.current) {
+      createSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [searchParams, loading]);
 
   // Computed values - Filtered dropdowns
   const filteredSites = useMemo(() => {
@@ -944,7 +953,7 @@ export default function WorkOrdersPage() {
       )}
 
       {/* Create Work Order Form */}
-      <div className="create-wo-section">
+      <div className="create-wo-section" ref={createSectionRef}>
         <h3 className="section-title">
           <span className="section-title-icon"><Plus size={18} /></span>
           Create New Work Order

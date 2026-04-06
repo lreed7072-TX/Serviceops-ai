@@ -1,0 +1,118 @@
+/* ================================================================ */
+/*  Video Player Page                                               */
+/* ================================================================ */
+
+.video-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.video-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.video-back:hover {
+  color: var(--accent, #f97316);
+}
+
+.video-title {
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 0.5rem;
+}
+
+.video-summary {
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.video-container {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.video-container video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.video-description {
+  margin-top: 1.5rem;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Not found state */
+.video-not-found {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+.video-not-found h1 {
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 0.75rem;
+}
+.video-not-found p {
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.95rem;
+  margin: 0 0 1.5rem;
+}
+
+.video-not-found-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent, #f97316);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.video-not-found-link:hover {
+  text-decoration: underline;
+}
+
+/* Not-yet-uploaded state */
+.video-pending {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  background: var(--bg-secondary, #f3f4f6);
+  border-radius: 8px;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .video-page {
+    padding: 1rem 1rem 2rem;
+  }
+  .video-title {
+    font-size: 1.25rem;
+  }
+}

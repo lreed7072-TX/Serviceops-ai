@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   HELP_CATEGORIES,
   HELP_ARTICLES,
@@ -353,15 +354,13 @@ export default function HelpCenterPage() {
           {/* Video link */}
           {selectedArticle.videoUrl && (
             <div className="help-video-link">
-              <a
+              <Link
                 href={selectedArticle.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="help-video-button"
               >
                 <PlayCircle size={20} />
                 Watch Training Video
-              </a>
+              </Link>
             </div>
           )}
 

@@ -1,5 +1,5 @@
 /// Service Worker for ServiceOpsIQ PWA
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `serviceopsiq-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `serviceopsiq-dynamic-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -58,6 +58,12 @@ self.addEventListener("fetch", (event) => {
 
   // Skip chrome-extension and non-http(s) requests
   if (!url.protocol.startsWith("http")) {
+    return;
+  }
+
+  // Skip cross-origin requests (CDN videos, external resources)
+  // Service workers can break video streaming with range requests
+  if (url.origin !== self.location.origin) {
     return;
   }
 

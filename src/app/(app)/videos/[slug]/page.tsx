@@ -47,6 +47,7 @@ export default function VideoPlayerPage() {
             controls
             preload="metadata"
             playsInline
+            crossOrigin="anonymous"
           >
             Your browser does not support the video element.
           </video>

@@ -57,37 +57,47 @@ export async function POST(request: Request, { params }: RouteParams) {
     return jsonError("Quote has expired.", 400);
   }
 
-  // Generate work order number
-  const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-  const lastWO = await prisma.workOrder.findFirst({
-    where: {
-      orgId: auth.orgId,
-      workOrderNumber: { startsWith: `WO-${dateStr}` },
-    },
-    orderBy: { workOrderNumber: "desc" },
-  });
-
-  let workOrderNumber = `WO-${dateStr}-001`;
-  if (lastWO && lastWO.workOrderNumber) {
-    const lastNum = parseInt(lastWO.workOrderNumber.split("-")[2]);
-    workOrderNumber = `WO-${dateStr}-${String(lastNum + 1).padStart(3, "0")}`;
+  // siteId is required on WorkOrder — cannot convert without one
+  if (!quote.siteId) {
+    return jsonError("Cannot convert quote without a site. Edit the quote to add a site first.", 400);
   }
 
-  // Create work order from quote
-  const workOrder = await prisma.workOrder.create({
-    data: {
-      orgId: auth.orgId,
-      customerId: quote.customerId,
-      siteId: quote.siteId || quote.customerId, // Fallback to customer if no site
-      quoteId: quote.id,
-      title: quote.title,
-      description: quote.description,
-      status: WorkOrderStatus.OPEN,
-      orderType: OrderType.WORK_ORDER,
-      workOrderNumber,
-    },
-  });
+  // Generate sequential work order number (WO00001 format)
+  const prefix = "WO";
+  let workOrder: any = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const last = await prisma.workOrder.findFirst({
+      where: { orgId: auth.orgId, orderType: OrderType.WORK_ORDER, workOrderNumber: { startsWith: prefix } },
+      select: { workOrderNumber: true },
+      orderBy: { createdAt: "desc" },
+    });
+    const match = last?.workOrderNumber?.match(new RegExp(`^${prefix}(\\d+)$`));
+    const nextNum = (match ? parseInt(match[1], 10) : 0) + 1 + attempt;
+    const workOrderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
+
+    try {
+      workOrder = await prisma.workOrder.create({
+        data: {
+          orgId: auth.orgId,
+          customerId: quote.customerId,
+          siteId: quote.siteId,
+          quoteId: quote.id,
+          title: quote.title,
+          description: quote.description,
+          status: WorkOrderStatus.OPEN,
+          orderType: OrderType.WORK_ORDER,
+          workOrderNumber,
+        },
+      });
+      break;
+    } catch (err: any) {
+      if (err?.code !== "P2002" || attempt === 4) throw err;
+    }
+  }
+
+  if (!workOrder) {
+    return jsonError("Failed to generate work order number. Please try again.", 500);
+  }
 
   // Update quote status
   await prisma.quote.update({
@@ -115,7 +125,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   return NextResponse.json({
     data: {
       workOrder: completeWorkOrder,
-      message: `Work order ${workOrderNumber} created from quote ${quote.quoteNumber}`,
+      message: `Work order ${workOrder.workOrderNumber} created from quote ${quote.quoteNumber}`,
     },
   }, { status: 201 });
 }

@@ -114,7 +114,7 @@ export default function MaterialsPage() {
         isActive: formActive,
       };
       const url = editing ? `/api/materials/${editing.id}` : "/api/materials";
-      const method = editing ? "PUT" : "POST";
+      const method = editing ? "PATCH" : "POST";
       const res = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },

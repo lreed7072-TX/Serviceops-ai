@@ -22,23 +22,32 @@ export async function GET(request: Request) {
   const { auth } = authResult;
 
   try {
+    const { searchParams } = new URL(request.url);
+    const customerId = searchParams.get("customerId");
+    const limit = parseInt(searchParams.get("limit") || "0", 10);
+
     const whereBase: any = { orgId: auth.orgId };
-      if (auth.role === Role.TECH) {
-        whereBase.workOrders = {
-          some: {
-            OR: [
-              { tasks: { some: { assignedToId: auth.userId } } },
-              { visits: { some: { assignedTechId: auth.userId } } },
-              { packages: { some: { leadTechId: auth.userId } } },
-            ],
-          },
-        };
-      }
 
-      const sites = await prisma.site.findMany({
-        where: whereBase,
+    if (customerId) {
+      whereBase.customerId = customerId;
+    }
 
+    if (auth.role === Role.TECH) {
+      whereBase.workOrders = {
+        some: {
+          OR: [
+            { tasks: { some: { assignedToId: auth.userId } } },
+            { visits: { some: { assignedTechId: auth.userId } } },
+            { packages: { some: { leadTechId: auth.userId } } },
+          ],
+        },
+      };
+    }
+
+    const sites = await prisma.site.findMany({
+      where: whereBase,
       orderBy: { createdAt: "desc" },
+      ...(limit > 0 ? { take: limit } : {}),
     });
 
     return NextResponse.json({ data: sites });

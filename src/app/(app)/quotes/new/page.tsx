@@ -54,6 +54,12 @@ export default function NewQuotePage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const toast = useToast();
 
+  // Site creation modal state
+  const [showSiteModal, setShowSiteModal] = useState(false);
+  const [siteForm, setSiteForm] = useState({ name: "", address: "", city: "", state: "", postalCode: "" });
+  const [siteModalSaving, setSiteModalSaving] = useState(false);
+  const [siteModalError, setSiteModalError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchCustomers();
   }, []);
@@ -81,13 +87,59 @@ export default function NewQuotePage() {
 
   const fetchSites = async (customerId: string) => {
     try {
-      const response = await fetch(`/api/customers/${customerId}/sites`);
+      const response = await fetch(`/api/sites?customerId=${customerId}`);
       if (response.ok) {
         const result = await response.json();
         setSites(result.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch sites:", error);
+    }
+  };
+
+  const handleSiteSelectChange = (value: string) => {
+    if (value === "__add_site__") {
+      setSiteForm({ name: "", address: "", city: "", state: "", postalCode: "" });
+      setSiteModalError(null);
+      setShowSiteModal(true);
+      return;
+    }
+    setFormData(prev => ({ ...prev, siteId: value }));
+  };
+
+  const handleSiteModalSubmit = async () => {
+    if (!siteForm.name.trim()) {
+      setSiteModalError("Site name is required.");
+      return;
+    }
+    setSiteModalSaving(true);
+    setSiteModalError(null);
+    try {
+      const response = await fetch("/api/sites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId: formData.customerId,
+          name: siteForm.name.trim(),
+          address: siteForm.address.trim() || null,
+          city: siteForm.city.trim() || null,
+          state: siteForm.state.trim() || null,
+          postalCode: siteForm.postalCode.trim() || null,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || err.detail || "Failed to create site.");
+      }
+      const result = await response.json();
+      const newSite = result.data;
+      await fetchSites(formData.customerId);
+      setFormData(prev => ({ ...prev, siteId: newSite.id }));
+      setShowSiteModal(false);
+    } catch (e: any) {
+      setSiteModalError(e.message || "Failed to create site.");
+    } finally {
+      setSiteModalSaving(false);
     }
   };
 
@@ -220,9 +272,9 @@ export default function NewQuotePage() {
               <label className="field-label">Site (Optional)</label>
               <select
                 value={formData.siteId}
-                onChange={(e) => setFormData({ ...formData, siteId: e.target.value })}
+                onChange={(e) => handleSiteSelectChange(e.target.value)}
                 className="field-input"
-                disabled={!formData.customerId || sites.length === 0}
+                disabled={!formData.customerId}
               >
                 <option value="">No specific site</option>
                 {sites.map((site) => (
@@ -230,10 +282,10 @@ export default function NewQuotePage() {
                     {site.name}
                   </option>
                 ))}
+                {formData.customerId && (
+                  <option value="__add_site__">+ Add new site...</option>
+                )}
               </select>
-              {formData.customerId && sites.length === 0 && (
-                <p className="field-hint">No sites available for this customer</p>
-              )}
             </div>
           </div>
         </div>
@@ -467,6 +519,86 @@ export default function NewQuotePage() {
           </button>
         </div>
       </div>
+
+      {/* Add Site Modal */}
+      {showSiteModal && (
+        <div className="modal-overlay" onClick={() => setShowSiteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Add New Site</h3>
+              <button onClick={() => setShowSiteModal(false)} className="modal-close">
+                <svg className="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              {siteModalError && <div className="alert-error" style={{ marginBottom: "1rem" }}>{siteModalError}</div>}
+              <div className="form-field">
+                <label className="field-label">Site Name *</label>
+                <input
+                  type="text"
+                  value={siteForm.name}
+                  onChange={(e) => setSiteForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="field-input"
+                  placeholder="e.g., Main Plant, Pump Station #3"
+                  autoFocus
+                />
+              </div>
+              <div className="form-field">
+                <label className="field-label">Address</label>
+                <input
+                  type="text"
+                  value={siteForm.address}
+                  onChange={(e) => setSiteForm(prev => ({ ...prev, address: e.target.value }))}
+                  className="field-input"
+                  placeholder="Street address"
+                />
+              </div>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label className="field-label">City</label>
+                  <input
+                    type="text"
+                    value={siteForm.city}
+                    onChange={(e) => setSiteForm(prev => ({ ...prev, city: e.target.value }))}
+                    className="field-input"
+                    placeholder="City"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="field-label">State</label>
+                  <input
+                    type="text"
+                    value={siteForm.state}
+                    onChange={(e) => setSiteForm(prev => ({ ...prev, state: e.target.value }))}
+                    className="field-input"
+                    placeholder="State"
+                  />
+                </div>
+              </div>
+              <div className="form-field">
+                <label className="field-label">Postal Code</label>
+                <input
+                  type="text"
+                  value={siteForm.postalCode}
+                  onChange={(e) => setSiteForm(prev => ({ ...prev, postalCode: e.target.value }))}
+                  className="field-input"
+                  placeholder="Postal code"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" onClick={() => setShowSiteModal(false)} className="btn-cancel" disabled={siteModalSaving}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleSiteModalSubmit} className="btn-primary" disabled={!siteForm.name.trim() || siteModalSaving}>
+                {siteModalSaving ? "Creating..." : "Add Site"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Line Item Modal */}
       {showLineItemModal && (

@@ -7,16 +7,68 @@ import { apiFetch } from "@/lib/api-client";
 import "../procedure-detail.css";
 
 const assetCategories = [
-  "PUMP",
-  "MOTOR",
-  "CONTROL_PANEL",
-  "VFD",
-  "VALVE",
-  "SENSOR",
-  "TRANSMITTER",
-  "ACTUATOR",
-  "OTHER",
+  { value: "ROTATING_EQUIPMENT", label: "Rotating Equipment" },
+  { value: "CONTROLS_AND_ELECTRICAL", label: "Controls & Electrical" },
+  { value: "INSTRUMENTATION", label: "Instrumentation" },
+  { value: "OTHER", label: "Other" },
 ];
+
+const assetFamilies: Record<string, { value: string; label: string }[]> = {
+  ROTATING_EQUIPMENT: [
+    { value: "PUMP", label: "Pump" },
+    { value: "MOTOR", label: "Motor" },
+    { value: "GEARBOX", label: "Gearbox" },
+  ],
+  CONTROLS_AND_ELECTRICAL: [
+    { value: "CONTROL_PANEL", label: "Control Panel" },
+    { value: "ELECTRICAL_FEED_SYSTEM", label: "Electrical Feed System" },
+  ],
+  INSTRUMENTATION: [
+    { value: "SENSOR", label: "Sensor" },
+  ],
+  OTHER: [
+    { value: "OTHER", label: "Other" },
+  ],
+};
+
+const assetSubFamilies: Record<string, { value: string; label: string }[]> = {
+  PUMP: [
+    { value: "SUBMERSIBLE_WASTEWATER", label: "Submersible Wastewater" },
+    { value: "VERTICAL_TURBINE", label: "Vertical Turbine" },
+    { value: "HORIZONTAL_SPLIT_CASE", label: "Horizontal Split Case" },
+    { value: "END_SUCTION", label: "End Suction" },
+    { value: "ANSI_API_PROCESS_PUMP", label: "ANSI/API Process Pump" },
+  ],
+  MOTOR: [
+    { value: "LOW_VOLTAGE_TEFC_ODP", label: "Low Voltage TEFC/ODP" },
+    { value: "MEDIUM_VOLTAGE", label: "Medium Voltage" },
+    { value: "EXPLOSION_PROOF", label: "Explosion Proof" },
+  ],
+  GEARBOX: [
+    { value: "WORM", label: "Worm" },
+    { value: "HELICAL", label: "Helical" },
+    { value: "PLANETARY", label: "Planetary" },
+  ],
+  CONTROL_PANEL: [
+    { value: "UL508A_INDUSTRIAL_PANEL", label: "UL508A Industrial Panel" },
+    { value: "PUMP_CONTROL_PANEL", label: "Pump Control Panel" },
+    { value: "MCC_BUCKET", label: "MCC Bucket" },
+    { value: "STARTER_VFD", label: "Starter - VFD" },
+    { value: "STARTER_SOFT_STARTER", label: "Starter - Soft Starter" },
+    { value: "STARTER_ACROSS_THE_LINE", label: "Starter - Across the Line" },
+  ],
+  SENSOR: [
+    { value: "LEVEL", label: "Level" },
+    { value: "PRESSURE", label: "Pressure" },
+    { value: "FLOW", label: "Flow" },
+    { value: "TEMPERATURE", label: "Temperature" },
+  ],
+  ELECTRICAL_FEED_SYSTEM: [
+    { value: "TRANSFORMER", label: "Transformer" },
+    { value: "BREAKER", label: "Breaker" },
+    { value: "DISCONNECT", label: "Disconnect" },
+  ],
+};
 
 const contexts = [
   { value: "REPAIR", label: "Repair" },
@@ -139,13 +191,13 @@ export default function NewProcedureTemplatePage() {
             <select
               className="pd-form-select"
               value={form.assetCategory}
-              onChange={(e) => setForm({ ...form, assetCategory: e.target.value })}
+              onChange={(e) => setForm({ ...form, assetCategory: e.target.value, assetFamily: "", assetSubfamily: "" })}
               required
             >
               <option value="">Select category...</option>
               {assetCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
                 </option>
               ))}
             </select>
@@ -154,25 +206,37 @@ export default function NewProcedureTemplatePage() {
           {/* Asset Family */}
           <div className="pd-form-field">
             <label className="pd-form-label">Asset Family (optional)</label>
-            <input
-              className="pd-form-input"
-              type="text"
+            <select
+              className="pd-form-select"
               value={form.assetFamily}
-              onChange={(e) => setForm({ ...form, assetFamily: e.target.value })}
-              placeholder="e.g., SUBMERSIBLE_WASTEWATER"
-            />
+              onChange={(e) => setForm({ ...form, assetFamily: e.target.value, assetSubfamily: "" })}
+              disabled={!form.assetCategory}
+            >
+              <option value="">Select family...</option>
+              {(assetFamilies[form.assetCategory] || []).map((fam) => (
+                <option key={fam.value} value={fam.value}>
+                  {fam.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Asset Subfamily */}
           <div className="pd-form-field">
             <label className="pd-form-label">Asset Subfamily (optional)</label>
-            <input
-              className="pd-form-input"
-              type="text"
+            <select
+              className="pd-form-select"
               value={form.assetSubfamily}
               onChange={(e) => setForm({ ...form, assetSubfamily: e.target.value })}
-              placeholder="e.g., GRINDER_PUMP"
-            />
+              disabled={!form.assetFamily || !(assetSubFamilies[form.assetFamily]?.length)}
+            >
+              <option value="">Select subfamily...</option>
+              {(assetSubFamilies[form.assetFamily] || []).map((sub) => (
+                <option key={sub.value} value={sub.value}>
+                  {sub.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Context */}

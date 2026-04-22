@@ -114,7 +114,7 @@ export default function NewInvoicePage() {
 
   const fetchSites = async (customerId: string) => {
     try {
-      const response = await apiFetch(`/api/customers/${customerId}/sites`);
+      const response = await apiFetch(`/api/sites?customerId=${customerId}`);
       if (response.ok) {
         const data = await response.json();
         setSites(data.data || []);

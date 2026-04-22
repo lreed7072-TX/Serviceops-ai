@@ -81,7 +81,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   const body = await request.json();
-  const {
+  let {
     title,
     description,
     siteId,
@@ -106,14 +106,34 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   // Build update data
   const updateData: any = {};
 
-  // Block content edits on non-DRAFT quotes — only status transitions allowed
-  const hasContentChanges = title || description || siteId !== undefined || taxRate !== undefined || lineItems;
-  if (hasContentChanges && existingQuote.status !== QuoteStatus.DRAFT) {
-    return jsonError("Content edits are only allowed on DRAFT quotes. Change status to DRAFT first.", 400);
+  // For non-DRAFT quotes: only allow metadata changes (siteId, validUntil, notes, terms)
+  // Block pricing/content edits (title, description, taxRate, lineItems)
+  if (existingQuote.status !== QuoteStatus.DRAFT) {
+    const hasActualContentChanges =
+      (title !== undefined && title !== existingQuote.title) ||
+      (description !== undefined && (description || null) !== existingQuote.description) ||
+      (taxRate !== undefined && taxRate !== Number(existingQuote.taxRate));
+
+    if (hasActualContentChanges) {
+      return jsonError("Content edits are only allowed on DRAFT quotes. Change status to DRAFT first.", 400);
+    }
+
+    // Line items can only be modified on DRAFT quotes — silently ignore if resent unchanged
+    if (lineItems !== undefined) {
+      lineItems = undefined;
+    }
   }
+
+  // siteId can be updated on DRAFT or SENT quotes (needed before converting to WO)
+  if (siteId !== undefined) {
+    if (existingQuote.status !== QuoteStatus.DRAFT && existingQuote.status !== QuoteStatus.SENT) {
+      return jsonError("Site can only be changed on DRAFT or SENT quotes.", 400);
+    }
+    updateData.siteId = siteId || null;
+  }
+
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
-  if (siteId !== undefined) updateData.siteId = siteId;
   if (taxRate !== undefined) {
     updateData.taxRate = taxRate;
     // Recalculate tax and total if rate changes

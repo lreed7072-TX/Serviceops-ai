@@ -87,26 +87,53 @@ export async function POST(request: Request) {
     return jsonError("Context is required.", 400);
   }
 
-  const template = await prisma.procedureTemplate.create({
-    data: {
-      orgId: authResult.auth.orgId,
-      name: body.name.trim(),
-      description: body.description?.trim() || null,
-      assetCategory: body.assetCategory.trim() as AssetCategory,
-      assetFamily: body.assetFamily?.trim() as AssetFamily | null,
-      assetSubFamily: body.assetSubfamily?.trim() as AssetSubFamily | null,
-      context: body.context,
-      estimatedDuration: body.estimatedDurationMinutes || null,
-      version: 1,
-      status: "ACTIVE",
-      createdByUserId: authResult.auth.userId,
-    },
-    include: {
-      createdBy: {
-        select: { id: true, name: true, email: true },
-      },
-    },
-  });
+  // Validate enum values before passing to Prisma
+  const validCategories = Object.values(AssetCategory);
+  if (!validCategories.includes(body.assetCategory.trim() as AssetCategory)) {
+    return jsonError(`Invalid asset category. Valid values: ${validCategories.join(", ")}`, 400);
+  }
 
-  return NextResponse.json({ data: template });
+  const familyValue = body.assetFamily?.trim() || null;
+  if (familyValue) {
+    const validFamilies = Object.values(AssetFamily);
+    if (!validFamilies.includes(familyValue as AssetFamily)) {
+      return jsonError(`Invalid asset family. Valid values: ${validFamilies.join(", ")}`, 400);
+    }
+  }
+
+  const subFamilyValue = body.assetSubfamily?.trim() || null;
+  if (subFamilyValue) {
+    const validSubFamilies = Object.values(AssetSubFamily);
+    if (!validSubFamilies.includes(subFamilyValue as AssetSubFamily)) {
+      return jsonError(`Invalid asset subfamily. Valid values: ${validSubFamilies.join(", ")}`, 400);
+    }
+  }
+
+  try {
+    const template = await prisma.procedureTemplate.create({
+      data: {
+        orgId: authResult.auth.orgId,
+        name: body.name.trim(),
+        description: body.description?.trim() || null,
+        assetCategory: body.assetCategory.trim() as AssetCategory,
+        assetFamily: familyValue as AssetFamily | null,
+        assetSubFamily: subFamilyValue as AssetSubFamily | null,
+        context: body.context,
+        estimatedDuration: body.estimatedDurationMinutes || null,
+        version: 1,
+        status: "ACTIVE",
+        createdByUserId: authResult.auth.userId,
+      },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    return NextResponse.json({ data: template });
+  } catch (err: any) {
+    console.error("Failed to create procedure template:", err);
+    return jsonError("Failed to create procedure template.", 500);
+  }
 }

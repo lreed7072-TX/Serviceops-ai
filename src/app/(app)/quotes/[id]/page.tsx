@@ -681,6 +681,15 @@ export default function QuoteDetailPage() {
             </>
           )}
           
+          {quote.status === QuoteStatus.REJECTED && (
+            <button
+              onClick={() => handleStatusChange(QuoteStatus.DRAFT)}
+              className="action-button success"
+            >
+              <span>↩</span> Reinstate to Draft
+            </button>
+          )}
+
           {quote.status !== QuoteStatus.APPROVED && quote.status !== QuoteStatus.CONVERTED && quote.status !== QuoteStatus.CANCELED && (
             <button
               onClick={() => router.push(`/quotes/${quote.id}/edit`)}

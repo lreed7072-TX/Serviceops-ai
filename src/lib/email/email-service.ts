@@ -68,6 +68,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
       attachments: options.attachments?.map((att) => ({
         filename: att.filename,
         content: att.content,
+        contentType: att.contentType,
       })),
       replyTo: options.replyTo,
     });
@@ -192,7 +193,7 @@ ${data.orgName}
 interface InvoiceEmailData {
   invoiceNumber: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | string[];
   total: number | string;
   dueDate: string | null;
   title: string;
@@ -300,7 +301,7 @@ ${data.orgName}
 interface WorkOrderEmailData {
   workOrderNumber: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | string[];
   title: string;
   description?: string | null;
   status: string;

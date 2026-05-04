@@ -144,12 +144,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     case "revert_to_draft": {
-      if (quote.status !== QuoteStatus.SENT) {
-        return NextResponse.json({ error: "Can only revert SENT quotes to draft" }, { status: 400 });
+      if (quote.status !== QuoteStatus.SENT && quote.status !== QuoteStatus.REJECTED) {
+        return NextResponse.json({ error: "Can only revert SENT or REJECTED quotes to draft" }, { status: 400 });
+      }
+      const revertData: any = { status: QuoteStatus.DRAFT };
+      if (quote.status === QuoteStatus.SENT) {
+        revertData.sentAt = null;
+      } else if (quote.status === QuoteStatus.REJECTED) {
+        revertData.rejectedAt = null;
+        revertData.rejectionReason = null;
       }
       const updated = await prisma.quote.update({
         where: { id: quoteId },
-        data: { status: QuoteStatus.DRAFT, sentAt: null },
+        data: revertData,
       });
       return NextResponse.json({ data: updated });
     }

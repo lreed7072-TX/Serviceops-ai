@@ -155,6 +155,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       if (rejectionReason) updateData.rejectionReason = rejectionReason;
     } else if (status === QuoteStatus.CANCELED) {
       updateData.status = QuoteStatus.CANCELED;
+    } else if (status === QuoteStatus.DRAFT && existingQuote.status === QuoteStatus.REJECTED) {
+      // Allow reinstating rejected quotes back to draft
+      updateData.status = QuoteStatus.DRAFT;
+      updateData.rejectedAt = null;
+      updateData.rejectionReason = null;
     } else if (status !== existingQuote.status) {
       return jsonError(`Invalid status transition from ${existingQuote.status} to ${status}.`, 400);
     }

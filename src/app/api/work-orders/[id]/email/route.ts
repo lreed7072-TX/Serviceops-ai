@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthSessionFirst } from "@/lib/auth";
-import { generateWorkOrderPDF } from "@/lib/pdf/work-order-pdf";
+import { generateWorkOrderReportPdf } from "@/lib/pdf/pdf-generator";
 import { sendWorkOrderEmail } from "@/lib/email/email-service";
 
-// POST /api/work-orders/[id]/email - Send work order email to customer
+export const runtime = "nodejs";
+
+/**
+ * POST /api/work-orders/[id]/email
+ * Send work order email to customer with PDF attachment.
+ * Accepts { emails: ["a@b"] } or sends to customer.primaryEmail if no body.
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,6 +22,19 @@ export async function POST(
   const { orgId } = auth;
 
   try {
+    // Parse body (optional — backwards compat for no-body requests)
+    let bodyEmails: string[] = [];
+    try {
+      const body = await req.json();
+      if (Array.isArray(body.emails)) {
+        bodyEmails = body.emails.map((e: string) => e.trim()).filter(Boolean);
+      } else if (typeof body.email === "string" && body.email.trim()) {
+        bodyEmails = body.email.split(",").map((e: string) => e.trim()).filter(Boolean);
+      }
+    } catch {
+      // No body or invalid JSON — will fall back to customer email
+    }
+
     // Fetch work order with all related data
     const workOrder = await prisma.workOrder.findFirst({
       where: { id, orgId },
@@ -45,19 +64,13 @@ export async function POST(
             tasks: {
               include: {
                 assignedTo: {
-                  select: {
-                    name: true,
-                  },
+                  select: { name: true },
                 },
               },
-              orderBy: {
-                sequenceNumber: "asc",
-              },
+              orderBy: { sequenceNumber: "asc" },
             },
           },
-          orderBy: {
-            packageType: "asc",
-          },
+          orderBy: { packageType: "asc" },
         },
         visits: {
           where: { assignedTechId: { not: null } },
@@ -69,9 +82,7 @@ export async function POST(
           take: 1,
         },
         timeEntries: {
-          select: {
-            accumulatedSeconds: true,
-          },
+          select: { accumulatedSeconds: true },
         },
       },
     });
@@ -80,9 +91,26 @@ export async function POST(
       return NextResponse.json({ error: "Work order not found" }, { status: 404 });
     }
 
-    if (!workOrder.customer?.primaryEmail) {
+    // Determine recipients
+    const recipients = bodyEmails.length > 0
+      ? bodyEmails
+      : workOrder.customer?.primaryEmail
+        ? [workOrder.customer.primaryEmail]
+        : [];
+
+    if (recipients.length === 0) {
       return NextResponse.json(
-        { error: "Customer does not have an email address. Please add one before sending." },
+        { error: "No email recipients. Customer has no email address." },
+        { status: 400 }
+      );
+    }
+
+    // Validate all emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalid = recipients.filter((e) => !emailRegex.test(e));
+    if (invalid.length > 0) {
+      return NextResponse.json(
+        { error: `Invalid email address(es): ${invalid.join(", ")}` },
         { status: 400 }
       );
     }
@@ -92,7 +120,6 @@ export async function POST(
       where: { id: orgId },
       select: { name: true },
     });
-
     const orgName = org?.name || "Company";
 
     // Calculate summary metrics
@@ -109,78 +136,78 @@ export async function POST(
 
     const woNumber = workOrder.workOrderNumber || `WO-${id.slice(0, 8).toUpperCase()}`;
 
-    // Generate PDF
-    const pdfBuffer = await generateWorkOrderPDF({
-      workOrderNumber: workOrder.workOrderNumber,
-      title: workOrder.title,
-      description: workOrder.description,
-      status: workOrder.status,
-      executionMode: workOrder.executionMode,
-      orderType: workOrder.orderType,
-      priority: null,
-      scheduledStart: null,
-      scheduledEnd: null,
-      createdAt: workOrder.createdAt.toISOString(),
-      customer: workOrder.customer
-        ? {
-            name: workOrder.customer.name,
-            primaryEmail: workOrder.customer.primaryEmail,
-            primaryPhone: workOrder.customer.primaryPhone,
-          }
-        : null,
-      site: workOrder.site
-        ? {
-            name: workOrder.site.name,
-            address: workOrder.site.address,
-          }
-        : null,
-      asset: workOrder.asset
-        ? {
-            name: workOrder.asset.name,
-            serialNumber: workOrder.asset.serialNumber,
-            assetTag: workOrder.asset.assetTag,
-          }
-        : null,
-      packages: workOrder.packages.map((pkg) => ({
-        id: pkg.id,
-        packageType: pkg.packageType,
-        tasks: pkg.tasks.map((task) => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          status: task.status,
-          sequenceNumber: task.sequenceNumber,
-          isCritical: task.isCritical,
-          assignedTo: task.assignedTo
-            ? { name: task.assignedTo.name }
-            : null,
+    // Generate PDF using the same react-pdf generator as the download route
+    let pdfBuffer: Buffer | undefined;
+    try {
+      pdfBuffer = await generateWorkOrderReportPdf({
+        workOrderNumber: workOrder.workOrderNumber,
+        title: workOrder.title,
+        description: workOrder.description,
+        status: workOrder.status,
+        executionMode: workOrder.executionMode,
+        orderType: workOrder.orderType,
+        priority: null,
+        scheduledStart: null,
+        scheduledEnd: null,
+        createdAt: workOrder.createdAt.toISOString(),
+        customer: workOrder.customer
+          ? {
+              name: workOrder.customer.name,
+              primaryEmail: workOrder.customer.primaryEmail,
+              primaryPhone: workOrder.customer.primaryPhone,
+            }
+          : null,
+        site: workOrder.site
+          ? { name: workOrder.site.name, address: workOrder.site.address }
+          : null,
+        asset: workOrder.asset
+          ? {
+              name: workOrder.asset.name,
+              serialNumber: workOrder.asset.serialNumber,
+              assetTag: workOrder.asset.assetTag,
+            }
+          : null,
+        packages: workOrder.packages.map((pkg) => ({
+          id: pkg.id,
+          packageType: pkg.packageType,
+          tasks: pkg.tasks.map((task) => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            sequenceNumber: task.sequenceNumber,
+            isCritical: task.isCritical,
+            assignedTo: task.assignedTo ? { name: task.assignedTo.name } : null,
+          })),
         })),
-      })),
-      summary: {
-        totalTasks,
-        completedTasks,
-        completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
-        totalLaborHours,
-        totalMaterialCost: 0,
-      },
-      orgName,
-    });
+        summary: {
+          totalTasks,
+          completedTasks,
+          completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+          totalLaborHours,
+          totalMaterialCost: 0,
+        },
+        orgName,
+      });
+    } catch (pdfError) {
+      console.error("Failed to generate PDF:", pdfError);
+    }
 
-    // Get primary tech name from visits
+    // Get primary tech name
     const techName = workOrder.visits[0]?.assignedTech?.name || null;
 
-    // Send email
+    // Send email to all recipients
     const result = await sendWorkOrderEmail({
       workOrderNumber: woNumber,
-      customerName: workOrder.customer.name,
-      customerEmail: workOrder.customer.primaryEmail,
+      customerName: workOrder.customer?.name || "Customer",
+      customerEmail: recipients,
       title: workOrder.title,
       description: workOrder.description,
       status: workOrder.status,
       orgName,
       siteName: workOrder.site?.name || null,
       technicianName: techName,
-      pdfBuffer: Buffer.from(pdfBuffer),
+      pdfBuffer: pdfBuffer ? Buffer.from(pdfBuffer) : undefined,
     });
 
     if (!result.success) {
@@ -190,12 +217,13 @@ export async function POST(
       );
     }
 
+    const recipientList = recipients.join(", ");
     return NextResponse.json({
       data: {
         messageId: result.messageId,
-        sentTo: workOrder.customer.primaryEmail,
+        sentTo: recipientList,
       },
-      message: `Work order emailed to ${workOrder.customer.primaryEmail}`,
+      message: `Work order emailed to ${recipientList}`,
     });
   } catch (error) {
     console.error("Error sending work order email:", error);

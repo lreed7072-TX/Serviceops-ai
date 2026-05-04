@@ -59,8 +59,9 @@ export default function InvoiceDetailPage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [emailing, setEmailing] = useState(false);
   const [sendingQbo, setSendingQbo] = useState(false);
-  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [printing, setPrinting] = useState(false);
   const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const toast = useToast();
 
@@ -109,23 +110,22 @@ export default function InvoiceDetailPage() {
 
   const emailInvoice = () => {
     if (!invoiceId || !invoice) return;
-
-    const email = invoice.customer.primaryEmail || prompt("Enter customer email address:");
-    if (!email) return;
-
-    setPendingEmail(email);
-    setShowEmailConfirm(true);
+    setEmailInput(invoice.customer.primaryEmail || "");
+    setShowEmailModal(true);
   };
 
   const confirmEmailInvoice = async () => {
-    if (!invoiceId || !invoice || !pendingEmail) return;
+    if (!invoiceId || !invoice || !emailInput.trim()) return;
+
+    const emails = emailInput.split(",").map((e) => e.trim()).filter(Boolean);
+    if (emails.length === 0) return;
 
     setEmailing(true);
     try {
       const res = await apiFetch(`/api/invoices/${invoiceId}/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: pendingEmail }),
+        body: JSON.stringify({ emails }),
       });
 
       if (!res.ok) {
@@ -135,6 +135,8 @@ export default function InvoiceDetailPage() {
 
       const data = await res.json();
       toast.success(data.data.message);
+      setShowEmailModal(false);
+      setEmailInput("");
 
       // Refresh invoice to get updated status
       const refreshRes = await apiFetch(`/api/invoices/${invoiceId}`, { cache: "no-store" });
@@ -146,8 +148,6 @@ export default function InvoiceDetailPage() {
       toast.error(e?.message ?? "Failed to send email");
     } finally {
       setEmailing(false);
-      setShowEmailConfirm(false);
-      setPendingEmail(null);
     }
   };
 
@@ -324,11 +324,35 @@ export default function InvoiceDetailPage() {
             {downloadingPdf ? "Generating..." : "Download PDF"}
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={async () => {
+              if (!invoiceId) return;
+              setPrinting(true);
+              try {
+                const res = await apiFetch(`/api/invoices/${invoiceId}/pdf`);
+                if (!res.ok) throw new Error("Failed to generate PDF");
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const iframe = document.createElement("iframe");
+                iframe.style.position = "fixed";
+                iframe.style.right = "0";
+                iframe.style.bottom = "0";
+                iframe.style.width = "0";
+                iframe.style.height = "0";
+                iframe.style.border = "0";
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                iframe.onload = () => {
+                  try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); } catch { window.open(url, "_blank"); }
+                  setTimeout(() => { document.body.removeChild(iframe); window.URL.revokeObjectURL(url); }, 120000);
+                };
+              } catch { toast.error("Failed to generate PDF for printing"); }
+              finally { setPrinting(false); }
+            }}
+            disabled={printing}
             className="btn btn-outline"
             style={{ fontSize: 14, padding: "8px 16px" }}
           >
-            Print
+            {printing ? "Preparing..." : "Print"}
           </button>
           <button
             onClick={emailInvoice}
@@ -541,17 +565,41 @@ export default function InvoiceDetailPage() {
         variant="default"
       />
 
-      {/* Email Confirmation */}
-      <ConfirmDialog
-        open={showEmailConfirm}
-        onClose={() => { setShowEmailConfirm(false); setPendingEmail(null); }}
-        onConfirm={confirmEmailInvoice}
-        title="Email Invoice"
-        message={`Send invoice ${invoice.invoiceNumber} to ${pendingEmail}?`}
-        confirmLabel="Send Email"
-        variant="default"
-        loading={emailing}
-      />
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="modal-overlay" onClick={() => { if (!emailing) { setShowEmailModal(false); setEmailInput(""); } }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Email Invoice {invoice.invoiceNumber}</h2>
+            </div>
+            <div className="modal-body">
+              <div className="form-field">
+                <label className="field-label">Recipient(s)</label>
+                <input
+                  type="text"
+                  className="field-input"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="email@example.com"
+                  disabled={emailing}
+                />
+                <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.25rem" }}>
+                  Separate multiple addresses with commas
+                </p>
+              </div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "0.75rem" }}>
+                The professional PDF invoice will be attached to the email.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => { setShowEmailModal(false); setEmailInput(""); }} disabled={emailing}>Cancel</button>
+              <button className="btn-submit" onClick={confirmEmailInvoice} disabled={!emailInput.trim() || emailing}>
+                {emailing ? "Sending..." : "Send Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,9 +12,8 @@ export default async function SalesLayout({ children }: { children: React.ReactN
   const auth = await getAuthContextFromSupabase();
   if (!auth) redirect("/login");
 
-  // Only SALES and ADMIN can access the sales route group
+  // SALES, ADMIN, and DISPATCHER can access the sales route group
   if (auth.role === Role.TECH) redirect("/tech");
-  if (auth.role === Role.DISPATCHER) redirect("/dashboard");
 
   const navLinks: NavItem[] = [
     // ── Sales ──

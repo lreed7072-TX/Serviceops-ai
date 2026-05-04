@@ -200,7 +200,9 @@ export default function WorkOrderDetailPage() {
   const [showStopTimerConfirm, setShowStopTimerConfirm] = useState(false);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<WorkOrderStatus | null>(null);
-  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [printing, setPrinting] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
   const [pendingUnassignTechId, setPendingUnassignTechId] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -473,8 +475,43 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!workOrder) return;
+    setPrinting(true);
+    try {
+      const response = await apiFetch(`/api/work-orders/${workOrder.id}/pdf`);
+      if (!response.ok) throw new Error("Failed to generate PDF");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {
+          window.open(url, "_blank");
+        }
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          window.URL.revokeObjectURL(url);
+        }, 120000);
+      };
+    } catch (error) {
+      console.error("Failed to print:", error);
+      toast.error("Failed to generate PDF for printing");
+    } finally {
+      setPrinting(false);
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -504,28 +541,30 @@ export default function WorkOrderDetailPage() {
 
   const handleEmailWorkOrder = () => {
     if (!workOrder) return;
-
-    if (!workOrder.customer?.primaryEmail) {
-      setEmailStatus({ type: "error", message: "Customer does not have an email address." });
-      return;
-    }
-
-    setShowEmailConfirm(true);
+    setEmailInput(workOrder.customer?.primaryEmail || "");
+    setShowEmailModal(true);
   };
 
   const confirmEmailWorkOrder = async () => {
-    if (!workOrder) return;
+    if (!workOrder || !emailInput.trim()) return;
+
+    const emails = emailInput.split(",").map((e) => e.trim()).filter(Boolean);
+    if (emails.length === 0) return;
 
     setSendingEmail(true);
     setEmailStatus(null);
     try {
       const response = await apiFetch(`/api/work-orders/${workOrder.id}/email`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emails }),
       });
 
       const result = await response.json();
       if (response.ok) {
-        setEmailStatus({ type: "success", message: result.message || "Email sent successfully!" });
+        setEmailStatus({ type: "success", message: result.message || `Sent to ${emails.join(", ")}` });
+        setShowEmailModal(false);
+        setEmailInput("");
       } else {
         setEmailStatus({ type: "error", message: result.error || "Failed to send email" });
       }
@@ -534,7 +573,6 @@ export default function WorkOrderDetailPage() {
       setEmailStatus({ type: "error", message: "An error occurred while sending email" });
     } finally {
       setSendingEmail(false);
-      setShowEmailConfirm(false);
     }
   };
 
@@ -1141,9 +1179,11 @@ export default function WorkOrderDetailPage() {
           {/* Export Actions */}
           <button
             onClick={handlePrint}
+            disabled={printing}
             className="action-button secondary"
           >
-            <Printer size={16} /> Print
+            {printing ? <Clock size={16} /> : <Printer size={16} />}
+            {printing ? "Preparing..." : "Print"}
           </button>
 
           <button
@@ -1153,6 +1193,36 @@ export default function WorkOrderDetailPage() {
           >
             {downloadingPdf ? <Clock size={16} /> : <Download size={16} />}
             {downloadingPdf ? "Generating..." : "Download PDF"}
+          </button>
+
+          {/* Packing Slip */}
+          <button
+            onClick={async () => {
+              try {
+                const response = await apiFetch(`/api/work-orders/${workOrder.id}/packing-slip`);
+                if (!response.ok) throw new Error("Failed to generate packing slip");
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const iframe = document.createElement("iframe");
+                iframe.style.position = "fixed";
+                iframe.style.right = "0";
+                iframe.style.bottom = "0";
+                iframe.style.width = "0";
+                iframe.style.height = "0";
+                iframe.style.border = "0";
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                iframe.onload = () => {
+                  try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); } catch { window.open(url, "_blank"); }
+                  setTimeout(() => { document.body.removeChild(iframe); window.URL.revokeObjectURL(url); }, 120000);
+                };
+              } catch {
+                toast.error("Failed to generate packing slip");
+              }
+            }}
+            className="action-button secondary"
+          >
+            <ClipboardList size={16} /> Packing Slip
           </button>
 
           {/* Cancel - danger action */}
@@ -1215,17 +1285,41 @@ export default function WorkOrderDetailPage() {
         loading={statusLoading}
       />
 
-      {/* Email Confirmation */}
-      <ConfirmDialog
-        open={showEmailConfirm}
-        onClose={() => setShowEmailConfirm(false)}
-        onConfirm={confirmEmailWorkOrder}
-        title="Email Work Order"
-        message={`Send work order to ${workOrder.customer?.primaryEmail}?`}
-        confirmLabel="Send Email"
-        variant="default"
-        loading={sendingEmail}
-      />
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="modal-overlay" onClick={() => { if (!sendingEmail) { setShowEmailModal(false); setEmailInput(""); } }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Email {workOrder.orderType === OrderType.PROJECT ? "Project" : workOrder.orderType === OrderType.SALES_ORDER ? "Sales Order" : "Work Order"}</h2>
+            </div>
+            <div className="modal-body">
+              <div className="form-field">
+                <label className="field-label">Recipient(s)</label>
+                <input
+                  type="text"
+                  className="field-input"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="email@example.com"
+                  disabled={sendingEmail}
+                />
+                <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.25rem" }}>
+                  Separate multiple addresses with commas
+                </p>
+              </div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "0.75rem" }}>
+                The professional PDF will be attached to the email.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => { setShowEmailModal(false); setEmailInput(""); }} disabled={sendingEmail}>Cancel</button>
+              <button className="btn-submit" onClick={confirmEmailWorkOrder} disabled={!emailInput.trim() || sendingEmail}>
+                {sendingEmail ? "Sending..." : "Send Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Unassign Tech Confirmation */}
       <ConfirmDialog

@@ -3,11 +3,14 @@ import { requireAuthSessionFirst } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { InvoiceStatus } from "@prisma/client";
 import { sendInvoiceEmail } from "@/lib/email/email-service";
-import { generateInvoicePDF } from "@/lib/pdf/invoice-pdf";
+import { generateInvoicePdf } from "@/lib/pdf/pdf-generator";
+
+export const runtime = "nodejs";
 
 /**
  * POST /api/invoices/[id]/email
- * Send invoice to customer via email with PDF attachment
+ * Send invoice to customer via email with PDF attachment.
+ * Accepts { email: "one" } or { emails: ["one","two"] }
  */
 export async function POST(
   request: NextRequest,
@@ -18,39 +21,38 @@ export async function POST(
     if ("error" in authResult) return authResult.error;
     const { auth } = authResult;
 
-    // Check permissions
     if (auth.role !== "ADMIN" && auth.role !== "DISPATCHER") {
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
-    const resolvedParams = await context.params;
-    const invoiceId = resolvedParams.id;
-
+    const { id: invoiceId } = await context.params;
     const body = await request.json();
-    const { email, includePdf = true } = body;
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { error: "Email address is required" },
-        { status: 400 }
-      );
+    // Accept either { email: "one" } or { emails: ["one","two"] }
+    let recipients: string[] = [];
+    if (Array.isArray(body.emails)) {
+      recipients = body.emails.map((e: string) => e.trim()).filter(Boolean);
+    } else if (typeof body.email === "string" && body.email.trim()) {
+      recipients = body.email.split(",").map((e: string) => e.trim()).filter(Boolean);
     }
 
-    // Validate email format
+    if (recipients.length === 0) {
+      return NextResponse.json({ error: "At least one email address is required" }, { status: 400 });
+    }
+
+    // Validate all emails
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const invalid = recipients.filter((e) => !emailRegex.test(e));
+    if (invalid.length > 0) {
       return NextResponse.json(
-        { error: "Invalid email address format" },
+        { error: `Invalid email address(es): ${invalid.join(", ")}` },
         { status: 400 }
       );
     }
 
     // Get invoice with all related data
-    const invoice = await prisma.invoice.findUnique({
-      where: {
-        id: invoiceId,
-        orgId: auth.orgId
-      },
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, orgId: auth.orgId },
       include: {
         customer: {
           select: {
@@ -61,10 +63,7 @@ export async function POST(
           },
         },
         site: {
-          select: {
-            name: true,
-            address: true,
-          },
+          select: { name: true, address: true },
         },
         workOrder: {
           select: {
@@ -74,80 +73,72 @@ export async function POST(
           },
         },
         lineItems: {
-          orderBy: { sortOrder: "asc" }
-        }
-      }
+          orderBy: { sortOrder: "asc" },
+        },
+      },
     });
 
     if (!invoice) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    // Get organization name
     const org = await prisma.org.findUnique({
       where: { id: auth.orgId },
       select: { name: true },
     });
-
     const orgName = org?.name || "ServiceOpsIQ";
 
-    // Generate PDF if requested
+    // Generate the same PDF used by the download route
     let pdfBuffer: Buffer | undefined;
-    if (includePdf) {
-      try {
-        pdfBuffer = await generateInvoicePDF({
-          invoiceNumber: invoice.invoiceNumber,
-          title: invoice.title,
-          description: invoice.description,
-          status: invoice.status,
-          subtotal: Number(invoice.subtotal),
-          tax: Number(invoice.tax),
-          taxRate: Number(invoice.taxRate),
-          total: Number(invoice.total),
-          dueDate: invoice.dueDate?.toISOString() || null,
-          paidAt: invoice.paidAt?.toISOString() || null,
-          notes: invoice.notes,
-          terms: invoice.terms,
-          createdAt: invoice.createdAt.toISOString(),
-          customer: {
-            name: invoice.customer.name,
-            primaryEmail: invoice.customer.primaryEmail,
-            primaryPhone: invoice.customer.primaryPhone,
-            billingAddress: invoice.customer.billingAddress,
-          },
-          site: invoice.site
-            ? {
-                name: invoice.site.name,
-                address: invoice.site.address,
-              }
-            : null,
-          workOrder: invoice.workOrder
-            ? {
-                workOrderNumber: invoice.workOrder.workOrderNumber,
-                title: invoice.workOrder.title,
-              }
-            : null,
-          lineItems: invoice.lineItems.map((item) => ({
-            id: item.id,
-            itemType: item.itemType,
-            description: item.description,
-            quantity: Number(item.quantity),
-            unitPrice: Number(item.unitPrice),
-            totalPrice: Number(item.totalPrice),
-          })),
-          orgName,
-        });
-      } catch (pdfError) {
-        console.error("Failed to generate PDF:", pdfError);
-        // Continue without PDF attachment
-      }
+    try {
+      pdfBuffer = await generateInvoicePdf({
+        invoiceNumber: invoice.invoiceNumber,
+        title: invoice.title,
+        description: invoice.description,
+        status: invoice.status,
+        subtotal: Number(invoice.subtotal),
+        tax: Number(invoice.tax),
+        taxRate: Number(invoice.taxRate),
+        total: Number(invoice.total),
+        dueDate: invoice.dueDate?.toISOString() || null,
+        paidAt: invoice.paidAt?.toISOString() || null,
+        notes: invoice.notes,
+        terms: invoice.terms,
+        createdAt: invoice.createdAt.toISOString(),
+        customer: {
+          name: invoice.customer.name,
+          primaryEmail: invoice.customer.primaryEmail,
+          primaryPhone: invoice.customer.primaryPhone,
+          billingAddress: invoice.customer.billingAddress,
+        },
+        site: invoice.site
+          ? { name: invoice.site.name, address: invoice.site.address }
+          : null,
+        workOrder: invoice.workOrder
+          ? {
+              workOrderNumber: invoice.workOrder.workOrderNumber,
+              title: invoice.workOrder.title,
+            }
+          : null,
+        lineItems: invoice.lineItems.map((item) => ({
+          id: item.id,
+          itemType: item.itemType,
+          description: item.description,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          totalPrice: Number(item.totalPrice),
+        })),
+        orgName,
+      });
+    } catch (pdfError) {
+      console.error("Failed to generate PDF:", pdfError);
     }
 
-    // Send email
+    // Send to all recipients
     const emailResult = await sendInvoiceEmail({
       invoiceNumber: invoice.invoiceNumber,
       customerName: invoice.customer.name,
-      customerEmail: email,
+      customerEmail: recipients,
       total: Number(invoice.total),
       dueDate: invoice.dueDate?.toISOString() || null,
       title: invoice.title,
@@ -163,29 +154,25 @@ export async function POST(
       );
     }
 
-    // Update invoice status (DRAFT -> SENT) and sentAt timestamp if applicable
-    const updateData: any = {};
-    if (invoice.status === InvoiceStatus.DRAFT) {
-      updateData.status = InvoiceStatus.SENT;
-    }
-
+    // Update invoice status (DRAFT -> SENT)
     let updatedStatus = invoice.status;
-    if (Object.keys(updateData).length > 0) {
+    if (invoice.status === InvoiceStatus.DRAFT) {
       const updated = await prisma.invoice.update({
         where: { id: invoiceId },
-        data: updateData,
+        data: { status: InvoiceStatus.SENT },
         select: { status: true },
       });
       updatedStatus = updated.status;
     }
 
+    const recipientList = recipients.join(", ");
     return NextResponse.json({
       data: {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
         status: updatedStatus,
-        message: `Invoice ${invoice.invoiceNumber} sent to ${email}`,
-        email: email,
+        message: `Invoice ${invoice.invoiceNumber} sent to ${recipientList}`,
+        recipients,
         pdfIncluded: !!pdfBuffer,
       },
     });

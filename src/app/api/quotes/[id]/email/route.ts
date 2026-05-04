@@ -3,11 +3,14 @@ import { requireAuthSessionFirst } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QuoteStatus } from "@prisma/client";
 import { sendQuoteEmail } from "@/lib/email/email-service";
-import { generateQuotePDF } from "@/lib/pdf/quote-pdf";
+import { generateQuotePdf } from "@/lib/pdf/pdf-generator";
+
+export const runtime = "nodejs";
 
 /**
  * POST /api/quotes/[id]/email
- * Send quote to customer via email with PDF attachment
+ * Send quote to customer via email with PDF attachment.
+ * Accepts { email: "single@addr" } or { emails: ["a@b", "c@d"] }
  */
 export async function POST(
   request: NextRequest,
@@ -18,39 +21,39 @@ export async function POST(
     if ("error" in authResult) return authResult.error;
     const { auth } = authResult;
 
-    // Check permissions
     if (auth.role !== "ADMIN" && auth.role !== "DISPATCHER") {
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
-    const resolvedParams = await context.params;
-    const quoteId = resolvedParams.id;
-
+    const { id: quoteId } = await context.params;
     const body = await request.json();
-    const { email, includePdf = true } = body;
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { error: "Email address is required" },
-        { status: 400 }
-      );
+    // Accept either { email: "one" } or { emails: ["one","two"] }
+    let recipients: string[] = [];
+    if (Array.isArray(body.emails)) {
+      recipients = body.emails.map((e: string) => e.trim()).filter(Boolean);
+    } else if (typeof body.email === "string" && body.email.trim()) {
+      // Support comma-separated in single field too
+      recipients = body.email.split(",").map((e: string) => e.trim()).filter(Boolean);
     }
 
-    // Validate email format
+    if (recipients.length === 0) {
+      return NextResponse.json({ error: "At least one email address is required" }, { status: 400 });
+    }
+
+    // Validate all emails
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const invalid = recipients.filter((e) => !emailRegex.test(e));
+    if (invalid.length > 0) {
       return NextResponse.json(
-        { error: "Invalid email address format" },
+        { error: `Invalid email address(es): ${invalid.join(", ")}` },
         { status: 400 }
       );
     }
 
     // Get quote with all related data
-    const quote = await prisma.quote.findUnique({
-      where: {
-        id: quoteId,
-        orgId: auth.orgId
-      },
+    const quote = await prisma.quote.findFirst({
+      where: { id: quoteId, orgId: auth.orgId },
       include: {
         customer: {
           select: {
@@ -61,83 +64,72 @@ export async function POST(
           },
         },
         site: {
-          select: {
-            name: true,
-            address: true,
-          },
+          select: { name: true, address: true },
         },
         lineItems: {
-          orderBy: { sortOrder: "asc" }
-        }
-      }
+          orderBy: { sortOrder: "asc" },
+        },
+      },
     });
 
     if (!quote) {
       return NextResponse.json({ error: "Quote not found" }, { status: 404 });
     }
 
-    // Get organization name
     const org = await prisma.org.findUnique({
       where: { id: auth.orgId },
       select: { name: true },
     });
-
     const orgName = org?.name || "ServiceOpsIQ";
 
-    // Generate PDF if requested
+    // Generate the same PDF used by the download route
     let pdfBuffer: Buffer | undefined;
-    if (includePdf) {
-      try {
-        pdfBuffer = await generateQuotePDF({
-          quoteNumber: quote.quoteNumber,
-          title: quote.title,
-          description: quote.description,
-          status: quote.status,
-          subtotal: Number(quote.subtotal),
-          tax: Number(quote.tax),
-          taxRate: Number(quote.taxRate),
-          total: Number(quote.total),
-          validUntil: quote.validUntil?.toISOString() || null,
-          notes: quote.notes,
-          terms: quote.terms,
-          sentAt: quote.sentAt?.toISOString() || null,
-          approvedAt: quote.approvedAt?.toISOString() || null,
-          approvedByName: quote.approvedByName,
-          rejectedAt: quote.rejectedAt?.toISOString() || null,
-          createdAt: quote.createdAt.toISOString(),
-          customer: {
-            name: quote.customer.name,
-            primaryEmail: quote.customer.primaryEmail,
-            primaryPhone: quote.customer.primaryPhone,
-            billingAddress: quote.customer.billingAddress,
-          },
-          site: quote.site
-            ? {
-                name: quote.site.name,
-                address: quote.site.address,
-              }
-            : null,
-          lineItems: quote.lineItems.map((item) => ({
-            id: item.id,
-            itemType: item.itemType,
-            description: item.description,
-            quantity: Number(item.quantity),
-            unitPrice: Number(item.unitPrice),
-            totalPrice: Number(item.totalPrice),
-          })),
-          orgName,
-        });
-      } catch (pdfError) {
-        console.error("Failed to generate PDF:", pdfError);
-        // Continue without PDF attachment
-      }
+    try {
+      pdfBuffer = await generateQuotePdf({
+        quoteNumber: quote.quoteNumber,
+        title: quote.title,
+        description: quote.description,
+        status: quote.status,
+        subtotal: Number(quote.subtotal),
+        tax: Number(quote.tax),
+        taxRate: Number(quote.taxRate),
+        total: Number(quote.total),
+        validUntil: quote.validUntil?.toISOString() || null,
+        notes: quote.notes,
+        terms: quote.terms,
+        sentAt: quote.sentAt?.toISOString() || null,
+        approvedAt: quote.approvedAt?.toISOString() || null,
+        approvedByName: quote.approvedByName,
+        rejectedAt: quote.rejectedAt?.toISOString() || null,
+        createdAt: quote.createdAt.toISOString(),
+        customer: {
+          name: quote.customer.name,
+          primaryEmail: quote.customer.primaryEmail,
+          primaryPhone: quote.customer.primaryPhone,
+          billingAddress: quote.customer.billingAddress,
+        },
+        site: quote.site
+          ? { name: quote.site.name, address: quote.site.address }
+          : null,
+        lineItems: quote.lineItems.map((item) => ({
+          id: item.id,
+          itemType: item.itemType,
+          description: item.description,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          totalPrice: Number(item.totalPrice),
+        })),
+        orgName,
+      });
+    } catch (pdfError) {
+      console.error("Failed to generate PDF:", pdfError);
     }
 
-    // Send email
+    // Send to all recipients
     const emailResult = await sendQuoteEmail({
       quoteNumber: quote.quoteNumber,
       customerName: quote.customer.name,
-      customerEmail: email,
+      customerEmail: recipients,
       total: Number(quote.total),
       validUntil: quote.validUntil?.toISOString() || null,
       title: quote.title,
@@ -153,8 +145,8 @@ export async function POST(
       );
     }
 
-    // Update quote status and sentAt timestamp
-    const updatedQuote = await prisma.quote.update({
+    // Mark as SENT if currently DRAFT
+    await prisma.quote.update({
       where: { id: quoteId },
       data: {
         status: quote.status === QuoteStatus.DRAFT ? QuoteStatus.SENT : quote.status,
@@ -162,19 +154,16 @@ export async function POST(
       },
     });
 
+    const recipientList = recipients.join(", ");
     return NextResponse.json({
       data: {
-        quote: updatedQuote,
-        message: `Quote ${quote.quoteNumber} sent to ${email}`,
-        email: email,
+        message: `Quote ${quote.quoteNumber} sent to ${recipientList}`,
+        recipients,
         pdfIncluded: !!pdfBuffer,
       },
     });
   } catch (error) {
     console.error("Failed to email quote:", error);
-    return NextResponse.json(
-      { error: "Failed to send email" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
   }
 }

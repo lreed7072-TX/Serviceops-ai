@@ -67,9 +67,10 @@ export default function QuoteDetailPage() {
 
   // Confirm dialog state
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
-  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   const toast = useToast();
 
@@ -156,8 +157,46 @@ export default function QuoteDetailPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!quote) return;
+    setPrinting(true);
+    try {
+      const response = await apiFetch(`/api/quotes/${quote.id}/pdf`);
+      if (!response.ok) throw new Error("Failed to generate PDF");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Open PDF in hidden iframe and trigger print
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {
+          // Fallback: open in new tab for manual print
+          window.open(url, "_blank");
+        }
+        // Cleanup after print dialog closes
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          window.URL.revokeObjectURL(url);
+        }, 120000);
+      };
+    } catch (error) {
+      console.error("Failed to print:", error);
+      toast.error("Failed to generate PDF for printing");
+    } finally {
+      setPrinting(false);
+    }
   };
 
   const handleExportPDF = async () => {
@@ -187,27 +226,32 @@ export default function QuoteDetailPage() {
 
   const handleEmailQuote = () => {
     if (!quote) return;
-
-    const email = quote.customer.primaryEmail || prompt("Enter customer email address:");
-    if (!email) return;
-
-    setPendingEmail(email);
-    setShowEmailConfirm(true);
+    setEmailInput(quote.customer.primaryEmail || "");
+    setShowEmailModal(true);
   };
 
   const confirmEmailQuote = async () => {
-    if (!quote || !pendingEmail) return;
+    if (!quote || !emailInput.trim()) return;
+
+    const emails = emailInput
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    if (emails.length === 0) return;
 
     setEmailing(true);
     try {
       const response = await apiFetch(`/api/quotes/${quote.id}/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: pendingEmail }),
+        body: JSON.stringify({ emails }),
       });
 
       if (response.ok) {
-        toast.success(`Quote sent successfully to ${pendingEmail}`);
+        toast.success(`Quote sent to ${emails.join(", ")}`);
+        setShowEmailModal(false);
+        setEmailInput("");
         await fetchQuote();
       } else {
         const error = await response.json();
@@ -218,8 +262,6 @@ export default function QuoteDetailPage() {
       toast.error("An error occurred while sending email");
     } finally {
       setEmailing(false);
-      setShowEmailConfirm(false);
-      setPendingEmail(null);
     }
   };
 
@@ -576,9 +618,11 @@ export default function QuoteDetailPage() {
           {/* Export & Communication Actions */}
           <button
             onClick={handlePrint}
+            disabled={printing}
             className="action-button primary"
           >
-            <span>🖨️</span> Print Quote
+            <span>{printing ? "⏳" : "🖨️"}</span>
+            {printing ? "Preparing..." : "Print Quote"}
           </button>
           
           <button
@@ -692,17 +736,41 @@ export default function QuoteDetailPage() {
         loading={converting}
       />
 
-      {/* Email Confirmation */}
-      <ConfirmDialog
-        open={showEmailConfirm}
-        onClose={() => { setShowEmailConfirm(false); setPendingEmail(null); }}
-        onConfirm={confirmEmailQuote}
-        title="Email Quote"
-        message={`Send quote ${quote.quoteNumber} to ${pendingEmail}?`}
-        confirmLabel="Send Email"
-        variant="default"
-        loading={emailing}
-      />
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="modal-overlay" onClick={() => { if (!emailing) { setShowEmailModal(false); setEmailInput(""); } }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Email Quote {quote.quoteNumber}</h2>
+            </div>
+            <div className="modal-body">
+              <div className="form-field">
+                <label className="field-label">Recipient(s)</label>
+                <input
+                  type="text"
+                  className="field-input"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="email@example.com"
+                  disabled={emailing}
+                />
+                <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.25rem" }}>
+                  Separate multiple addresses with commas
+                </p>
+              </div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "0.75rem" }}>
+                The professional PDF quote will be attached to the email.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => { setShowEmailModal(false); setEmailInput(""); }} disabled={emailing}>Cancel</button>
+              <button className="btn-submit" onClick={confirmEmailQuote} disabled={!emailInput.trim() || emailing}>
+                {emailing ? "Sending..." : "Send Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Duplicate Confirmation */}
       <ConfirmDialog

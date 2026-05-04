@@ -27,7 +27,7 @@ function escHtml(str: string | null | undefined): string {
 }
 
 interface SendEmailOptions {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   text?: string;
@@ -87,7 +87,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
 interface QuoteEmailData {
   quoteNumber: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | string[];
   total: number | string;
   validUntil: string | null;
   title: string;

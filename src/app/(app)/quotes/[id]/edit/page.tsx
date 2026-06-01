@@ -1,10 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { QuoteLineItemType, QuoteStatus } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
 import "../../new/new-quote.css";
+
+interface CatalogMaterial {
+  id: string;
+  name: string;
+  partNumber: string | null;
+  manufacturer: string | null;
+  unitCost: number | null;
+  unit: string | null;
+}
 
 interface Customer {
   id: string;
@@ -80,6 +89,60 @@ export default function EditQuotePage() {
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const toast = useToast();
+
+  // Material catalog search state
+  const [materialSearch, setMaterialSearch] = useState("");
+  const [materialResults, setMaterialResults] = useState<CatalogMaterial[]>([]);
+  const [searchingMaterials, setSearchingMaterials] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<CatalogMaterial | null>(null);
+  const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  const materialSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const materialDropdownRef = useRef<HTMLDivElement>(null);
+
+  const searchMaterials = useCallback(async (term: string) => {
+    if (!term.trim()) {
+      setMaterialResults([]);
+      setShowMaterialDropdown(false);
+      return;
+    }
+    setSearchingMaterials(true);
+    try {
+      const res = await fetch(`/api/materials?search=${encodeURIComponent(term)}&isActive=true&limit=10`);
+      if (res.ok) {
+        const result = await res.json();
+        setMaterialResults(result.data || []);
+        setShowMaterialDropdown(true);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setSearchingMaterials(false);
+    }
+  }, []);
+
+  const handleMaterialSearchChange = (value: string) => {
+    setMaterialSearch(value);
+    if (materialSearchTimer.current) clearTimeout(materialSearchTimer.current);
+    materialSearchTimer.current = setTimeout(() => searchMaterials(value), 300);
+  };
+
+  const selectMaterial = (mat: CatalogMaterial) => {
+    setSelectedMaterial(mat);
+    setShowMaterialDropdown(false);
+    setMaterialSearch("");
+    const desc = mat.partNumber ? `${mat.name} (P/N: ${mat.partNumber})` : mat.name;
+    setCurrentLineItem(prev => ({
+      ...prev,
+      materialId: mat.id,
+      description: desc,
+      unitPrice: mat.unitCost ?? prev.unitPrice,
+    }));
+  };
+
+  const clearMaterialSelection = () => {
+    setSelectedMaterial(null);
+    setCurrentLineItem(prev => ({ ...prev, materialId: undefined }));
+  };
 
   // Site creation modal state
   const [showSiteModal, setShowSiteModal] = useState(false);
@@ -251,6 +314,10 @@ export default function EditQuotePage() {
     });
     setShowLineItemModal(false);
     setEditingIndex(null);
+    setSelectedMaterial(null);
+    setMaterialSearch("");
+    setMaterialResults([]);
+    setShowMaterialDropdown(false);
   };
 
   const handleEditLineItem = (index: number) => {
@@ -733,7 +800,14 @@ export default function EditQuotePage() {
                 <label className="field-label">Item Type</label>
                 <select
                   value={currentLineItem.itemType}
-                  onChange={(e) => setCurrentLineItem({ ...currentLineItem, itemType: e.target.value as QuoteLineItemType })}
+                  onChange={(e) => {
+                    const newType = e.target.value as QuoteLineItemType;
+                    setCurrentLineItem({ ...currentLineItem, itemType: newType, materialId: undefined });
+                    setSelectedMaterial(null);
+                    setMaterialSearch("");
+                    setMaterialResults([]);
+                    setShowMaterialDropdown(false);
+                  }}
                   className="field-input"
                 >
                   <option value={QuoteLineItemType.SERVICE}>Service</option>
@@ -741,6 +815,68 @@ export default function EditQuotePage() {
                   <option value={QuoteLineItemType.OTHER}>Other</option>
                 </select>
               </div>
+
+              {currentLineItem.itemType === QuoteLineItemType.MATERIAL && (
+                <div className="form-field" ref={materialDropdownRef} style={{ position: "relative" }}>
+                  <label className="field-label">Search Catalog (by name or part number)</label>
+                  {selectedMaterial ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", background: "var(--background-secondary, #f3f4f6)", borderRadius: "var(--radius, 8px)", border: "1px solid var(--border, #e5e7eb)" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{selectedMaterial.name}</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                          {selectedMaterial.partNumber && `P/N: ${selectedMaterial.partNumber}`}
+                          {selectedMaterial.partNumber && selectedMaterial.manufacturer && " · "}
+                          {selectedMaterial.manufacturer}
+                        </div>
+                      </div>
+                      <button type="button" onClick={clearMaterialSelection} style={{ background: "none", border: "none", color: "var(--accent, #f97316)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>
+                        Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={materialSearch}
+                        onChange={(e) => handleMaterialSearchChange(e.target.value)}
+                        className="field-input"
+                        placeholder="Type to search materials..."
+                        autoComplete="off"
+                      />
+                      {searchingMaterials && (
+                        <div style={{ position: "absolute", right: "0.75rem", top: "2.2rem" }}>
+                          <div className="spinner-sm" style={{ width: "16px", height: "16px", borderWidth: "2px" }}></div>
+                        </div>
+                      )}
+                      {showMaterialDropdown && materialResults.length > 0 && (
+                        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "white", border: "1px solid var(--border, #e5e7eb)", borderRadius: "var(--radius, 8px)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", maxHeight: "240px", overflowY: "auto" }}>
+                          {materialResults.map((mat) => (
+                            <div
+                              key={mat.id}
+                              onClick={() => selectMaterial(mat)}
+                              style={{ padding: "0.6rem 0.75rem", cursor: "pointer", borderBottom: "1px solid #f3f4f6", transition: "background 0.1s" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
+                            >
+                              <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{mat.name}</div>
+                              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", gap: "0.75rem" }}>
+                                {mat.partNumber && <span>P/N: {mat.partNumber}</span>}
+                                {mat.manufacturer && <span>{mat.manufacturer}</span>}
+                                {mat.unitCost != null && <span>${mat.unitCost.toFixed(2)}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {showMaterialDropdown && materialResults.length === 0 && materialSearch.trim() && !searchingMaterials && (
+                        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "white", border: "1px solid var(--border, #e5e7eb)", borderRadius: "var(--radius, 8px)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", padding: "0.75rem", color: "var(--text-secondary)", fontSize: "0.85rem", textAlign: "center" }}>
+                          No materials found
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="form-field">
                 <label className="field-label">Description *</label>
